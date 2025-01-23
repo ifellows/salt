@@ -96,4 +96,6 @@ dependencies {
 
 
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose")
+
+    implementation("androidx.preference:preference-ktx:1.2.1")
 }

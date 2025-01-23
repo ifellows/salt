@@ -1,5 +1,6 @@
 package com.dev.salt
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,6 +21,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import java.io.IOException
+import kotlin.io.path.exists
+import java.io.File
+import android.media.MediaPlayer
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,6 +59,37 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 fun SurveyScreen(viewModel: SurveyViewModel) {
     //var currentQuestion = viewModel.currentQuestion
+    val context = LocalContext.current
+    val currentQuestion by viewModel.currentQuestion.collectAsState()
+    var highlightedButtonIndex by remember { mutableStateOf<Int?>(null) }
+    var mediaPlayer: MediaPlayer? = remember { null }
+
+
+    LaunchedEffect(currentQuestion) {
+        currentQuestion?.let { (question, options, _) ->
+            // Play question audio and wait for completion
+            playAudio(context, question.audioFileName)?.let { player ->
+                player.setOnCompletionListener { it.release() }
+                player.start()
+                player.awaitCompletion() // Suspend until completion
+            }
+
+            // Play option audios sequentially
+            for (option in options) {
+                withContext(Dispatchers.Main) { // Update highlightedButtonIndex on main thread
+                    highlightedButtonIndex = option.id
+                }
+                playAudio(context, option.audioFileName)?.let { player ->
+                    player.setOnCompletionListener { it.release() }
+                    player.start()
+                    player.awaitCompletion() // Suspend until completion
+                }
+                withContext(Dispatchers.Main) { // Reset highlightedButtonIndex on main thread
+                    highlightedButtonIndex = null
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -81,15 +124,23 @@ fun SurveyScreen(viewModel: SurveyViewModel) {
             }
         }
     ) { innerPadding ->
-        Column(modifier = Modifier
-            .padding(innerPadding)
-            .padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .padding(16.dp)
+        ) {
             val currentQuestion by viewModel.currentQuestion.collectAsState()
             currentQuestion?.let { (question, options, answer) ->
                 Text(text = question.statement, style = MaterialTheme.typography.headlineSmall)
                 Spacer(modifier = Modifier.height(16.dp))
                 options.forEach { option ->
-                    val buttonColors = if (answer == option.text) { // Check for match
+                    val isHighlighted by remember(highlightedButtonIndex, option.id)
+                    { // Derived state
+                        derivedStateOf { highlightedButtonIndex == option.id }
+                    }
+                    val buttonColors = if(isHighlighted){
+                        ButtonDefaults.buttonColors(containerColor = Color.Yellow)
+                    }else if(answer == option.text) { // Check for match
                         ButtonDefaults.buttonColors(containerColor = Color.Green) // Change color if match
                     } else {
                         ButtonDefaults.buttonColors() // Default color
@@ -109,3 +160,31 @@ fun SurveyScreen(viewModel: SurveyViewModel) {
     }
 }
 
+
+// Helper function to play audio and return MediaPlayer
+private fun playAudio(context: Context, audioFileName: String): MediaPlayer? {
+    val audioFile = File(context.filesDir, "audio/$audioFileName")
+    return if (audioFile.exists()) {
+        try {
+            val mediaPlayer = MediaPlayer()
+            mediaPlayer.setDataSource(audioFile.absolutePath)
+            mediaPlayer.prepare()
+            mediaPlayer
+        } catch (e: IOException) {
+            e.printStackTrace()
+            null
+        }
+    } else {
+        null
+    }
+}
+// Extension function to suspend until MediaPlayer completion
+suspend fun MediaPlayer.awaitCompletion() {
+    suspendCancellableCoroutine { continuation ->
+        setOnCompletionListener {
+            continuation.resume(Unit) {
+                release() // Release MediaPlayer on cancellation
+            }
+        }
+    }
+}

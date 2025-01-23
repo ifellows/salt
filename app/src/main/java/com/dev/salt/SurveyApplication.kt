@@ -58,7 +58,7 @@ class SurveyApplication : Application() {
         }
     }
 
-    fun copyRawFilesToLocalStorage(context: Context) {
+    /*fun copyRawFilesToLocalStorage(context: Context) {
         val rawResources = context.resources.getIdentifier("raw", "raw", context.packageName)
         val rawFiles = context.resources.assets.list("raw") ?: emptyArray()
 
@@ -81,8 +81,38 @@ class SurveyApplication : Application() {
                 inputStream.close()
                 outputStream.close()
             } catch (e: IOException) {
-                // Handle error
+                e.printStackTrace()
+            }
+        }
+    }*/
+
+    fun copyRawFilesToLocalStorage(context: Context) {
+        val rawFiles = listOf("question1", "yes", "no", "dont_know", "dont_want_to_answer", "question2",
+            "less_than_a_year_ago", "over_a_year_ago", "question3", "dont_remember", "question4", "none", "one", "more_than_one", "dont_know_or_dont_want_to_answer") // Replace with your actual raw file names
+
+        val audioDir = File(context.filesDir, "audio")
+        if (!audioDir.exists()) {
+            audioDir.mkdirs()
+        }
+
+        for (fileName in rawFiles) {
+            try {
+                val resourceId = context.resources.getIdentifier(fileName, "raw", context.packageName)
+                val inputStream = context.resources.openRawResource(resourceId)
+                val outputStream = FileOutputStream(File(audioDir, "$fileName.mp3")) // Assuming your raw files are MP3s
+
+                val buffer = ByteArray(1024)
+                var length: Int
+                while (inputStream.read(buffer).also { length = it } > 0) {
+                    outputStream.write(buffer, 0, length)
+                }
+
+                inputStream.close()
+                outputStream.close()
+            } catch (e: IOException) {
+                e.printStackTrace()
             }
         }
     }
+
 }
