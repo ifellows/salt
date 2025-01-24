@@ -25,6 +25,7 @@ import java.io.IOException
 import kotlin.io.path.exists
 import java.io.File
 import android.media.MediaPlayer
+import androidx.compose.material.icons.filled.Replay
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
@@ -32,6 +33,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.CoroutineScope
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,7 +52,8 @@ class MainActivity : ComponentActivity() {
                     val surveyApplication = SurveyApplication()
                     surveyApplication.populateSampleData()
                     surveyApplication.copyRawFilesToLocalStorage(this)
-                    SurveyScreen(viewModel)
+                    val coroutineScope = rememberCoroutineScope()
+                    SurveyScreen(viewModel, coroutineScope)
                 }
             }
         }
@@ -57,38 +62,59 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun SurveyScreen(viewModel: SurveyViewModel) {
+fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope) {
     //var currentQuestion = viewModel.currentQuestion
     val context = LocalContext.current
     val currentQuestion by viewModel.currentQuestion.collectAsState()
     var highlightedButtonIndex by remember { mutableStateOf<Int?>(null) }
-    var mediaPlayer: MediaPlayer? = remember { null }
+    //var mediaPlayer: MediaPlayer? = remember { null }
+    var currentMediaPlayer: MediaPlayer? by remember { mutableStateOf(null) }
 
-
-    LaunchedEffect(currentQuestion) {
+    suspend fun playCurrentQuestion(){
         currentQuestion?.let { (question, options, _) ->
+            // Stop and release previous MediaPlayer
+            currentMediaPlayer?.stop()
+            currentMediaPlayer?.release()
+            currentMediaPlayer = null
+
             // Play question audio and wait for completion
-            playAudio(context, question.audioFileName)?.let { player ->
-                player.setOnCompletionListener { it.release() }
+            currentMediaPlayer = playAudio(context, question.audioFileName) // Store new MediaPlayer
+            currentMediaPlayer?.let { player ->
+                player.setOnCompletionListener {
+                    it.release()
+                    currentMediaPlayer = null // Reset after completion
+                }
                 player.start()
                 player.awaitCompletion() // Suspend until completion
             }
 
             // Play option audios sequentially
             for (option in options) {
-                withContext(Dispatchers.Main) { // Update highlightedButtonIndex on main thread
+                withContext(Dispatchers.Main) {
                     highlightedButtonIndex = option.id
                 }
-                playAudio(context, option.audioFileName)?.let { player ->
-                    player.setOnCompletionListener { it.release() }
+                // Stop and release previous MediaPlayer for options
+                currentMediaPlayer?.stop()
+                currentMediaPlayer?.release()
+                currentMediaPlayer = null
+
+                currentMediaPlayer = playAudio(context, option.audioFileName) // Store new MediaPlayer
+                currentMediaPlayer?.let { player ->
+                    player.setOnCompletionListener {
+                        it.release()
+                        currentMediaPlayer = null // Reset after completion
+                    }
                     player.start()
                     player.awaitCompletion() // Suspend until completion
                 }
-                withContext(Dispatchers.Main) { // Reset highlightedButtonIndex on main thread
+                withContext(Dispatchers.Main) {
                     highlightedButtonIndex = null
                 }
             }
         }
+    }
+    LaunchedEffect(currentQuestion) {
+        playCurrentQuestion()
     }
 
     Scaffold(
@@ -133,6 +159,18 @@ fun SurveyScreen(viewModel: SurveyViewModel) {
             currentQuestion?.let { (question, options, answer) ->
                 Text(text = question.statement, style = MaterialTheme.typography.headlineSmall)
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // Replay button
+                IconButton(onClick = {
+                    coroutineScope.launch {
+                        playCurrentQuestion()
+                    }
+                    //currentMediaPlayer?.seekTo(0)
+                    //currentMediaPlayer?.start()
+                }) { // Replay logic
+                    Icon(Icons.Filled.Replay, contentDescription = "Replay")
+                }
+
                 options.forEach { option ->
                     val isHighlighted by remember(highlightedButtonIndex, option.id)
                     { // Derived state
