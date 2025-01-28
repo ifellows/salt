@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.dev.salt.data.Question
 import com.dev.salt.data.Option
 import com.dev.salt.data.SurveyDatabase
+import com.dev.salt.data.Survey
+import com.dev.salt.randomHash
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -17,7 +19,7 @@ class SurveyViewModel(private val database: SurveyDatabase) : ViewModel() {
     private val _hasPreviousQuestion = mutableStateOf(false)
     val hasPreviousQuestion: State<Boolean> = _hasPreviousQuestion
     //public var currentQuestion: Pair<Question, List<Option>>? = null//StateFlow<Pair<Question, List<Option>>?> = _currentQuestion
-
+    public var survey : Survey? = null
     public var questions: List<Question> = emptyList()
     public var answers: MutableList<String?> = MutableList<String?>(0, { null })
     public var currentQuestionIndex = -1
@@ -27,6 +29,11 @@ class SurveyViewModel(private val database: SurveyDatabase) : ViewModel() {
             loadQuestions()
             loadNextQuestion()
         }
+    }
+
+    private fun makeNewSurvey(language: String): Survey {
+        val survey: Survey = Survey(language = language, subjectId = randomHash(), startDatetime = System.currentTimeMillis())
+        return survey
     }
 
     private fun loadQuestions() {

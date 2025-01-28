@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.dev.salt.data.SurveyDatabase
+import com.dev.salt.data.Survey
 import com.dev.salt.SurveyApplication
 import com.dev.salt.viewmodel.SurveyViewModel
 
@@ -36,27 +37,64 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.CoroutineScope
+import androidx.compose.ui.Alignment
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    //this.deleteDatabase("survey_database")
-                    val database = SurveyDatabase.getInstance(this)
-                    val viewModel: SurveyViewModel = viewModel { SurveyViewModel(database) }
-                    val surveyApplication = SurveyApplication()
-                    surveyApplication.populateSampleData()
-                    surveyApplication.copyRawFilesToLocalStorage(this)
-                    val coroutineScope = rememberCoroutineScope()
-                    SurveyScreen(viewModel, coroutineScope)
+            var showWelcomeScreen by remember { mutableStateOf(true) }
+
+            if (showWelcomeScreen) {
+                WelcomeScreen(onContinueClicked = { showWelcomeScreen = false })
+            } else {
+                MaterialTheme {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        /*val database = SurveyDatabase.getInstance(this)
+                        delete the database
+                        database.clearAllTables()
+                        val viewModel: SurveyViewModel = viewModel { SurveyViewModel(database) }
+                        val surveyApplication = SurveyApplication()
+                        surveyApplication.populateSampleData()
+                        surveyApplication.copyRawFilesToLocalStorage(this)
+                        val coroutineScope = rememberCoroutineScope()
+                        SurveyScreen(viewModel, coroutineScope)*/
+
+                        MainScreen(this)
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun MainScreen(context: Context) {
+    var currentScreen by remember { mutableStateOf("welcome") }
+
+    when (currentScreen) {
+        "welcome" -> WelcomeScreen(onContinueClicked = { currentScreen = "menu" })
+        "menu" -> MenuScreen(
+            onStartNewSurvey = { currentScreen = "survey" },
+            onContinueSurvey = { currentScreen = "continue" },
+            onSettings = { currentScreen = "settings" }
+        )
+        "survey" -> {
+            val database = SurveyDatabase.getInstance(context)
+            // delete the database
+            //database.clearAllTables()
+            val viewModel: SurveyViewModel = viewModel { SurveyViewModel(database) }
+            val surveyApplication = SurveyApplication()
+            surveyApplication.populateSampleData()
+            surveyApplication.copyRawFilesToLocalStorage(context)
+            val coroutineScope = rememberCoroutineScope()
+            SurveyScreen(viewModel, coroutineScope)
+        }
+        "continue" -> PlaceholderScreen("Continue Survey")
+        "settings" -> PlaceholderScreen("Settings")
     }
 }
 
@@ -70,12 +108,15 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope) {
     //var mediaPlayer: MediaPlayer? = remember { null }
     var currentMediaPlayer: MediaPlayer? by remember { mutableStateOf(null) }
 
+
     suspend fun playCurrentQuestion(){
         currentQuestion?.let { (question, options, _) ->
             // Stop and release previous MediaPlayer
-            currentMediaPlayer?.stop()
-            currentMediaPlayer?.release()
-            currentMediaPlayer = null
+            try {
+                currentMediaPlayer?.stop()
+                currentMediaPlayer?.release()
+                currentMediaPlayer = null
+            } catch (e: Exception){ }
 
             // Play question audio and wait for completion
             currentMediaPlayer = playAudio(context, question.audioFileName) // Store new MediaPlayer
@@ -122,8 +163,8 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope) {
             TopAppBar(
                 title = { Text("SALT Survey") },
                 actions = {
-                    IconButton(onClick = { /* Handle abort action */ }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Abort")
+                    IconButton(onClick = { /* Handle exit action */ }) {
+                        Icon(Icons.Filled.Close, contentDescription = "Exit")
                     }
                 }
             )
@@ -194,6 +235,108 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope) {
                     }
                 }
             } ?: Text("Survey completed!", style = MaterialTheme.typography.headlineMedium)
+        }
+    }
+}
+
+@Composable
+fun WelcomeScreen(onContinueClicked: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = "Welcome to the SALT Survey", style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onContinueClicked) {
+                Text(text = "Continue")
+            }
+        }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+fun MenuScreen(onStartNewSurvey: () -> Unit, onContinueSurvey: () -> Unit, onSettings: () -> Unit) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Menu") },
+                actions = {
+                    IconButton(onClick = { /* Handle exit action */ }) {
+                        Icon(Icons.Filled.Close, contentDescription = "Exit")
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = "Menu", style = MaterialTheme.typography.headlineMedium)
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = onStartNewSurvey) {
+                    Text(text = "Start New Survey")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = onContinueSurvey) {
+                    Text(text = "Continue Survey")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = onSettings) {
+                    Text(text = "Settings")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+fun PlaceholderScreen(title: String) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                actions = {
+                    IconButton(onClick = { /* Handle exit action */ }) {
+                        Icon(Icons.Filled.Close, contentDescription = "Exit")
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = title, style = MaterialTheme.typography.headlineMedium)
+            }
         }
     }
 }
