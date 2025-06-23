@@ -5,55 +5,79 @@ import java.util.UUID
 data class Question(
     @PrimaryKey val id: Int,
     @ColumnInfo(name = "question_id") val questionId: Int,
-    @ColumnInfo(name = "statement") val statement: String,
-    @ColumnInfo(name = "audio_file_name") val audioFileName: String,
-    @ColumnInfo(name = "question_language") val questionLanguage: String, // New field
-    @ColumnInfo(name = "primary_language_text") val primaryLanguageText: String // New field
+    @ColumnInfo(name = "question_short_name") val questionShortName: String,
+    @ColumnInfo(name = "statement") var statement: String,
+    @ColumnInfo(name = "audio_file_name") var audioFileName: String,
+    @ColumnInfo(name = "question_language") var questionLanguage: String,
+    @ColumnInfo(name = "primary_language_text") var primaryLanguageText: String,
+    @ColumnInfo(name = "question_type") var questionType: String = "multiple_choice",
+    @ColumnInfo(name = "pre_script") var preScript: String? = null, // a script to run before the question is asked
+    @ColumnInfo(name = "validation_script") var validationScript: String? = null // a script to determine if an answer value is valid
 )
 
 @Entity(tableName = "options")
 data class Option(
     @PrimaryKey val id: Int,
-    @ColumnInfo(name = "question_id") val questionId: Int,
-    @ColumnInfo(name = "text") val text: String,
-    @ColumnInfo(name = "audio_file_name") val audioFileName: String,
-    @ColumnInfo(name = "option_question_index") val optionQuestionIndex: Int, // New field
-    @ColumnInfo(name = "language") val language: String, // New field
-    @ColumnInfo(name = "primary_language_text") val primaryLanguageText: String // New field
+    @ColumnInfo(name = "question_id") var questionId: Int,
+    @ColumnInfo(name = "text") var text: String,
+    @ColumnInfo(name = "audio_file_name") var audioFileName: String,
+    @ColumnInfo(name = "option_question_index") var optionQuestionIndex: Int, // New field
+    @ColumnInfo(name = "language") var language: String, // New field
+    @ColumnInfo(name = "primary_language_text") var primaryLanguageText: String // New field
 )
 
 @Entity(tableName = "surveys")
 data class Survey(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    @ColumnInfo(name = "subject_id") val subjectId: String,
-    @ColumnInfo(name = "start_datetime") val startDatetime: Long,
-    @ColumnInfo(name = "language") val language: String
+    @ColumnInfo(name = "subject_id") var subjectId: String,
+    @ColumnInfo(name = "start_datetime") var startDatetime: Long,
+    @ColumnInfo(name = "language") var language: String
 ) {
     @Ignore
     var questions: MutableList<Question> = mutableListOf()
 
     @Ignore
     var answers: MutableList<Answer> = mutableListOf()
+
+    fun populateFields(surveyDao: SurveyDao) {
+        this.questions = surveyDao.getQuestionsByLanguage(this.language)
+        this.answers = surveyDao.getAnswersBySurveyId(this.id)
+        if(answers.size != questions.size){
+            for(i in answers.size until questions.size){
+                answers.add(Answer(
+                    surveyId = id,
+                    questionId = questions[i].id,
+                    optionQuestionIndex = null,
+                    answerLanguage = this.language,
+                    answerPrimaryLanguageText = null))
+            }
+        }
+    }
 }
 
-fun Survey.populateFields(surveyDao: SurveyDao) {
-    this.questions = surveyDao.getQuestionsByLanguage(this.language)
-    this.answers = surveyDao.getAnswersBySurveyId(this.id)
-}
 
 @Entity(tableName = "answers")
 data class Answer(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    @ColumnInfo(name = "survey_id") val surveyId: Int,
-    @ColumnInfo(name = "question_id") val questionId: Int,
-    @ColumnInfo(name = "option_question_index") val optionQuestionIndex: Int,
-    @ColumnInfo(name = "answer_language") val answerLanguage: String,
-    @ColumnInfo(name = "answer_primary_language_text") val answerPrimaryLanguageText: String,
-    @ColumnInfo(name = "is_numeric") val isNumeric: Boolean = false,
-    @ColumnInfo(name = "numeric_value") val numericValue: Double? = null
+    @ColumnInfo(name = "survey_id") var surveyId: String,
+    @ColumnInfo(name = "question_id") var questionId: Int,
+    @ColumnInfo(name = "option_question_index") var optionQuestionIndex: Int?,
+    @ColumnInfo(name = "answer_language") var answerLanguage: String,
+    @ColumnInfo(name = "answer_primary_language_text") var answerPrimaryLanguageText: String?,
+    @ColumnInfo(name = "is_numeric") var isNumeric: Boolean = false,
+    @ColumnInfo(name = "numeric_value") var numericValue: Double? = null
 ) {
-    fun getValue(): Any? {
-        return if (isNumeric) numericValue else optionQuestionIndex
+    fun getValue(returnIndex: Boolean = true): Any? {
+        if(isNumeric){
+            return numericValue
+        }
+        if(optionQuestionIndex == null && answerPrimaryLanguageText != null){
+            return answerPrimaryLanguageText
+        }
+        if(returnIndex) {
+            return optionQuestionIndex
+        }
+        return answerPrimaryLanguageText
     }
 }
 
@@ -105,7 +129,7 @@ fun deleteSurvey(survey: Survey, surveyDao: SurveyDao) {
     surveyDao.deleteSurvey(survey)
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class], version = 6)
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class], version = 10)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
 

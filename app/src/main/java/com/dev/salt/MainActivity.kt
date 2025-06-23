@@ -53,9 +53,9 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        /*val database = SurveyDatabase.getInstance(this)
-                        delete the database
-                        database.clearAllTables()
+                        val database = SurveyDatabase.getInstance(this)
+                        /*delete the database*/
+                        /*database.clearAllTables()
                         val viewModel: SurveyViewModel = viewModel { SurveyViewModel(database) }
                         val surveyApplication = SurveyApplication()
                         surveyApplication.populateSampleData()
@@ -219,7 +219,7 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope) {
                     }
                     val buttonColors = if(isHighlighted){
                         ButtonDefaults.buttonColors(containerColor = Color.Yellow)
-                    }else if(answer == option.text) { // Check for match
+                    }else if(answer?.numericValue?.toInt() == option.optionQuestionIndex) { // Check for match
                         ButtonDefaults.buttonColors(containerColor = Color.Green) // Change color if match
                     } else {
                         ButtonDefaults.buttonColors() // Default color
