@@ -64,7 +64,7 @@ class SurveyApplication : Application() {
                 "en","Don't want to answer"))
 
             dao.insertQuestion(Question(4, 4,"q4","How many sexual partners have you had in the last month?","question4.mp3",
-                "en","How many sexual partners have you had in the last month?"))
+                "en","How many sexual partners have you had in the last month?", preScript = "q3 == 1" ))
             dao.insertOption(Option(13, 4, "None", "none.mp3",0,"en","None"))
             dao.insertOption(Option(14, 4, "One", "one.mp3",1,"en","One"))
             dao.insertOption(Option(15, 4, "More than one", "more_than_one.mp3",2,"en",
@@ -73,7 +73,7 @@ class SurveyApplication : Application() {
                 "en","Don't know or don't want to answer"))
 
             dao.insertQuestion(Question(5, 5,"q5","What is your age?","question5.mp3",
-                "en","What is your age?", questionType = "numeric"))
+                "en","What is your age?", questionType = "numeric", validationScript = "(q5 > 15) && (q5 < 115)"))
 
         }
     }

@@ -100,4 +100,6 @@ dependencies {
     implementation("androidx.preference:preference-ktx:1.2.1")
 
     implementation("androidx.compose.material:material-icons-extended")
+
+    implementation("org.apache.commons:commons-jexl3:3.3")
 }

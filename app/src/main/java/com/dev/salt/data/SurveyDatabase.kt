@@ -12,7 +12,8 @@ data class Question(
     @ColumnInfo(name = "primary_language_text") var primaryLanguageText: String,
     @ColumnInfo(name = "question_type") var questionType: String = "multiple_choice",
     @ColumnInfo(name = "pre_script") var preScript: String? = null, // a script to run before the question is asked
-    @ColumnInfo(name = "validation_script") var validationScript: String? = null // a script to determine if an answer value is valid
+    @ColumnInfo(name = "validation_script") var validationScript: String? = null, // a script to determine if an answer value is valid
+    @ColumnInfo(name = "validation_error_text") var validationErrorText: String? = "Invalid Answer" // a script to determine if an answer value is valid
 )
 
 @Entity(tableName = "options")
@@ -129,7 +130,7 @@ fun deleteSurvey(survey: Survey, surveyDao: SurveyDao) {
     surveyDao.deleteSurvey(survey)
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class], version = 10)
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class], version = 11)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
 

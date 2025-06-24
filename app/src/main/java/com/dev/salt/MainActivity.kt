@@ -26,6 +26,7 @@ import java.io.IOException
 import kotlin.io.path.exists
 import java.io.File
 import android.media.MediaPlayer
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -36,8 +37,12 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.CoroutineScope
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.material3.AlertDialog
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -108,6 +113,57 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope) {
     //var mediaPlayer: MediaPlayer? = remember { null }
     var currentMediaPlayer: MediaPlayer? by remember { mutableStateOf(null) }
 
+    // State for the text field input, resets when question ID changes
+    var textInputValue by rememberSaveable(currentQuestion?.first?.id) {
+        mutableStateOf(
+            // MODIFIED: Initialize with existing text answer if available
+            currentQuestion?.let { (q, _, ans) ->
+                if (q.questionType != "multiple_choice") ans?.getValue(false)?.toString() else ""
+            } ?: ""
+        )
+    }
+
+    // Update textInputValue when currentQuestionData changes and it's a text-based answer
+    // This handles loading previous answers when navigating back/forth
+    LaunchedEffect(currentQuestion) {
+        currentQuestion?.let { (question, _, answer) ->
+            if (question.questionType != "multiple_choice") {
+                textInputValue = answer?.getValue(false)?.toString() ?: ""
+            }
+        }
+    }
+
+    var errorMessageForDialog by remember { mutableStateOf<String?>(null) }
+    var showDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(errorMessageForDialog) {
+        if (errorMessageForDialog != null) {
+            showDialog = true // Trigger the dialog to show
+        }
+        // You might not want to set showDialog = false here,
+        // as the dialog's own dismiss actions will handle that.
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showDialog = false
+                errorMessageForDialog = null // Clear the error when dialog is dismissed
+            },
+            title = { Text("❌") }, // Or a more dynamic title
+            text = { Text(errorMessageForDialog ?: "An error occurred.") }, // Use the state variable
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDialog = false
+                        errorMessageForDialog = null // Clear the error
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 
     suspend fun playCurrentQuestion(){
         currentQuestion?.let { (question, options, _) ->
@@ -154,6 +210,7 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope) {
             }
         }
     }
+
     LaunchedEffect(currentQuestion) {
         playCurrentQuestion()
     }
@@ -177,12 +234,27 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Button(onClick = {
+                    currentQuestion?.let { (question, _, _) ->
+                        if (question.questionType != "multiple_choice") {
+                            viewModel.answerQuestion(textInputValue)
+                        }
+                    }
                     viewModel.loadPreviousQuestion()
                 }, enabled = viewModel.hasPreviousQuestion.value) {
                     Text("Previous")
                 }
                 Button(onClick = {
-                    viewModel.loadNextQuestion()
+                    currentQuestion?.let { (question, _, _) ->
+                        if (question.questionType != "multiple_choice") {
+                            viewModel.answerQuestion(textInputValue)
+                        }
+                    }
+
+                    val message = viewModel.loadNextQuestion()
+                    if(message != null){
+                        errorMessageForDialog = message
+                        showDialog = true // Show the dialog with the error message
+                    }
                     //currentQuestion = viewModel.currentQuestion
 
                 }, enabled = true) {
@@ -211,28 +283,58 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope) {
                 }) { // Replay logic
                     Icon(Icons.Filled.Replay, contentDescription = "Replay")
                 }
-
-                options.forEach { option ->
-                    val isHighlighted by remember(highlightedButtonIndex, option.id)
-                    { // Derived state
-                        derivedStateOf { highlightedButtonIndex == option.id }
+                if (question.questionType == "multiple_choice") {
+                    options.forEach { option ->
+                        val isHighlighted by remember(highlightedButtonIndex, option.id)
+                        { // Derived state
+                            derivedStateOf { highlightedButtonIndex == option.id }
+                        }
+                        val buttonColors = if (isHighlighted) {
+                            ButtonDefaults.buttonColors(containerColor = Color.Yellow)
+                        } else if (answer?.numericValue?.toInt() == option.optionQuestionIndex) { // Check for match
+                            ButtonDefaults.buttonColors(containerColor = Color.Green) // Change color if match
+                        } else {
+                            ButtonDefaults.buttonColors() // Default color
+                        }
+                        Button(
+                            onClick = { viewModel.answerQuestion(option.id) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            colors = buttonColors // Apply button colors
+                        ) {
+                            Text(text = option.text)
+                        }
                     }
-                    val buttonColors = if(isHighlighted){
-                        ButtonDefaults.buttonColors(containerColor = Color.Yellow)
-                    }else if(answer?.numericValue?.toInt() == option.optionQuestionIndex) { // Check for match
-                        ButtonDefaults.buttonColors(containerColor = Color.Green) // Change color if match
-                    } else {
-                        ButtonDefaults.buttonColors() // Default color
-                    }
-                    Button(
-                        onClick = { viewModel.answerQuestion(option.id) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        colors = buttonColors // Apply button colors
-                    ) {
-                        Text(text = option.text)
-                    }
+                } else{
+                    // Text Field for numeric or freeform text
+                    OutlinedTextField(
+                        value = textInputValue,
+                        onValueChange = { newValue ->
+                            if (question.questionType == "numeric") {
+                                if (newValue.matches(Regex("^-?\\d*\\.?\\d*\$"))) {
+                                   textInputValue = newValue
+                                }
+                            } else {
+                                // For freeform text, allow any input
+                                textInputValue = newValue
+                            }
+                        },
+                        label = { Text("") },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = if (question.questionType == "numeric") KeyboardType.Number else KeyboardType.Text,
+                            imeAction = ImeAction.Done // Or ImeAction.Next
+                        ),
+                        singleLine = question.questionType == "numeric", // Or false for multi-line free text
+                        // NEW: Save on focus lost (optional, good for UX)
+                        // onFocusChanged = { focusState ->
+                        //    if (!focusState.isFocused && textInputValue != (answer?.getValue(false)?.toString() ?: "")) {
+                        //        viewModel.answerQuestion(textInputValue)
+                        //    }
+                        // }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             } ?: Text("Survey completed!", style = MaterialTheme.typography.headlineMedium)
         }
@@ -255,7 +357,7 @@ fun WelcomeScreen(onContinueClicked: () -> Unit) {
             Text(text = "Welcome to the SALT Survey", style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = onContinueClicked) {
-                Text(text = "Continue")
+                Text(text = "Login")
             }
         }
     }
