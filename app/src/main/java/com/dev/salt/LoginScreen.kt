@@ -3,6 +3,7 @@ package com.dev.salt
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -68,7 +69,10 @@ fun LoginScreen(
 
             OutlinedTextField(
                 value = loginViewModel.username,
-                onValueChange = { loginViewModel.username = it },
+                onValueChange = { 
+                    loginViewModel.username = it
+                    loginViewModel.checkBiometricAvailability() // Check if biometric is available for this user
+                },
                 label = { Text("Username") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
@@ -114,6 +118,39 @@ fun LoginScreen(
                     )
                 } else {
                     Text("Login")
+                }
+            }
+            
+            // Biometric authentication button
+            if (loginViewModel.showBiometricOption) {
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                OutlinedButton(
+                    onClick = {
+                        loginViewModel.authenticateWithBiometric { result ->
+                            if (result.success) {
+                                onLoginSuccess(result.role)
+                            }
+                            // Error is handled by the showErrorDialog via observing loginViewModel.loginError
+                        }
+                    },
+                    enabled = !loginViewModel.isLoading && !loginViewModel.isBiometricLoading,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (loginViewModel.isBiometricLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.Fingerprint,
+                            contentDescription = "Biometric Login",
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Login with Biometric")
+                    }
                 }
             }
         }

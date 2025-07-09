@@ -13,6 +13,8 @@ import androidx.lifecycle.viewModelScope
 // import com.dev.salt.db.SurveyDatabase
 import com.dev.salt.data.UserDao // Import your UserDao
 import com.dev.salt.PasswordUtils // Import the best practice utility
+import com.dev.salt.auth.BiometricAuthManager
+import com.dev.salt.auth.BiometricResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -32,13 +34,20 @@ data class LoginResult(
     val errorMessage: String? = null
 )
 
-class LoginViewModel(private val userDao: UserDao) : ViewModel() { // Inject UserDao
+class LoginViewModel(
+    private val userDao: UserDao,
+    private val biometricAuthManager: BiometricAuthManager
+) : ViewModel() {
 
     var username by mutableStateOf("")
     var password by mutableStateOf("")
     var isLoading by mutableStateOf(false)
         private set // Only ViewModel should modify this
     var loginError by mutableStateOf<String?>(null)
+        private set // Only ViewModel should modify this
+    var showBiometricOption by mutableStateOf(false)
+        private set // Only ViewModel should modify this
+    var isBiometricLoading by mutableStateOf(false)
         private set // Only ViewModel should modify this
 
     fun login(onLoginComplete: (LoginResult) -> Unit) {
@@ -95,18 +104,123 @@ class LoginViewModel(private val userDao: UserDao) : ViewModel() { // Inject Use
     fun clearError() {
         loginError = null
     }
+
+    /**
+     * Checks if biometric authentication is available for the entered username.
+     */
+    fun checkBiometricAvailability() {
+        if (username.isBlank()) {
+            showBiometricOption = false
+            return
+        }
+
+        viewModelScope.launch {
+            val isSupported = biometricAuthManager.isBiometricSupported()
+            val isEnabledForUser = biometricAuthManager.isBiometricEnabledForUser(username)
+            
+            showBiometricOption = isSupported && isEnabledForUser
+            Log.d("LoginViewModel", "Biometric available for $username: $showBiometricOption")
+        }
+    }
+
+    /**
+     * Attempts biometric authentication for the entered username.
+     */
+    fun authenticateWithBiometric(onLoginComplete: (LoginResult) -> Unit) {
+        if (username.isBlank()) {
+            loginError = "Please enter username first"
+            return
+        }
+
+        viewModelScope.launch {
+            isBiometricLoading = true
+            loginError = null
+
+            try {
+                // Show biometric prompt (mock implementation)
+                biometricAuthManager.showBiometricPrompt(
+                    title = "Biometric Authentication",
+                    subtitle = "Use your fingerprint to login as $username"
+                ) { result ->
+                    when (result) {
+                        is BiometricResult.Success -> {
+                            // Biometric prompt succeeded, now verify against stored key
+                            viewModelScope.launch {
+                                biometricAuthManager.authenticateUserBiometric(username) { authResult ->
+                                    isBiometricLoading = false
+                                    
+                                    when (authResult) {
+                                        is BiometricResult.Success -> {
+                                            // Get user role for successful biometric auth
+                                            viewModelScope.launch {
+                                                val user = withContext(Dispatchers.IO) {
+                                                    userDao.getUserByUserName(username)
+                                                }
+                                                
+                                                if (user != null) {
+                                                    val role = try {
+                                                        UserRole.valueOf(user.role.uppercase())
+                                                    } catch (e: IllegalArgumentException) {
+                                                        UserRole.NONE
+                                                    }
+                                                    
+                                                    val loginResult = LoginResult(success = true, role = role)
+                                                    onLoginComplete(loginResult)
+                                                } else {
+                                                    loginError = "User not found"
+                                                    onLoginComplete(LoginResult(success = false, errorMessage = "User not found"))
+                                                }
+                                            }
+                                        }
+                                        is BiometricResult.Error -> {
+                                            loginError = authResult.message
+                                            onLoginComplete(LoginResult(success = false, errorMessage = authResult.message))
+                                        }
+                                        else -> {
+                                            loginError = "Biometric authentication failed"
+                                            onLoginComplete(LoginResult(success = false, errorMessage = "Biometric authentication failed"))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        is BiometricResult.Error -> {
+                            isBiometricLoading = false
+                            loginError = result.message
+                            onLoginComplete(LoginResult(success = false, errorMessage = result.message))
+                        }
+                        is BiometricResult.UserCancelled -> {
+                            isBiometricLoading = false
+                            // Don't show error for user cancellation
+                        }
+                        else -> {
+                            isBiometricLoading = false
+                            loginError = "Biometric authentication not available"
+                            onLoginComplete(LoginResult(success = false, errorMessage = "Biometric authentication not available"))
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                isBiometricLoading = false
+                loginError = "Biometric authentication error: ${e.message}"
+                onLoginComplete(LoginResult(success = false, errorMessage = "Authentication error"))
+                Log.e("LoginViewModel", "Biometric authentication error", e)
+            }
+        }
+    }
 }
 
 
 // --- ViewModel Factory ---
-// This factory is needed to create LoginViewModel instances with the UserDao dependency.
+// This factory is needed to create LoginViewModel instances with the UserDao and BiometricAuthManager dependencies.
 class LoginViewModelFactory(
-    private val userDao: UserDao
+    private val userDao: UserDao,
+    private val biometricAuthManager: BiometricAuthManager
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return LoginViewModel(userDao) as T
+            return LoginViewModel(userDao, biometricAuthManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

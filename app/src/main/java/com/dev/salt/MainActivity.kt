@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -37,6 +38,8 @@ import com.dev.salt.viewmodel.SurveyViewModel
 import com.dev.salt.viewmodel.UserRole
 import androidx.compose.runtime.LaunchedEffect
 import com.dev.salt.viewmodel.LoginViewModelFactory
+import com.dev.salt.auth.BiometricAuthManager
+import com.dev.salt.auth.BiometricAuthManagerFactory
 import android.util.Log
 // Import your screen Composables if they are in separate files
 // e.g., import com.dev.salt.ui.WelcomeScreen
@@ -49,6 +52,7 @@ object AppDestinations {
     const val LOGIN_SCREEN = "login"
     const val MENU_SCREEN = "menu" // Assuming this is where survey_staff goes
     const val ADMIN_DASHBOARD_SCREEN = "admin_dashboard" // For administrators
+    const val USER_MANAGEMENT_SCREEN = "user_management" // For user management
     const val SURVEY_SCREEN = "survey" // For survey-related screens
     // ... other destinations
 }
@@ -67,7 +71,8 @@ class MainActivity : ComponentActivity() {
         // Get DAO instance once here to pass to the factory
         // This assumes SurveyDatabase.getInstance() and userDao() are correctly set up
         val userDao = SurveyDatabase.getInstance(applicationContext).userDao()
-        val loginViewModelFactory = LoginViewModelFactory(userDao)
+        val biometricAuthManager = BiometricAuthManagerFactory.create(applicationContext, userDao)
+        val loginViewModelFactory = LoginViewModelFactory(userDao, biometricAuthManager)
 
         setContent {
             SALTTheme {
@@ -123,7 +128,16 @@ class MainActivity : ComponentActivity() {
                         MenuScreen(navController = navController) // Pass ViewModel if needed
                     }
                     composable(AppDestinations.ADMIN_DASHBOARD_SCREEN) {
-                        AdminDashboardScreen(/* pass necessary ViewModels or parameters */)
+                        AdminDashboardScreen(navController = navController)
+                    }
+                    composable(AppDestinations.USER_MANAGEMENT_SCREEN) {
+                        val context = LocalContext.current
+                        val userDao = SurveyDatabase.getInstance(context).userDao()
+                        val biometricAuthManager = BiometricAuthManagerFactory.create(context, userDao)
+                        val userManagementViewModel: com.dev.salt.viewmodel.UserManagementViewModel = viewModel {
+                            com.dev.salt.viewmodel.UserManagementViewModel(userDao, biometricAuthManager)
+                        }
+                        UserManagementScreen(viewModel = userManagementViewModel)
                     }
 
                     composable(AppDestinations.SURVEY_SCREEN) {
@@ -196,7 +210,7 @@ fun MenuScreen(navController: NavHostController/* surveyViewModel: SurveyViewMod
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun AdminDashboardScreen() {
+fun AdminDashboardScreen(navController: NavHostController) {
     Scaffold(
         topBar = { TopAppBar(title = { Text("Administrator Dashboard") }) }
     ) { paddingValues ->
@@ -210,8 +224,18 @@ fun AdminDashboardScreen() {
         ) {
             Text("Admin Dashboard", style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { /* Navigate to User Management, etc. */ }) {
+            Button(
+                onClick = { navController.navigate(AppDestinations.USER_MANAGEMENT_SCREEN) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Manage Users")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { /* Navigate to other admin functions */ },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("System Settings")
             }
             // Add other admin functions
         }

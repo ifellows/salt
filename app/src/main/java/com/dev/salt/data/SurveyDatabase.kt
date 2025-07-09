@@ -88,7 +88,11 @@ data class User(
     val userName: String,
     val hashedPassword: String,
     val fullName: String,
-    val role: String // e.g., "SURVEY_STAFF", "ADMINISTRATOR"
+    val role: String, // e.g., "SURVEY_STAFF", "ADMINISTRATOR"
+    @ColumnInfo(name = "biometric_key_hash") val biometricKeyHash: String? = null,
+    @ColumnInfo(name = "biometric_enabled") val biometricEnabled: Boolean = false,
+    @ColumnInfo(name = "biometric_enrolled_date") val biometricEnrolledDate: Long? = null,
+    @ColumnInfo(name = "last_biometric_auth") val lastBiometricAuth: Long? = null
 )
 
 @Dao
@@ -142,7 +146,7 @@ fun deleteSurvey(survey: Survey, surveyDao: SurveyDao) {
 @Dao
 interface UserDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE) // Or IGNORE
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertUser(user: User)
 
     @Query("SELECT * FROM users WHERE userName = :userName LIMIT 1")
@@ -151,13 +155,38 @@ interface UserDao {
     @Query("SELECT * FROM users")
     fun getAllUsers(): List<User>
 
-    // You can add other user-specific operations here if needed in the future,
-    // like updateUser, deleteUser, etc.
+    @Query("SELECT * FROM users WHERE role = :role")
+    fun getUsersByRole(role: String): List<User>
+
     @Query("DELETE FROM users WHERE userName = :userName")
     fun deleteUser(userName: String)
+
+    @Query("UPDATE users SET hashedPassword = :hashedPassword WHERE userName = :userName")
+    fun updateUserPassword(userName: String, hashedPassword: String)
+
+    @Query("UPDATE users SET fullName = :fullName WHERE userName = :userName")
+    fun updateUserFullName(userName: String, fullName: String)
+
+    @Query("UPDATE users SET role = :role WHERE userName = :userName")
+    fun updateUserRole(userName: String, role: String)
+
+    @Query("SELECT COUNT(*) FROM users WHERE role = 'ADMINISTRATOR'")
+    fun getAdminCount(): Int
+
+    @Query("UPDATE users SET biometric_key_hash = :keyHash, biometric_enabled = :enabled, biometric_enrolled_date = :enrolledDate WHERE userName = :userName")
+    fun updateUserBiometric(userName: String, keyHash: String?, enabled: Boolean, enrolledDate: Long?)
+
+    @Query("UPDATE users SET last_biometric_auth = :authTime WHERE userName = :userName")
+    fun updateLastBiometricAuth(userName: String, authTime: Long)
+
+    @Query("SELECT * FROM users WHERE userName = :userName AND biometric_enabled = 1 LIMIT 1")
+    fun getUserForBiometricAuth(userName: String): User?
+
+    @Query("SELECT * FROM users WHERE biometric_enabled = 1")
+    fun getUsersWithBiometricEnabled(): List<User>
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class], version = 13)
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class], version = 14)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao
