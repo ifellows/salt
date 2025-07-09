@@ -1,12 +1,25 @@
 package com.dev.salt
 
+import android.content.Context
+import android.media.MediaPlayer
 import android.util.Log
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.security.MessageDigest
 import kotlin.random.Random
 
 import org.apache.commons.jexl3.JexlBuilder
 import org.apache.commons.jexl3.MapContext
 import org.apache.commons.jexl3.JexlException
+import java.io.File
+import java.io.IOException
+import kotlin.io.encoding.Base64
+
+import java.security.NoSuchAlgorithmException
+import java.security.spec.InvalidKeySpecException
+import java.security.spec.KeySpec
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
+
 
 fun randomHash(): String {
     // Generate a random number
@@ -22,6 +35,7 @@ fun randomHash(): String {
     // Convert the hash bytes to a hexadecimal string
     return hashBytes.joinToString("") { "%02x".format(it) }
 }
+
 
 
 
@@ -93,5 +107,36 @@ fun evaluateJexlScript(script: String?, contextData: Map<String, Any>): Any? {
         // A fallback catch block for any other unexpected exceptions during the process.
         Log.e("JexlEvaluate", "Unexpected error during JEXL script evaluation for script '$script'. Context keys: ${contextData.keys}", e)
         null
+    }
+}
+
+
+
+
+// Helper function to play audio and return MediaPlayer
+public fun playAudio(context: Context, audioFileName: String): MediaPlayer? {
+    val audioFile = File(context.filesDir, "audio/$audioFileName")
+    return if (audioFile.exists()) {
+        try {
+            val mediaPlayer = MediaPlayer()
+            mediaPlayer.setDataSource(audioFile.absolutePath)
+            mediaPlayer.prepare()
+            mediaPlayer
+        } catch (e: IOException) {
+            e.printStackTrace()
+            null
+        }
+    } else {
+        null
+    }
+}
+// Extension function to suspend until MediaPlayer completion
+suspend fun MediaPlayer.awaitCompletion() {
+    suspendCancellableCoroutine { continuation ->
+        setOnCompletionListener {
+            continuation.resume(Unit) {
+                release() // Release MediaPlayer on cancellation
+            }
+        }
     }
 }

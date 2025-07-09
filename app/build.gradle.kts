@@ -84,6 +84,11 @@ dependencies {
     // such as input and measurement/layout
     implementation("androidx.compose.ui:ui")
 
+    implementation(platform("androidx.compose:compose-bom:2025.06.01")) // Or your BOM version
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    implementation("androidx.navigation:navigation-compose:2.9.0")
+
     // Android Studio Preview support
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")

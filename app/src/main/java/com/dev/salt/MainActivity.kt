@@ -1,473 +1,220 @@
 package com.dev.salt
 
+
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.text
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-
-import com.dev.salt.data.SurveyDatabase
-import com.dev.salt.data.Survey
-import com.dev.salt.SurveyApplication
-import com.dev.salt.viewmodel.SurveyViewModel
-
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
+// If you are using by viewModels() for Activity-level ViewModels, keep this:
+// import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
-import java.io.IOException
-import kotlin.io.path.exists
-import java.io.File
-import android.media.MediaPlayer
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.filled.Replay
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import kotlinx.coroutines.CoroutineScope
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel // For viewModel() composable function
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.dev.salt.data.SurveyDatabase
+import com.dev.salt.ui.theme.SALTTheme
+import com.dev.salt.viewmodel.LoginViewModel
+import com.dev.salt.viewmodel.SurveyViewModel
+import com.dev.salt.viewmodel.UserRole
+import androidx.compose.runtime.LaunchedEffect
+import com.dev.salt.viewmodel.LoginViewModelFactory
+import android.util.Log
+// Import your screen Composables if they are in separate files
+// e.g., import com.dev.salt.ui.WelcomeScreen
+// e.g., import com.dev.salt.ui.LoginScreen
+// e.g., import com.dev.salt.ui.MenuScreen
+// e.g., import com.dev.salt.ui.AdminDashboardScreen
+
+object AppDestinations {
+    const val WELCOME_SCREEN = "welcome"
+    const val LOGIN_SCREEN = "login"
+    const val MENU_SCREEN = "menu" // Assuming this is where survey_staff goes
+    const val ADMIN_DASHBOARD_SCREEN = "admin_dashboard" // For administrators
+    const val SURVEY_SCREEN = "survey" // For survey-related screens
+    // ... other destinations
+}
+/*delete the database*/
+/*database.clearAllTables()
+val viewModel: SurveyViewModel = viewModel { SurveyViewModel(database) }
+val surveyApplication = SurveyApplication()
+surveyApplication.populateSampleData()
+surveyApplication.copyRawFilesToLocalStorage(this)
+val coroutineScope = rememberCoroutineScope()
+SurveyScreen(viewModel, coroutineScope)*/
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            var showWelcomeScreen by remember { mutableStateOf(true) }
+        // Get DAO instance once here to pass to the factory
+        // This assumes SurveyDatabase.getInstance() and userDao() are correctly set up
+        val userDao = SurveyDatabase.getInstance(applicationContext).userDao()
+        val loginViewModelFactory = LoginViewModelFactory(userDao)
 
-            if (showWelcomeScreen) {
-                WelcomeScreen(onContinueClicked = { showWelcomeScreen = false })
-            } else {
-                MaterialTheme {
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background
-                    ) {
-                        val database = SurveyDatabase.getInstance(this)
-                        /*delete the database*/
-                        /*database.clearAllTables()
-                        val viewModel: SurveyViewModel = viewModel { SurveyViewModel(database) }
+        setContent {
+            SALTTheme {
+                // Create a NavHostController
+                val navController = rememberNavController()
+
+
+
+                // Set up the NavHost
+                NavHost(navController = navController, startDestination = AppDestinations.WELCOME_SCREEN) {
+                    composable(AppDestinations.WELCOME_SCREEN) {
+                        // delete the database
+                        //database.clearAllTables()
+                        val context: Context = LocalContext.current
                         val surveyApplication = SurveyApplication()
                         surveyApplication.populateSampleData()
-                        surveyApplication.copyRawFilesToLocalStorage(this)
-                        val coroutineScope = rememberCoroutineScope()
-                        SurveyScreen(viewModel, coroutineScope)*/
+                        surveyApplication.copyRawFilesToLocalStorage(context)
 
-                        MainScreen(this)
+                        WelcomeScreen(navController = navController)
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun MainScreen(context: Context) {
-    var currentScreen by remember { mutableStateOf("welcome") }
-
-    when (currentScreen) {
-        "welcome" -> WelcomeScreen(onContinueClicked = { currentScreen = "menu" })
-        "menu" -> MenuScreen(
-            onStartNewSurvey = { currentScreen = "survey" },
-            onContinueSurvey = { currentScreen = "continue" },
-            onSettings = { currentScreen = "settings" }
-        )
-        "survey" -> {
-            val database = SurveyDatabase.getInstance(context)
-            // delete the database
-            //database.clearAllTables()
-            val viewModel: SurveyViewModel = viewModel { SurveyViewModel(database) }
-            val surveyApplication = SurveyApplication()
-            surveyApplication.populateSampleData()
-            surveyApplication.copyRawFilesToLocalStorage(context)
-            val coroutineScope = rememberCoroutineScope()
-            SurveyScreen(viewModel, coroutineScope)
-        }
-        "continue" -> PlaceholderScreen("Continue Survey")
-        "settings" -> PlaceholderScreen("Settings")
-    }
-}
-
-@Composable
-@OptIn(ExperimentalMaterial3Api::class)
-fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope) {
-    //var currentQuestion = viewModel.currentQuestion
-    val context = LocalContext.current
-    val currentQuestion by viewModel.currentQuestion.collectAsState()
-    var highlightedButtonIndex by remember { mutableStateOf<Int?>(null) }
-    //var mediaPlayer: MediaPlayer? = remember { null }
-    var currentMediaPlayer: MediaPlayer? by remember { mutableStateOf(null) }
-
-    // State for the text field input, resets when question ID changes
-    var textInputValue by rememberSaveable(currentQuestion?.first?.id) {
-        mutableStateOf(
-            // MODIFIED: Initialize with existing text answer if available
-            currentQuestion?.let { (q, _, ans) ->
-                if (q.questionType != "multiple_choice") ans?.getValue(false)?.toString() else ""
-            } ?: ""
-        )
-    }
-
-    // Update textInputValue when currentQuestionData changes and it's a text-based answer
-    // This handles loading previous answers when navigating back/forth
-    LaunchedEffect(currentQuestion) {
-        currentQuestion?.let { (question, _, answer) ->
-            if (question.questionType != "multiple_choice") {
-                textInputValue = answer?.getValue(false)?.toString() ?: ""
-            }
-        }
-    }
-
-    var errorMessageForDialog by remember { mutableStateOf<String?>(null) }
-    var showDialog by remember { mutableStateOf(false) }
-
-    LaunchedEffect(errorMessageForDialog) {
-        if (errorMessageForDialog != null) {
-            showDialog = true // Trigger the dialog to show
-        }
-        // You might not want to set showDialog = false here,
-        // as the dialog's own dismiss actions will handle that.
-    }
-
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                showDialog = false
-                errorMessageForDialog = null // Clear the error when dialog is dismissed
-            },
-            title = { Text("❌") }, // Or a more dynamic title
-            text = { Text(errorMessageForDialog ?: "An error occurred.") }, // Use the state variable
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDialog = false
-                        errorMessageForDialog = null // Clear the error
-                    }
-                ) {
-                    Text("OK")
-                }
-            }
-        )
-    }
-
-    suspend fun playCurrentQuestion(){
-        currentQuestion?.let { (question, options, _) ->
-            // Stop and release previous MediaPlayer
-            try {
-                currentMediaPlayer?.stop()
-                currentMediaPlayer?.release()
-                currentMediaPlayer = null
-            } catch (e: Exception){ }
-
-            // Play question audio and wait for completion
-            currentMediaPlayer = playAudio(context, question.audioFileName) // Store new MediaPlayer
-            currentMediaPlayer?.let { player ->
-                player.setOnCompletionListener {
-                    it.release()
-                    currentMediaPlayer = null // Reset after completion
-                }
-                player.start()
-                player.awaitCompletion() // Suspend until completion
-            }
-
-            // Play option audios sequentially
-            for (option in options) {
-                withContext(Dispatchers.Main) {
-                    highlightedButtonIndex = option.id
-                }
-                // Stop and release previous MediaPlayer for options
-                currentMediaPlayer?.stop()
-                currentMediaPlayer?.release()
-                currentMediaPlayer = null
-
-                currentMediaPlayer = playAudio(context, option.audioFileName) // Store new MediaPlayer
-                currentMediaPlayer?.let { player ->
-                    player.setOnCompletionListener {
-                        it.release()
-                        currentMediaPlayer = null // Reset after completion
-                    }
-                    player.start()
-                    player.awaitCompletion() // Suspend until completion
-                }
-                withContext(Dispatchers.Main) {
-                    highlightedButtonIndex = null
-                }
-            }
-        }
-    }
-
-    LaunchedEffect(currentQuestion) {
-        playCurrentQuestion()
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("SALT Survey") },
-                actions = {
-                    IconButton(onClick = { /* Handle exit action */ }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Exit")
-                    }
-                }
-            )
-        },
-        bottomBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Button(onClick = {
-                    currentQuestion?.let { (question, _, _) ->
-                        if (question.questionType != "multiple_choice") {
-                            viewModel.answerQuestion(textInputValue)
-                        }
-                    }
-                    viewModel.loadPreviousQuestion()
-                }, enabled = viewModel.hasPreviousQuestion.value) {
-                    Text("Previous")
-                }
-                Button(onClick = {
-                    currentQuestion?.let { (question, _, _) ->
-                        if (question.questionType != "multiple_choice") {
-                            viewModel.answerQuestion(textInputValue)
-                        }
-                    }
-
-                    val message = viewModel.loadNextQuestion()
-                    if(message != null){
-                        errorMessageForDialog = message
-                        showDialog = true // Show the dialog with the error message
-                    }
-                    //currentQuestion = viewModel.currentQuestion
-
-                }, enabled = true) {
-                    Text("Next")
-                }
-            }
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(16.dp)
-        ) {
-            val currentQuestion by viewModel.currentQuestion.collectAsState()
-            currentQuestion?.let { (question, options, answer) ->
-                Text(text = question.statement, style = MaterialTheme.typography.headlineSmall)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Replay button
-                IconButton(onClick = {
-                    coroutineScope.launch {
-                        playCurrentQuestion()
-                    }
-                    //currentMediaPlayer?.seekTo(0)
-                    //currentMediaPlayer?.start()
-                }) { // Replay logic
-                    Icon(Icons.Filled.Replay, contentDescription = "Replay")
-                }
-                if (question.questionType == "multiple_choice") {
-                    options.forEach { option ->
-                        val isHighlighted by remember(highlightedButtonIndex, option.id)
-                        { // Derived state
-                            derivedStateOf { highlightedButtonIndex == option.id }
-                        }
-                        val buttonColors = if (isHighlighted) {
-                            ButtonDefaults.buttonColors(containerColor = Color.Yellow)
-                        } else if (answer?.numericValue?.toInt() == option.optionQuestionIndex) { // Check for match
-                            ButtonDefaults.buttonColors(containerColor = Color.Green) // Change color if match
-                        } else {
-                            ButtonDefaults.buttonColors() // Default color
-                        }
-                        Button(
-                            onClick = { viewModel.answerQuestion(option.id) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            colors = buttonColors // Apply button colors
-                        ) {
-                            Text(text = option.text)
-                        }
-                    }
-                } else{
-                    // Text Field for numeric or freeform text
-                    OutlinedTextField(
-                        value = textInputValue,
-                        onValueChange = { newValue ->
-                            if (question.questionType == "numeric") {
-                                if (newValue.matches(Regex("^-?\\d*\\.?\\d*\$"))) {
-                                   textInputValue = newValue
+                    composable(AppDestinations.LOGIN_SCREEN) {
+                        // Pass the LoginViewModel and the navigation callback
+                        val loginViewModel: LoginViewModel = viewModel(
+                            factory = loginViewModelFactory
+                        )
+                        LoginScreen(
+                            loginViewModel = loginViewModel,
+                            onLoginSuccess = { role ->
+                                // Navigate to the appropriate screen based on user role
+                                // It's good practice to clear the back stack up to the login screen
+                                // or even further if login is a one-time entry point to a section.
+                                val route = when (role) {
+                                    UserRole.SURVEY_STAFF -> AppDestinations.MENU_SCREEN
+                                    UserRole.ADMINISTRATOR -> AppDestinations.ADMIN_DASHBOARD_SCREEN
+                                    UserRole.NONE -> AppDestinations.LOGIN_SCREEN // Or handle error, stay on login
                                 }
-                            } else {
-                                // For freeform text, allow any input
-                                textInputValue = newValue
+                                navController.navigate(route) {
+                                    // Pop up to the start destination of the graph to
+                                    // avoid building up a large back stack.
+                                    // Or popUpTo(AppDestinations.LOGIN_SCREEN) { inclusive = true }
+                                    // if you want to remove LoginScreen from backstack.
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        inclusive = true // Or false depending on whether you want to keep welcome screen
+                                    }
+                                    launchSingleTop = true // Avoid multiple copies of the destination
+                                }
                             }
-                        },
-                        label = { Text("") },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = if (question.questionType == "numeric") KeyboardType.Number else KeyboardType.Text,
-                            imeAction = ImeAction.Done // Or ImeAction.Next
-                        ),
-                        singleLine = question.questionType == "numeric", // Or false for multi-line free text
-                        // NEW: Save on focus lost (optional, good for UX)
-                        // onFocusChanged = { focusState ->
-                        //    if (!focusState.isFocused && textInputValue != (answer?.getValue(false)?.toString() ?: "")) {
-                        //        viewModel.answerQuestion(textInputValue)
-                        //    }
-                        // }
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+                        )
+                    }
+                    composable(AppDestinations.MENU_SCREEN) {
+                        // You might need a SurveyViewModel here or other ViewModels
+                        // val surveyViewModel: SurveyViewModel = viewModel()
+                        MenuScreen(navController = navController) // Pass ViewModel if needed
+                    }
+                    composable(AppDestinations.ADMIN_DASHBOARD_SCREEN) {
+                        AdminDashboardScreen(/* pass necessary ViewModels or parameters */)
+                    }
+
+                    composable(AppDestinations.SURVEY_SCREEN) {
+                        val context: Context = LocalContext.current
+                        // Pass navController to SurveyScreen
+                        val database = SurveyDatabase.getInstance(context)
+                        val viewModel: SurveyViewModel = viewModel { SurveyViewModel(database) }
+                        val coroutineScope = rememberCoroutineScope()
+                        SurveyScreen(viewModel, coroutineScope)
+                    }
+                    // Add other composables for your survey, admin dashboard, etc.
                 }
-            } ?: Text("Survey completed!", style = MaterialTheme.typography.headlineMedium)
+            }
         }
     }
 }
 
+// --- Placeholder Screen Composables ---
+// If these are not in separate files, define them here or import them.
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WelcomeScreen(onContinueClicked: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
+fun WelcomeScreen(navController: NavHostController) {
+    Scaffold(
+        topBar = { TopAppBar(title = { Text("Welcome to SALT") }) }
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(paddingValues)
                 .padding(16.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "Welcome to the SALT Survey", style = MaterialTheme.typography.headlineMedium)
+            Text("Welcome!", style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(onClick = { navController.navigate(AppDestinations.LOGIN_SCREEN) }) {
+                Text("Login")
+            }
+            // You can add other buttons like "Register" or "Continue as Guest" if needed
+        }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+fun MenuScreen(navController: NavHostController/* surveyViewModel: SurveyViewModel */) { // Example parameter
+    Scaffold(
+        topBar = { TopAppBar(title = { Text("Survey Staff Menu") }) }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text("Survey Staff Area", style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onContinueClicked) {
-                Text(text = "Login")
+            Button(onClick = {
+                navController.navigate(AppDestinations.SURVEY_SCREEN)
+            }) {
+                Text("Start New Survey")
             }
+            // Add other menu items
         }
     }
 }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun MenuScreen(onStartNewSurvey: () -> Unit, onContinueSurvey: () -> Unit, onSettings: () -> Unit) {
+fun AdminDashboardScreen() {
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Menu") },
-                actions = {
-                    IconButton(onClick = { /* Handle exit action */ }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Exit")
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        Surface(
+        topBar = { TopAppBar(title = { Text("Administrator Dashboard") }) }
+    ) { paddingValues ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            color = MaterialTheme.colorScheme.background
+                .padding(paddingValues)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = "Menu", style = MaterialTheme.typography.headlineMedium)
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = onStartNewSurvey) {
-                    Text(text = "Start New Survey")
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = onContinueSurvey) {
-                    Text(text = "Continue Survey")
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = onSettings) {
-                    Text(text = "Settings")
-                }
+            Text("Admin Dashboard", style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = { /* Navigate to User Management, etc. */ }) {
+                Text("Manage Users")
             }
+            // Add other admin functions
         }
     }
 }
 
-@Composable
-@OptIn(ExperimentalMaterial3Api::class)
-fun PlaceholderScreen(title: String) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(title) },
-                actions = {
-                    IconButton(onClick = { /* Handle exit action */ }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Exit")
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = title, style = MaterialTheme.typography.headlineMedium)
-            }
-        }
-    }
-}
-
-
-// Helper function to play audio and return MediaPlayer
-private fun playAudio(context: Context, audioFileName: String): MediaPlayer? {
-    val audioFile = File(context.filesDir, "audio/$audioFileName")
-    return if (audioFile.exists()) {
-        try {
-            val mediaPlayer = MediaPlayer()
-            mediaPlayer.setDataSource(audioFile.absolutePath)
-            mediaPlayer.prepare()
-            mediaPlayer
-        } catch (e: IOException) {
-            e.printStackTrace()
-            null
-        }
-    } else {
-        null
-    }
-}
-// Extension function to suspend until MediaPlayer completion
-suspend fun MediaPlayer.awaitCompletion() {
-    suspendCancellableCoroutine { continuation ->
-        setOnCompletionListener {
-            continuation.resume(Unit) {
-                release() // Release MediaPlayer on cancellation
-            }
-        }
-    }
-}

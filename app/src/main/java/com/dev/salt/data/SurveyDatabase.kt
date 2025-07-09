@@ -82,6 +82,15 @@ data class Answer(
     }
 }
 
+@Entity(tableName = "users")
+data class User(
+    @PrimaryKey
+    val userName: String,
+    val hashedPassword: String,
+    val fullName: String,
+    val role: String // e.g., "SURVEY_STAFF", "ADMINISTRATOR"
+)
+
 @Dao
 interface SurveyDao {
 
@@ -130,10 +139,28 @@ fun deleteSurvey(survey: Survey, surveyDao: SurveyDao) {
     surveyDao.deleteSurvey(survey)
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class], version = 11)
+@Dao
+interface UserDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE) // Or IGNORE
+    fun insertUser(user: User)
+
+    @Query("SELECT * FROM users WHERE userName = :userName LIMIT 1")
+    fun getUserByUserName(userName: String): User?
+
+    @Query("SELECT * FROM users")
+    fun getAllUsers(): List<User>
+
+    // You can add other user-specific operations here if needed in the future,
+    // like updateUser, deleteUser, etc.
+    @Query("DELETE FROM users WHERE userName = :userName")
+    fun deleteUser(userName: String)
+}
+
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class], version = 13)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
-
+    abstract fun userDao(): UserDao
     companion object {
         private var instance: SurveyDatabase? = null
 

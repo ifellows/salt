@@ -1,5 +1,5 @@
 package com.dev.salt
-
+import com.dev.salt.data.User
 import android.app.Application
 import android.content.Context
 import android.util.Log
@@ -16,14 +16,17 @@ import kotlin.concurrent.read
 import kotlin.io.path.exists
 import java.io.File
 import java.io.FileOutputStream
+import com.dev.salt.PasswordUtils.hashPasswordWithNewSalt
 
 class SurveyApplication : Application() {
     private val applicationScope = CoroutineScope(Dispatchers.Default)
 
     override fun onCreate() {
         super.onCreate()
-        Log.e("SurveyApplication", "onCreate called");
-        populateSampleData()
+        Log.e("SurveyApplication", "onCreate called")
+        runBlocking {
+            populateSampleData()
+        }
         setupGlobalExceptionHandler()
     }
 
@@ -31,7 +34,35 @@ class SurveyApplication : Application() {
 
         val database = SurveyDatabase.getInstance(this)
         val dao = database.surveyDao()
+        val userDao = database.userDao() // <-- Get the UserDao
 
+        // --- Populate Users ---
+        // Check if users are already populated (optional, but good practice)
+        if (userDao.getAllUsers().isEmpty()) {
+            Log.d("SurveyApplication", "Populating sample users...")
+            // IMPORTANT: Replace these with securely hashed passwords in a real app!
+            // Use a proper password hashing library/utility.
+            // These are placeholders for demonstration.
+            val adminUser = User(
+                userName = "admin",
+                // Example: In a real app, this would be the output of a hashing function
+                // e.g., PasswordHasher.hash("adminpass")
+                hashedPassword = hashPasswordWithNewSalt("123")!!,
+                fullName = "Administrator User",
+                role = "ADMINISTRATOR" // Consistent with your UserRole enum or string constants
+            )
+            val staffUser = User(
+                userName = "staff",
+                hashedPassword = hashPasswordWithNewSalt("123")!!,
+                fullName = "Survey Staff User",
+                role = "SURVEY_STAFF"
+            )
+            userDao.insertUser(adminUser)
+            userDao.insertUser(staffUser)
+            Log.d("SurveyApplication", "Sample users populated.")
+        } else {
+            Log.d("SurveyApplication", "Users already exist, skipping population.")
+        }
         // Check if the database is empty
         if (dao.getAllQuestions().isEmpty()) {
             // Add sample questions and options
