@@ -107,4 +107,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
 
     implementation("org.apache.commons:commons-jexl3:3.3")
+    
+    // WorkManager for background upload retries
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 }

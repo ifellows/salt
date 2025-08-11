@@ -1,5 +1,6 @@
 package com.dev.salt.data
 import androidx.room.*
+import androidx.room.OnConflictStrategy
 import java.util.UUID
 @Entity(tableName = "questions")
 data class Question(
@@ -95,7 +96,33 @@ data class User(
     @ColumnInfo(name = "last_biometric_auth") val lastBiometricAuth: Long? = null,
     @ColumnInfo(name = "session_timeout_minutes") val sessionTimeoutMinutes: Long = 30,
     @ColumnInfo(name = "last_login_time") val lastLoginTime: Long? = null,
-    @ColumnInfo(name = "last_activity_time") val lastActivityTime: Long? = null
+    @ColumnInfo(name = "last_activity_time") val lastActivityTime: Long? = null,
+    @ColumnInfo(name = "upload_server_url") val uploadServerUrl: String? = null,
+    @ColumnInfo(name = "upload_api_key") val uploadApiKey: String? = null
+)
+
+@Entity(tableName = "survey_upload_state")
+data class SurveyUploadState(
+    @PrimaryKey
+    val surveyId: String,
+    @ColumnInfo(name = "upload_status") val uploadStatus: String, // PENDING, UPLOADING, COMPLETED, FAILED
+    @ColumnInfo(name = "last_attempt_time") val lastAttemptTime: Long? = null,
+    @ColumnInfo(name = "attempt_count") val attemptCount: Int = 0,
+    @ColumnInfo(name = "error_message") val errorMessage: String? = null,
+    @ColumnInfo(name = "created_time") val createdTime: Long = System.currentTimeMillis(),
+    @ColumnInfo(name = "completed_time") val completedTime: Long? = null
+)
+
+enum class UploadStatus {
+    PENDING,
+    UPLOADING, 
+    COMPLETED,
+    FAILED
+}
+
+data class ServerConfig(
+    @ColumnInfo(name = "upload_server_url") val uploadServerUrl: String?,
+    @ColumnInfo(name = "upload_api_key") val uploadApiKey: String?
 )
 
 @Dao
@@ -130,6 +157,9 @@ interface SurveyDao {
 
     @Delete
     fun deleteAnswer(answer: Answer)
+
+    @Query("SELECT * FROM surveys WHERE id = :surveyId LIMIT 1")
+    fun getSurveyById(surveyId: String): Survey?
 }
 
 fun saveSurvey(survey: Survey, surveyDao: SurveyDao) {
@@ -196,12 +226,49 @@ interface UserDao {
 
     @Query("UPDATE users SET session_timeout_minutes = :timeoutMinutes WHERE userName = :userName")
     fun updateUserSessionTimeout(userName: String, timeoutMinutes: Long)
+
+    @Query("UPDATE users SET upload_server_url = :serverUrl, upload_api_key = :apiKey WHERE userName = :userName")
+    fun updateUserServerConfig(userName: String, serverUrl: String?, apiKey: String?)
+
+    @Query("SELECT upload_server_url, upload_api_key FROM users WHERE userName = :userName AND role = 'ADMINISTRATOR' LIMIT 1")
+    fun getAdminServerConfig(userName: String): ServerConfig?
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class], version = 15)
+@Dao
+interface UploadStateDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertUploadState(uploadState: SurveyUploadState)
+
+    @Query("SELECT * FROM survey_upload_state WHERE surveyId = :surveyId")
+    fun getUploadState(surveyId: String): SurveyUploadState?
+
+    @Query("SELECT * FROM survey_upload_state WHERE upload_status = :status ORDER BY created_time ASC")
+    fun getUploadStatesByStatus(status: String): List<SurveyUploadState>
+
+    @Query("SELECT * FROM survey_upload_state WHERE upload_status IN ('PENDING', 'FAILED') ORDER BY created_time ASC")
+    fun getPendingUploads(): List<SurveyUploadState>
+
+    @Query("SELECT * FROM survey_upload_state ORDER BY created_time DESC")
+    fun getAllUploadStates(): List<SurveyUploadState>
+
+    @Query("UPDATE survey_upload_state SET upload_status = :status, last_attempt_time = :attemptTime, attempt_count = :attemptCount, error_message = :errorMessage WHERE surveyId = :surveyId")
+    fun updateUploadAttempt(surveyId: String, status: String, attemptTime: Long, attemptCount: Int, errorMessage: String?)
+
+    @Query("UPDATE survey_upload_state SET upload_status = :status, completed_time = :completedTime WHERE surveyId = :surveyId")
+    fun markUploadCompleted(surveyId: String, status: String, completedTime: Long)
+
+    @Query("DELETE FROM survey_upload_state WHERE surveyId = :surveyId")
+    fun deleteUploadState(surveyId: String)
+
+    @Query("DELETE FROM survey_upload_state WHERE upload_status = 'COMPLETED' AND completed_time < :beforeTime")
+    fun cleanupOldCompletedUploads(beforeTime: Long)
+}
+
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class], version = 16)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao
+    abstract fun uploadStateDao(): UploadStateDao
     companion object {
         private var instance: SurveyDatabase? = null
 

@@ -53,6 +53,9 @@ import com.dev.salt.ui.SessionTimeoutDialog
 import com.dev.salt.ui.SessionExpiredDialog
 import com.dev.salt.ui.ActivityDetector
 import com.dev.salt.ui.LogoutButton
+import com.dev.salt.ui.ServerSettingsScreen
+import com.dev.salt.ui.UploadStatusScreen
+import com.dev.salt.upload.SurveyUploadWorkManager
 import android.util.Log
 // Import your screen Composables if they are in separate files
 // e.g., import com.dev.salt.ui.WelcomeScreen
@@ -67,6 +70,8 @@ object AppDestinations {
     const val ADMIN_DASHBOARD_SCREEN = "admin_dashboard" // For administrators
     const val USER_MANAGEMENT_SCREEN = "user_management" // For user management
     const val SURVEY_SCREEN = "survey" // For survey-related screens
+    const val SERVER_SETTINGS_SCREEN = "server_settings" // For server configuration
+    const val UPLOAD_STATUS_SCREEN = "upload_status" // For upload status dashboard
     // ... other destinations
 }
 /*delete the database*/
@@ -88,6 +93,10 @@ class MainActivity : ComponentActivity() {
         val sessionManager = SessionManagerInstance.instance
         val surveyStateManager = SurveyStateManagerInstance.instance
         val loginViewModelFactory = LoginViewModelFactory(userDao, biometricAuthManager, sessionManager)
+        
+        // Initialize upload work manager and schedule periodic retries
+        val uploadWorkManager = SurveyUploadWorkManager(applicationContext)
+        uploadWorkManager.schedulePeriodicRetries()
 
         setContent {
             SALTTheme {
@@ -242,10 +251,27 @@ class MainActivity : ComponentActivity() {
                         val context: Context = LocalContext.current
                         // Pass navController to SurveyScreen
                         val database = SurveyDatabase.getInstance(context)
-                        val viewModel: SurveyViewModel = viewModel { SurveyViewModel(database) }
+                        val viewModel: SurveyViewModel = viewModel { SurveyViewModel(database, context) }
                         val coroutineScope = rememberCoroutineScope()
-                        SurveyScreen(viewModel, coroutineScope)
+                        SurveyScreen(
+                            viewModel = viewModel, 
+                            coroutineScope = coroutineScope,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
                     }
+                    
+                    composable(AppDestinations.SERVER_SETTINGS_SCREEN) {
+                        ServerSettingsScreen(
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    
+                    composable(AppDestinations.UPLOAD_STATUS_SCREEN) {
+                        UploadStatusScreen(
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    
                     // Add other composables for your survey, admin dashboard, etc.
                     }
                 }
@@ -359,10 +385,17 @@ fun AdminDashboardScreen(
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(
-                onClick = { /* Navigate to other admin functions */ },
+                onClick = { navController.navigate(AppDestinations.SERVER_SETTINGS_SCREEN) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("System Settings")
+                Text("Server Settings")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { navController.navigate(AppDestinations.UPLOAD_STATUS_SCREEN) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Upload Status")
             }
             // Add other admin functions
         }

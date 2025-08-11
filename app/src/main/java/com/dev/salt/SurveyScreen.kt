@@ -46,10 +46,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope) {
+fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope, onNavigateBack: () -> Unit = {}) {
     //var currentQuestion = viewModel.currentQuestion
     val context = LocalContext.current
     val currentQuestion by viewModel.currentQuestion.collectAsState()
@@ -73,10 +74,13 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope) {
         }
     }
     
-    // End survey when completed
+    // End survey when completed and navigate back
     LaunchedEffect(currentQuestion) {
         if (currentQuestion == null && viewModel.currentQuestionIndex >= 0) {
             surveyStateManager.endSurvey()
+            // Navigate back to main menu after a short delay
+            kotlinx.coroutines.delay(2000)
+            onNavigateBack()
         }
     }
 

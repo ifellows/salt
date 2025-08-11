@@ -11,15 +11,23 @@ import com.dev.salt.data.Option
 import com.dev.salt.data.SurveyDatabase
 import com.dev.salt.data.Survey
 import com.dev.salt.data.Answer
+import com.dev.salt.data.saveSurvey
 import com.dev.salt.randomHash
 import com.dev.salt.evaluateJexlScript
+import com.dev.salt.upload.SurveyUploadManager
+import com.dev.salt.upload.SurveyUploadWorkManager
+import com.dev.salt.upload.UploadResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import android.content.Context
 
-class SurveyViewModel(private val database: SurveyDatabase) : ViewModel() {
+class SurveyViewModel(
+    private val database: SurveyDatabase,
+    private val context: Context? = null
+) : ViewModel() {
     private val _currentQuestion = MutableStateFlow<Triple<Question, List<Option>, Answer?>?>(null)
     val currentQuestion: StateFlow<Triple<Question, List<Option>, Answer?>?> = _currentQuestion
 
@@ -72,6 +80,34 @@ class SurveyViewModel(private val database: SurveyDatabase) : ViewModel() {
         } else {
             _currentQuestion.value = null
             //currentQuestion = null // Survey completed
+            
+            // Survey is completed - save and trigger upload
+            survey?.let { completedSurvey ->
+                viewModelScope.launch {
+                    try {
+                        // Save survey to database
+                        saveSurvey(completedSurvey, database.surveyDao())
+                        
+                        // Trigger upload if context is available
+                        context?.let { ctx ->
+                            val uploadManager = SurveyUploadManager(ctx, database)
+                            val uploadWorkManager = SurveyUploadWorkManager(ctx)
+                            
+                            // Immediate upload attempt
+                            val uploadResult = uploadManager.uploadSurvey(completedSurvey.id)
+                            Log.i("SurveyViewModel", "Survey upload result: $uploadResult")
+                            
+                            // Schedule retry if failed
+                            if (uploadResult !is UploadResult.Success) {
+                                uploadWorkManager.scheduleImmediateRetry(completedSurvey.id)
+                                Log.i("SurveyViewModel", "Scheduled retry for failed upload: ${completedSurvey.id}")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("SurveyViewModel", "Error completing survey", e)
+                    }
+                }
+            }
         }
     }
 
