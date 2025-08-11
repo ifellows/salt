@@ -37,9 +37,22 @@ import com.dev.salt.viewmodel.LoginViewModel
 import com.dev.salt.viewmodel.SurveyViewModel
 import com.dev.salt.viewmodel.UserRole
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import com.dev.salt.viewmodel.LoginViewModelFactory
 import com.dev.salt.auth.BiometricAuthManager
 import com.dev.salt.auth.BiometricAuthManagerFactory
+import com.dev.salt.session.SessionManager
+import com.dev.salt.session.SessionManagerInstance
+import com.dev.salt.session.SessionEvent
+import com.dev.salt.session.SurveyStateManagerInstance
+import com.dev.salt.ui.SessionTimeoutDialog
+import com.dev.salt.ui.SessionExpiredDialog
+import com.dev.salt.ui.ActivityDetector
+import com.dev.salt.ui.LogoutButton
 import android.util.Log
 // Import your screen Composables if they are in separate files
 // e.g., import com.dev.salt.ui.WelcomeScreen
@@ -72,17 +85,90 @@ class MainActivity : ComponentActivity() {
         // This assumes SurveyDatabase.getInstance() and userDao() are correctly set up
         val userDao = SurveyDatabase.getInstance(applicationContext).userDao()
         val biometricAuthManager = BiometricAuthManagerFactory.create(applicationContext, userDao)
-        val loginViewModelFactory = LoginViewModelFactory(userDao, biometricAuthManager)
+        val sessionManager = SessionManagerInstance.instance
+        val surveyStateManager = SurveyStateManagerInstance.instance
+        val loginViewModelFactory = LoginViewModelFactory(userDao, biometricAuthManager, sessionManager)
 
         setContent {
             SALTTheme {
                 // Create a NavHostController
                 val navController = rememberNavController()
 
+                // Session management states
+                val sessionState by sessionManager.sessionState.collectAsState()
+                val sessionEvent by sessionManager.sessionEvents.collectAsState()
+                val surveyState by surveyStateManager.surveyState.collectAsState()
+                var showSessionWarning by remember { mutableStateOf(false) }
+                var showSessionExpired by remember { mutableStateOf(false) }
+                
+                // Logout function
+                val handleLogout = {
+                    sessionManager.logout()
+                    surveyStateManager.endSurvey()
+                    navController.navigate(AppDestinations.LOGIN_SCREEN) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
 
+                // Handle session events
+                LaunchedEffect(sessionEvent) {
+                    when (sessionEvent) {
+                        is SessionEvent.SessionWarning -> {
+                            showSessionWarning = true
+                        }
+                        is SessionEvent.SessionExpired -> {
+                            showSessionExpired = true
+                            // Navigate to login screen
+                            navController.navigate(AppDestinations.LOGIN_SCREEN) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
+                        }
+                        else -> {}
+                    }
+                }
 
-                // Set up the NavHost
-                NavHost(navController = navController, startDestination = AppDestinations.WELCOME_SCREEN) {
+                // Session timeout warning dialog
+                if (showSessionWarning) {
+                    SessionTimeoutDialog(
+                        timeUntilExpiration = sessionManager.getTimeUntilExpiration(),
+                        onExtendSession = {
+                            sessionManager.extendSession()
+                            showSessionWarning = false
+                            sessionManager.clearSessionEvent()
+                        },
+                        onLogout = {
+                            sessionManager.endSession()
+                            showSessionWarning = false
+                            sessionManager.clearSessionEvent()
+                            navController.navigate(AppDestinations.LOGIN_SCREEN) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
+
+                // Session expired dialog
+                if (showSessionExpired) {
+                    SessionExpiredDialog(
+                        onDismiss = {
+                            showSessionExpired = false
+                            sessionManager.clearSessionEvent()
+                        }
+                    )
+                }
+
+                // Set up the NavHost wrapped in ActivityDetector
+                ActivityDetector {
+                    NavHost(navController = navController, startDestination = AppDestinations.WELCOME_SCREEN) {
                     composable(AppDestinations.WELCOME_SCREEN) {
                         // delete the database
                         //database.clearAllTables()
@@ -125,10 +211,18 @@ class MainActivity : ComponentActivity() {
                     composable(AppDestinations.MENU_SCREEN) {
                         // You might need a SurveyViewModel here or other ViewModels
                         // val surveyViewModel: SurveyViewModel = viewModel()
-                        MenuScreen(navController = navController) // Pass ViewModel if needed
+                        MenuScreen(
+                            navController = navController,
+                            onLogout = handleLogout,
+                            showLogout = !surveyState.isActive
+                        )
                     }
                     composable(AppDestinations.ADMIN_DASHBOARD_SCREEN) {
-                        AdminDashboardScreen(navController = navController)
+                        AdminDashboardScreen(
+                            navController = navController,
+                            onLogout = handleLogout,
+                            showLogout = !surveyState.isActive
+                        )
                     }
                     composable(AppDestinations.USER_MANAGEMENT_SCREEN) {
                         val context = LocalContext.current
@@ -137,7 +231,11 @@ class MainActivity : ComponentActivity() {
                         val userManagementViewModel: com.dev.salt.viewmodel.UserManagementViewModel = viewModel {
                             com.dev.salt.viewmodel.UserManagementViewModel(userDao, biometricAuthManager)
                         }
-                        UserManagementScreen(viewModel = userManagementViewModel)
+                        UserManagementScreen(
+                            viewModel = userManagementViewModel,
+                            onLogout = handleLogout,
+                            showLogout = !surveyState.isActive
+                        )
                     }
 
                     composable(AppDestinations.SURVEY_SCREEN) {
@@ -149,6 +247,7 @@ class MainActivity : ComponentActivity() {
                         SurveyScreen(viewModel, coroutineScope)
                     }
                     // Add other composables for your survey, admin dashboard, etc.
+                    }
                 }
             }
         }
@@ -184,9 +283,23 @@ fun WelcomeScreen(navController: NavHostController) {
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun MenuScreen(navController: NavHostController/* surveyViewModel: SurveyViewModel */) { // Example parameter
+fun MenuScreen(
+    navController: NavHostController,
+    onLogout: () -> Unit,
+    showLogout: Boolean = true
+) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Survey Staff Menu") }) }
+        topBar = { 
+            TopAppBar(
+                title = { Text("Survey Staff Menu") },
+                actions = {
+                    LogoutButton(
+                        onLogout = onLogout,
+                        isVisible = showLogout
+                    )
+                }
+            )
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -210,9 +323,23 @@ fun MenuScreen(navController: NavHostController/* surveyViewModel: SurveyViewMod
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun AdminDashboardScreen(navController: NavHostController) {
+fun AdminDashboardScreen(
+    navController: NavHostController,
+    onLogout: () -> Unit,
+    showLogout: Boolean = true
+) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Administrator Dashboard") }) }
+        topBar = { 
+            TopAppBar(
+                title = { Text("Administrator Dashboard") },
+                actions = {
+                    LogoutButton(
+                        onLogout = onLogout,
+                        isVisible = showLogout
+                    )
+                }
+            )
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier

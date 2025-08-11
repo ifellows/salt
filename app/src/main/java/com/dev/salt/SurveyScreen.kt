@@ -41,6 +41,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.dev.salt.viewmodel.SurveyViewModel
 import com.dev.salt.playAudio
+import com.dev.salt.session.SurveyStateManagerInstance
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -55,6 +56,29 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope) {
     var highlightedButtonIndex by remember { mutableStateOf<Int?>(null) }
     //var mediaPlayer: MediaPlayer? = remember { null }
     var currentMediaPlayer: MediaPlayer? by remember { mutableStateOf(null) }
+    
+    val surveyStateManager = SurveyStateManagerInstance.instance
+    
+    // Track survey state
+    LaunchedEffect(viewModel.survey) {
+        viewModel.survey?.let { survey ->
+            surveyStateManager.startSurvey(survey.id, viewModel.questions.size)
+        }
+    }
+    
+    // Update question progress
+    LaunchedEffect(viewModel.currentQuestionIndex) {
+        if (viewModel.currentQuestionIndex >= 0) {
+            surveyStateManager.updateQuestionProgress(viewModel.currentQuestionIndex)
+        }
+    }
+    
+    // End survey when completed
+    LaunchedEffect(currentQuestion) {
+        if (currentQuestion == null && viewModel.currentQuestionIndex >= 0) {
+            surveyStateManager.endSurvey()
+        }
+    }
 
     // State for the text field input, resets when question ID changes
     var textInputValue by rememberSaveable(currentQuestion?.first?.id) {
@@ -64,6 +88,13 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope) {
                 if (q.questionType != "multiple_choice") ans?.getValue(false)?.toString() else ""
             } ?: ""
         )
+    }
+    
+    // Track unsaved changes
+    LaunchedEffect(textInputValue) {
+        if (textInputValue.isNotEmpty()) {
+            surveyStateManager.markUnsavedChanges()
+        }
     }
 
     // Update textInputValue when currentQuestionData changes and it's a text-based answer

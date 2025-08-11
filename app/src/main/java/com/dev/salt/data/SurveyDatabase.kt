@@ -92,7 +92,10 @@ data class User(
     @ColumnInfo(name = "biometric_key_hash") val biometricKeyHash: String? = null,
     @ColumnInfo(name = "biometric_enabled") val biometricEnabled: Boolean = false,
     @ColumnInfo(name = "biometric_enrolled_date") val biometricEnrolledDate: Long? = null,
-    @ColumnInfo(name = "last_biometric_auth") val lastBiometricAuth: Long? = null
+    @ColumnInfo(name = "last_biometric_auth") val lastBiometricAuth: Long? = null,
+    @ColumnInfo(name = "session_timeout_minutes") val sessionTimeoutMinutes: Long = 30,
+    @ColumnInfo(name = "last_login_time") val lastLoginTime: Long? = null,
+    @ColumnInfo(name = "last_activity_time") val lastActivityTime: Long? = null
 )
 
 @Dao
@@ -184,9 +187,18 @@ interface UserDao {
 
     @Query("SELECT * FROM users WHERE biometric_enabled = 1")
     fun getUsersWithBiometricEnabled(): List<User>
+
+    @Query("UPDATE users SET last_login_time = :loginTime, last_activity_time = :activityTime WHERE userName = :userName")
+    fun updateUserSessionTimes(userName: String, loginTime: Long, activityTime: Long)
+
+    @Query("UPDATE users SET last_activity_time = :activityTime WHERE userName = :userName")
+    fun updateUserActivity(userName: String, activityTime: Long)
+
+    @Query("UPDATE users SET session_timeout_minutes = :timeoutMinutes WHERE userName = :userName")
+    fun updateUserSessionTimeout(userName: String, timeoutMinutes: Long)
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class], version = 14)
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class], version = 15)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao

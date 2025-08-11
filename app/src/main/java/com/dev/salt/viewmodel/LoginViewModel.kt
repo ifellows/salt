@@ -15,6 +15,8 @@ import com.dev.salt.data.UserDao // Import your UserDao
 import com.dev.salt.PasswordUtils // Import the best practice utility
 import com.dev.salt.auth.BiometricAuthManager
 import com.dev.salt.auth.BiometricResult
+import com.dev.salt.session.SessionManager
+import com.dev.salt.session.SessionManagerInstance
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -36,7 +38,8 @@ data class LoginResult(
 
 class LoginViewModel(
     private val userDao: UserDao,
-    private val biometricAuthManager: BiometricAuthManager
+    private val biometricAuthManager: BiometricAuthManager,
+    private val sessionManager: SessionManager = SessionManagerInstance.instance
 ) : ViewModel() {
 
     var username by mutableStateOf("")
@@ -77,6 +80,15 @@ class LoginViewModel(
                                 Log.w("LoginViewModel", "Invalid role string in DB for user ${user.userName}: ${user.role}")
                                 UserRole.NONE // Default or error role if string doesn't match enum
                             }
+                            
+                            // Update session times in database
+                            val currentTime = System.currentTimeMillis()
+                            userDao.updateUserSessionTimes(user.userName, currentTime, currentTime)
+                            
+                            // Start session with user's custom timeout
+                            val sessionTimeoutMs = user.sessionTimeoutMinutes * 60 * 1000L
+                            sessionManager.startSession(user.userName, sessionTimeoutMs)
+                            
                             LoginResult(success = true, role = role)
                         } else {
                             // Password does not match
@@ -164,6 +176,14 @@ class LoginViewModel(
                                                         UserRole.NONE
                                                     }
                                                     
+                                                    // Update session times in database
+                                                    val currentTime = System.currentTimeMillis()
+                                                    userDao.updateUserSessionTimes(user.userName, currentTime, currentTime)
+                                                    
+                                                    // Start session with user's custom timeout
+                                                    val sessionTimeoutMs = user.sessionTimeoutMinutes * 60 * 1000L
+                                                    sessionManager.startSession(user.userName, sessionTimeoutMs)
+                                                    
                                                     val loginResult = LoginResult(success = true, role = role)
                                                     onLoginComplete(loginResult)
                                                 } else {
@@ -215,12 +235,13 @@ class LoginViewModel(
 // This factory is needed to create LoginViewModel instances with the UserDao and BiometricAuthManager dependencies.
 class LoginViewModelFactory(
     private val userDao: UserDao,
-    private val biometricAuthManager: BiometricAuthManager
+    private val biometricAuthManager: BiometricAuthManager,
+    private val sessionManager: SessionManager = SessionManagerInstance.instance
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return LoginViewModel(userDao, biometricAuthManager) as T
+            return LoginViewModel(userDao, biometricAuthManager, sessionManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

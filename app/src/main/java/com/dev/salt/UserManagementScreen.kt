@@ -25,11 +25,14 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.dev.salt.data.User
 import com.dev.salt.viewmodel.UserManagementViewModel
+import com.dev.salt.ui.LogoutButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserManagementScreen(
-    viewModel: UserManagementViewModel
+    viewModel: UserManagementViewModel,
+    onLogout: (() -> Unit)? = null,
+    showLogout: Boolean = true
 ) {
     val state = viewModel.state
 
@@ -85,7 +88,15 @@ fun UserManagementScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("User Management") }
+                title = { Text("User Management") },
+                actions = {
+                    if (onLogout != null) {
+                        LogoutButton(
+                            onLogout = onLogout,
+                            isVisible = showLogout
+                        )
+                    }
+                }
             )
         },
         floatingActionButton = {
