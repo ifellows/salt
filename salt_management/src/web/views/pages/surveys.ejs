@@ -13,6 +13,7 @@
                 <th>Version</th>
                 <th>Name</th>
                 <th>Description</th>
+                <th>Languages</th>
                 <th>Questions</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -24,6 +25,7 @@
                     <td>v${survey.version}</td>
                     <td>${survey.name}</td>
                     <td>${survey.description || '-'}</td>
+                    <td>${survey.languages ? (typeof survey.languages === 'string' ? JSON.parse(survey.languages).join(', ') : survey.languages.join(', ')) : 'en'}</td>
                     <td>${survey.question_count}</td>
                     <td>
                         ${survey.is_active ? 

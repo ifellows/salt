@@ -422,6 +422,7 @@ router.post('/:surveyId/reorder', [
 router.post('/', [
     body('name').notEmpty().trim(),
     body('description').optional().trim(),
+    body('languages').optional(),
     body('basedOnSurveyId').optional().isInt()
 ], async (req, res) => {
     const errors = validationResult(req);
@@ -429,7 +430,7 @@ router.post('/', [
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, description, basedOnSurveyId } = req.body;
+    const { name, description, languages, basedOnSurveyId } = req.body;
     
     try {
         // Get next version number
@@ -438,22 +439,22 @@ router.post('/', [
         );
         const newVersion = (latestVersion?.max_version || 0) + 1;
         
-        // Get languages from base survey or use default
-        let languages = '["en"]';
-        if (basedOnSurveyId) {
+        // Use provided languages or get from base survey or use default
+        let surveyLanguages = languages || '["en"]';
+        if (!languages && basedOnSurveyId) {
             const baseSurvey = await getAsync(
                 'SELECT languages FROM surveys WHERE id = ?',
                 [basedOnSurveyId]
             );
             if (baseSurvey && baseSurvey.languages) {
-                languages = baseSurvey.languages;
+                surveyLanguages = baseSurvey.languages;
             }
         }
         
         // Create new survey
         const result = await runAsync(
             'INSERT INTO surveys (version, name, description, languages) VALUES (?, ?, ?, ?)',
-            [newVersion, name, description, languages]
+            [newVersion, name, description, surveyLanguages]
         );
         
         const newSurveyId = result.id;

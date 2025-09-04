@@ -139,7 +139,7 @@ function createSampleSurvey(db, callback) {
     db.run(
         `INSERT INTO surveys (version, name, description, languages, is_active) 
          VALUES (?, ?, ?, ?, ?)`,
-        [1, 'SALT HIV Survey', 'Sample HIV monitoring survey for key populations', '["en", "sw"]', 1],
+        [1, 'SALT HIV Survey', 'Sample HIV monitoring survey for key populations', '["English", "Swahili"]', 1],
         function(err) {
             if (err) {
                 console.error('Error creating sample survey:', err);
@@ -155,67 +155,67 @@ function createSampleSurvey(db, callback) {
                 {
                     question_index: 0,
                     short_name: 'consent',
-                    question_text: '{"en": "Do you consent to participate in this survey?", "sw": "Je, unakubali kushiriki katika utafiti huu?"}',
+                    question_text: '{"English": "Do you consent to participate in this survey?", "Swahili": "Je, unakubali kushiriki katika utafiti huu?"}',
                     question_type: 'multiple_choice',
                     options: [
-                        { option_index: 0, text: '{"en": "Yes", "sw": "Ndio"}', value: '1' },
-                        { option_index: 1, text: '{"en": "No", "sw": "Hapana"}', value: '0' }
+                        { option_index: 0, text: '{"English": "Yes", "Swahili": "Ndio"}', value: '1' },
+                        { option_index: 1, text: '{"English": "No", "Swahili": "Hapana"}', value: '0' }
                     ]
                 },
                 {
                     question_index: 1,
                     short_name: 'age',
-                    question_text: '{"en": "What is your age?", "sw": "Una umri gani?"}',
+                    question_text: '{"English": "What is your age?", "Swahili": "Una umri gani?"}',
                     question_type: 'numeric',
                     validation_script: 'value >= 18 && value <= 100',
-                    validation_error: '{"en": "Age must be between 18 and 100", "sw": "Umri lazima uwe kati ya 18 na 100"}',
+                    validation_error: '{"English": "Age must be between 18 and 100", "Swahili": "Umri lazima uwe kati ya 18 na 100"}',
                     pre_script: 'consent == "1"'
                 },
                 {
                     question_index: 2,
                     short_name: 'gender',
-                    question_text: '{"en": "What is your gender?", "sw": "Jinsia yako ni gani?"}',
+                    question_text: '{"English": "What is your gender?", "Swahili": "Jinsia yako ni gani?"}',
                     question_type: 'multiple_choice',
                     pre_script: 'consent == "1"',
                     options: [
-                        { option_index: 0, text: '{"en": "Male", "sw": "Mwanaume"}', value: 'male' },
-                        { option_index: 1, text: '{"en": "Female", "sw": "Mwanamke"}', value: 'female' },
-                        { option_index: 2, text: '{"en": "Other", "sw": "Nyingine"}', value: 'other' }
+                        { option_index: 0, text: '{"English": "Male", "Swahili": "Mwanaume"}', value: 'male' },
+                        { option_index: 1, text: '{"English": "Female", "Swahili": "Mwanamke"}', value: 'female' },
+                        { option_index: 2, text: '{"English": "Other", "Swahili": "Nyingine"}', value: 'other' }
                     ]
                 },
                 {
                     question_index: 3,
                     short_name: 'hiv_tested',
-                    question_text: '{"en": "Have you been tested for HIV in the last 12 months?", "sw": "Je, umepimwa VVU katika miezi 12 iliyopita?"}',
+                    question_text: '{"English": "Have you been tested for HIV in the last 12 months?", "Swahili": "Je, umepimwa VVU katika miezi 12 iliyopita?"}',
                     question_type: 'multiple_choice',
                     pre_script: 'consent == "1" && age >= 18',
                     options: [
-                        { option_index: 0, text: '{"en": "Yes", "sw": "Ndio"}', value: 'yes' },
-                        { option_index: 1, text: '{"en": "No", "sw": "Hapana"}', value: 'no' },
-                        { option_index: 2, text: '{"en": "Prefer not to answer", "sw": "Napendelea kutokjibu"}', value: 'no_answer' }
+                        { option_index: 0, text: '{"English": "Yes", "Swahili": "Ndio"}', value: 'yes' },
+                        { option_index: 1, text: '{"English": "No", "Swahili": "Hapana"}', value: 'no' },
+                        { option_index: 2, text: '{"English": "Prefer not to answer", "Swahili": "Napendelea kutokjibu"}', value: 'no_answer' }
                     ]
                 },
                 {
                     question_index: 4,
                     short_name: 'test_result',
-                    question_text: '{"en": "What was your most recent HIV test result?", "sw": "Matokeo yako ya hivi karibuni ya kipimo cha VVU yalikuwa yapi?"}',
+                    question_text: '{"English": "What was your most recent HIV test result?", "Swahili": "Matokeo yako ya hivi karibuni ya kipimo cha VVU yalikuwa yapi?"}',
                     question_type: 'multiple_choice',
                     pre_script: 'hiv_tested == "yes"',
                     options: [
-                        { option_index: 0, text: '{"en": "Negative", "sw": "Hasi"}', value: 'negative' },
-                        { option_index: 1, text: '{"en": "Positive", "sw": "Chanya"}', value: 'positive' },
-                        { option_index: 2, text: '{"en": "Prefer not to answer", "sw": "Napendelea kutokjibu"}', value: 'no_answer' }
+                        { option_index: 0, text: '{"English": "Negative", "Swahili": "Hasi"}', value: 'negative' },
+                        { option_index: 1, text: '{"English": "Positive", "Swahili": "Chanya"}', value: 'positive' },
+                        { option_index: 2, text: '{"English": "Prefer not to answer", "Swahili": "Napendelea kutokjibu"}', value: 'no_answer' }
                     ]
                 },
                 {
                     question_index: 5,
                     short_name: 'on_treatment',
-                    question_text: '{"en": "Are you currently on HIV treatment?", "sw": "Je, kwa sasa unapata matibabu ya VVU?"}',
+                    question_text: '{"English": "Are you currently on HIV treatment?", "Swahili": "Je, kwa sasa unapata matibabu ya VVU?"}',
                     question_type: 'multiple_choice',
                     pre_script: 'test_result == "positive"',
                     options: [
-                        { option_index: 0, text: '{"en": "Yes", "sw": "Ndio"}', value: 'yes' },
-                        { option_index: 1, text: '{"en": "No", "sw": "Hapana"}', value: 'no' }
+                        { option_index: 0, text: '{"English": "Yes", "Swahili": "Ndio"}', value: 'yes' },
+                        { option_index: 1, text: '{"English": "No", "Swahili": "Hapana"}', value: 'no' }
                     ]
                 }
             ];

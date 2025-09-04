@@ -4,13 +4,22 @@
 <div class="card">
     <form id="newSurveyForm">
         <div style="margin-bottom: 1rem;">
-            <label>Survey Name:</label>
+            <label>Survey Name: <span style="color: red;">*</span></label>
             <input type="text" id="surveyName" placeholder="e.g., HIV Risk Assessment v2" required style="width: 100%; padding: 0.5rem;">
         </div>
         
         <div style="margin-bottom: 1rem;">
             <label>Description:</label>
             <textarea id="surveyDescription" placeholder="Brief description of the survey" style="width: 100%; padding: 0.5rem; min-height: 100px;"></textarea>
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+            <label>Supported Languages: <span style="color: red;">*</span></label>
+            <input type="text" id="languages" placeholder="e.g., English, Swahili, Spanish" value="English" required style="width: 100%; padding: 0.5rem;">
+            <p style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">
+                Enter comma-separated language names (e.g., English, Swahili, Kikuyu). English is required and will be added automatically if not included.
+                You can include local or regional languages as needed.
+            </p>
         </div>
         
         <div style="margin-bottom: 1rem;">
@@ -22,7 +31,7 @@
                 `).join('')}
             </select>
             <p style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">
-                If selected, all questions and options will be copied to the new survey
+                If selected, all questions and options will be copied to the new survey (but you can still customize languages)
             </p>
         </div>
         
@@ -37,9 +46,34 @@
 document.getElementById('newSurveyForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    // Parse languages from text input
+    const languagesInput = document.getElementById('languages').value;
+    const languages = languagesInput
+        .split(',')
+        .map(lang => lang.trim())
+        .filter(lang => lang.length > 0);
+    
+    // Ensure English is always included
+    const hasEnglish = languages.some(lang => lang.toLowerCase() === 'english');
+    if (!hasEnglish) {
+        languages.unshift('English');
+    }
+    
+    // Remove duplicates (case-insensitive)
+    const uniqueLanguages = [];
+    const seen = new Set();
+    for (const lang of languages) {
+        const langLower = lang.toLowerCase();
+        if (!seen.has(langLower)) {
+            seen.add(langLower);
+            uniqueLanguages.push(lang);
+        }
+    }
+    
     const data = {
         name: document.getElementById('surveyName').value,
-        description: document.getElementById('surveyDescription').value
+        description: document.getElementById('surveyDescription').value,
+        languages: JSON.stringify(uniqueLanguages)
     };
     
     const basedOnId = document.getElementById('basedOnSurveyId').value;
@@ -57,7 +91,7 @@ document.getElementById('newSurveyForm').addEventListener('submit', async (e) =>
         const result = await response.json();
         
         if (response.ok) {
-            alert('Survey created successfully as version ' + result.version);
+            alert('Survey created successfully as version ' + result.version + ' with languages: ' + uniqueLanguages.join(', '));
             window.location.href = '/surveys/' + result.id + '/edit';
         } else {
             alert('Failed to create survey: ' + result.error);

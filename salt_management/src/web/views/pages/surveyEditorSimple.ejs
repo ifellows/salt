@@ -3,6 +3,7 @@
 const questionsData = questions.map(q => {
     const texts = typeof q.question_text_json === 'string' ? JSON.parse(q.question_text_json) : q.question_text_json || {};
     const audioFiles = typeof q.audio_files_json === 'string' ? JSON.parse(q.audio_files_json) : q.audio_files_json || {};
+    const validationError = typeof q.validation_error_json === 'string' ? JSON.parse(q.validation_error_json) : q.validation_error_json || {};
     return {
         id: q.id,
         question_index: q.question_index,
@@ -12,9 +13,13 @@ const questionsData = questions.map(q => {
         audioFiles: audioFiles,
         pre_script: q.pre_script,
         validation_script: q.validation_script,
+        validation_error: validationError,
         options: q.options || []
     };
 });
+
+// Parse survey languages
+const surveyLanguages = typeof survey.languages === 'string' ? JSON.parse(survey.languages) : survey.languages || ['en'];
 
 // Build the body HTML
 let bodyHtml = '<link rel="stylesheet" href="/css/survey-editor.css">\n';
@@ -27,6 +32,7 @@ bodyHtml += '    <p><strong>Name:</strong> ' + survey.name + '</p>\n';
 bodyHtml += '    <p><strong>Version:</strong> ' + survey.version + '</p>\n';
 bodyHtml += '    <p><strong>Description:</strong> ' + (survey.description || 'No description') + '</p>\n';
 bodyHtml += '    <p><strong>Status:</strong> ' + (survey.is_active ? 'Active' : 'Inactive') + '</p>\n';
+bodyHtml += '    <p><strong>Languages:</strong> ' + surveyLanguages.join(', ') + '</p>\n';
 bodyHtml += '</div>\n';
 
 // Questions card
@@ -47,12 +53,15 @@ questionsData.forEach((q, idx) => {
     bodyHtml += '                    <strong>' + q.short_name + '</strong>\n';
     bodyHtml += '                    <span class="question-type-badge">' + q.question_type.replace('_', ' ') + '</span>\n';
     bodyHtml += '                </div>\n';
+    bodyHtml += '                <button onclick="editQuestion(' + q.id + ')" class="btn btn-sm">Edit</button>\n';
     bodyHtml += '            </div>\n';
     bodyHtml += '            <div style="margin-left: 2rem;">\n';
-    bodyHtml += '                <p style="margin: 0.5rem 0;">' + (q.texts.en || 'No English text') + '</p>\n';
+    // Get the first language text (prioritize English if available)
+    const primaryText = q.texts.English || q.texts[Object.keys(q.texts)[0]] || 'No text';
+    bodyHtml += '                <p style="margin: 0.5rem 0;">' + primaryText + '</p>\n';
     
     // Show other language texts
-    Object.keys(q.texts).filter(lang => lang !== 'en').forEach(lang => {
+    Object.keys(q.texts).filter(lang => lang.toLowerCase() !== 'english').forEach(lang => {
         bodyHtml += '                <p style="margin: 0.25rem 0; color: #666; font-size: 0.9rem;">\n';
         bodyHtml += '                    <strong>' + lang + ':</strong> ' + q.texts[lang] + '\n';
         bodyHtml += '                </p>\n';
@@ -66,9 +75,10 @@ questionsData.forEach((q, idx) => {
                 JSON.parse(opt.option_text_json) : opt.option_text_json || {};
             bodyHtml += '                    <div class="option-item">\n';
             bodyHtml += '                        <span class="option-index">' + optIdx + '</span>\n';
-            bodyHtml += '                        ' + (optTexts.en || 'No text') + '\n';
+            const optPrimaryText = optTexts.English || optTexts[Object.keys(optTexts)[0]] || 'No text';
+            bodyHtml += '                        ' + optPrimaryText + '\n';
             bodyHtml += '                    </div>\n';
-        });
+            });
         bodyHtml += '                </div>\n';
     }
     
@@ -92,8 +102,69 @@ if (questions.length === 0) {
 bodyHtml += '    </div>\n';
 bodyHtml += '</div>\n';
 
+// Add edit modal
+bodyHtml += '<div id="editModal" class="modal">\n';
+bodyHtml += '    <div class="modal-content">\n';
+bodyHtml += '        <div class="modal-header">\n';
+bodyHtml += '            <h3>Edit Question</h3>\n';
+bodyHtml += '            <span class="close" onclick="closeModal()">&times;</span>\n';
+bodyHtml += '        </div>\n';
+bodyHtml += '        <div class="modal-body">\n';
+bodyHtml += '            <form id="editForm">\n';
+bodyHtml += '                <input type="hidden" id="questionId">\n';
+bodyHtml += '                \n';
+bodyHtml += '                <div class="form-group">\n';
+bodyHtml += '                    <label>Short Name</label>\n';
+bodyHtml += '                    <input type="text" id="shortName" class="form-control" pattern="^[a-zA-Z0-9_]+$" required>\n';
+bodyHtml += '                </div>\n';
+bodyHtml += '                \n';
+bodyHtml += '                <div class="form-group">\n';
+bodyHtml += '                    <label>Question Type</label>\n';
+bodyHtml += '                    <select id="questionType" class="form-control" onchange="toggleOptionsSection()">\n';
+bodyHtml += '                        <option value="multiple_choice">Multiple Choice</option>\n';
+bodyHtml += '                        <option value="numeric">Numeric</option>\n';
+bodyHtml += '                        <option value="text">Text</option>\n';
+bodyHtml += '                    </select>\n';
+bodyHtml += '                </div>\n';
+bodyHtml += '                \n';
+bodyHtml += '                <div id="languageTexts">\n';
+bodyHtml += '                    <label>Question Text</label>\n';
+// Add input for each language
+surveyLanguages.forEach(lang => {
+    bodyHtml += '                    <div class="form-group">\n';
+    bodyHtml += '                        <input type="text" id="text_' + lang.replace(/\s+/g, '_') + '" class="form-control" placeholder="' + lang + ' text" ' + (lang.toLowerCase() === 'english' ? 'required' : '') + '>\n';
+    bodyHtml += '                    </div>\n';
+});
+bodyHtml += '                </div>\n';
+bodyHtml += '                \n';
+bodyHtml += '                <div id="optionsSection" style="display: none;">\n';
+bodyHtml += '                    <label>Options</label>\n';
+bodyHtml += '                    <div id="optionsList"></div>\n';
+bodyHtml += '                    <button type="button" onclick="addOption()" class="btn btn-sm">Add Option</button>\n';
+bodyHtml += '                </div>\n';
+bodyHtml += '                \n';
+bodyHtml += '                <div class="form-group">\n';
+bodyHtml += '                    <label>Skip Logic (JEXL expression)</label>\n';
+bodyHtml += '                    <input type="text" id="preScript" class="form-control" placeholder="e.g., age >= 18">\n';
+bodyHtml += '                </div>\n';
+bodyHtml += '                \n';
+bodyHtml += '                <div class="form-group">\n';
+bodyHtml += '                    <label>Validation Script</label>\n';
+bodyHtml += '                    <input type="text" id="validationScript" class="form-control" placeholder="e.g., value >= 0 && value <= 100">\n';
+bodyHtml += '                </div>\n';
+bodyHtml += '                \n';
+bodyHtml += '            </form>\n';
+bodyHtml += '        </div>\n';
+bodyHtml += '        <div class="modal-footer">\n';
+bodyHtml += '            <button onclick="saveQuestion()" class="btn">Save</button>\n';
+bodyHtml += '            <button onclick="closeModal()" class="btn btn-danger">Cancel</button>\n';
+bodyHtml += '        </div>\n';
+bodyHtml += '    </div>\n';
+bodyHtml += '</div>\n';
+
 // Add CSS styles
 bodyHtml += '<style>\n';
+bodyHtml += '.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.9rem; }\n';
 bodyHtml += '.question-item { background: #f8f8f8; padding: 1rem; margin-bottom: 0.5rem; border-radius: 4px; cursor: move; }\n';
 bodyHtml += '.question-item.dragging { opacity: 0.5; }\n';
 bodyHtml += '.question-item.drag-over { border-top: 3px solid #3498db; }\n';
@@ -106,14 +177,30 @@ bodyHtml += '.option-item { padding: 0.25rem 0; }\n';
 bodyHtml += '.option-index { background: #ecf0f1; padding: 0.2rem 0.4rem; border-radius: 3px; margin-right: 0.5rem; }\n';
 bodyHtml += '.skip-logic-tag { background: #f39c12; color: white; padding: 0.2rem 0.5rem; border-radius: 3px; margin-right: 0.5rem; font-size: 0.8rem; }\n';
 bodyHtml += '.validation-tag { background: #e74c3c; color: white; padding: 0.2rem 0.5rem; border-radius: 3px; font-size: 0.8rem; }\n';
+bodyHtml += '.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); }\n';
+bodyHtml += '.modal-content { background-color: #fefefe; margin: 5% auto; width: 80%; max-width: 600px; border-radius: 8px; }\n';
+bodyHtml += '.modal-header { padding: 1rem; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }\n';
+bodyHtml += '.modal-body { padding: 1rem; max-height: 60vh; overflow-y: auto; }\n';
+bodyHtml += '.modal-footer { padding: 1rem; border-top: 1px solid #ddd; display: flex; gap: 0.5rem; justify-content: flex-end; }\n';
+bodyHtml += '.close { font-size: 28px; font-weight: bold; cursor: pointer; }\n';
+bodyHtml += '.close:hover { color: #000; }\n';
+bodyHtml += '.form-group { margin-bottom: 1rem; }\n';
+bodyHtml += '.form-group label { display: block; margin-bottom: 0.25rem; font-weight: bold; }\n';
+bodyHtml += '.form-control { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; }\n';
+bodyHtml += '.option-input-group { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }\n';
+bodyHtml += '.option-input-group input { flex: 1; }\n';
 bodyHtml += '</style>\n';
 
-// Add JavaScript for drag and drop
+// Add JavaScript
 bodyHtml += '<script>\n';
 bodyHtml += 'const surveyId = ' + survey.id + ';\n';
+bodyHtml += 'const surveyLanguages = ' + JSON.stringify(surveyLanguages) + ';\n';
 bodyHtml += 'let questionOrder = [' + questions.map(q => q.id).join(', ') + '];\n';
 bodyHtml += 'let draggedElement = null;\n';
+bodyHtml += 'let questionsData = ' + JSON.stringify(questionsData) + ';\n';
 bodyHtml += '\n';
+
+// Drag and drop functions
 bodyHtml += 'function initializeDragAndDrop() {\n';
 bodyHtml += '    document.querySelectorAll(".question-item").forEach(item => {\n';
 bodyHtml += '        item.addEventListener("dragstart", handleDragStart);\n';
@@ -198,6 +285,143 @@ bodyHtml += '            alert("Failed to save order: " + result.error);\n';
 bodyHtml += '        }\n';
 bodyHtml += '    } catch (error) {\n';
 bodyHtml += '        alert("Error: " + error.message);\n';
+bodyHtml += '    }\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+
+// Modal functions
+bodyHtml += 'function editQuestion(questionId) {\n';
+bodyHtml += '    const question = questionsData.find(q => q.id === questionId);\n';
+bodyHtml += '    if (!question) return;\n';
+bodyHtml += '    \n';
+bodyHtml += '    document.getElementById("questionId").value = questionId;\n';
+bodyHtml += '    document.getElementById("shortName").value = question.short_name;\n';
+bodyHtml += '    document.getElementById("questionType").value = question.question_type;\n';
+bodyHtml += '    document.getElementById("preScript").value = question.pre_script || "";\n';
+bodyHtml += '    document.getElementById("validationScript").value = question.validation_script || "";\n';
+bodyHtml += '    \n';
+bodyHtml += '    // Set text for each language\n';
+bodyHtml += '    surveyLanguages.forEach(lang => {\n';
+bodyHtml += '        const input = document.getElementById("text_" + lang.replace(/\\s+/g, "_"));\n';
+bodyHtml += '        if (input) input.value = question.texts[lang] || "";\n';
+bodyHtml += '    });\n';
+bodyHtml += '    \n';
+bodyHtml += '    // Setup options if multiple choice\n';
+bodyHtml += '    if (question.question_type === "multiple_choice") {\n';
+bodyHtml += '        loadOptions(question.options);\n';
+bodyHtml += '    }\n';
+bodyHtml += '    \n';
+bodyHtml += '    toggleOptionsSection();\n';
+bodyHtml += '    document.getElementById("editModal").style.display = "block";\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function loadOptions(options) {\n';
+bodyHtml += '    const container = document.getElementById("optionsList");\n';
+bodyHtml += '    container.innerHTML = "";\n';
+bodyHtml += '    \n';
+bodyHtml += '    options.forEach((opt, idx) => {\n';
+bodyHtml += '        const optTexts = typeof opt.option_text_json === "string" ? \n';
+bodyHtml += '            JSON.parse(opt.option_text_json) : opt.option_text_json || {};\n';
+bodyHtml += '        addOptionWithData(optTexts);\n';
+bodyHtml += '    });\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function addOption() {\n';
+bodyHtml += '    addOptionWithData({});\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function addOptionWithData(texts) {\n';
+bodyHtml += '    const container = document.getElementById("optionsList");\n';
+bodyHtml += '    const optionDiv = document.createElement("div");\n';
+bodyHtml += '    optionDiv.className = "option-input-group";\n';
+bodyHtml += '    \n';
+bodyHtml += '    let html = "";\n';
+bodyHtml += '    surveyLanguages.forEach(lang => {\n';
+bodyHtml += '        html += \'<input type="text" class="form-control option-text" data-lang="\' + lang + \'" placeholder="\' + lang + \' option" value="\' + (texts[lang] || "") + \'">\';\n';
+bodyHtml += '    });\n';
+bodyHtml += '    html += \'<button type="button" onclick="removeOption(this)" class="btn btn-danger btn-sm">X</button>\';\n';
+bodyHtml += '    \n';
+bodyHtml += '    optionDiv.innerHTML = html;\n';
+bodyHtml += '    container.appendChild(optionDiv);\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function removeOption(button) {\n';
+bodyHtml += '    button.parentElement.remove();\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function toggleOptionsSection() {\n';
+bodyHtml += '    const type = document.getElementById("questionType").value;\n';
+bodyHtml += '    document.getElementById("optionsSection").style.display = \n';
+bodyHtml += '        type === "multiple_choice" ? "block" : "none";\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function closeModal() {\n';
+bodyHtml += '    document.getElementById("editModal").style.display = "none";\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'async function saveQuestion() {\n';
+bodyHtml += '    const questionId = document.getElementById("questionId").value;\n';
+bodyHtml += '    const question = questionsData.find(q => q.id === parseInt(questionId));\n';
+bodyHtml += '    \n';
+bodyHtml += '    // Collect texts\n';
+bodyHtml += '    const texts = {};\n';
+bodyHtml += '    surveyLanguages.forEach(lang => {\n';
+bodyHtml += '        const value = document.getElementById("text_" + lang.replace(/\\s+/g, "_")).value;\n';
+bodyHtml += '        if (value) texts[lang] = value;\n';
+bodyHtml += '    });\n';
+bodyHtml += '    \n';
+bodyHtml += '    // Collect options if multiple choice\n';
+bodyHtml += '    const options = [];\n';
+bodyHtml += '    if (document.getElementById("questionType").value === "multiple_choice") {\n';
+bodyHtml += '        document.querySelectorAll(".option-input-group").forEach((group, idx) => {\n';
+bodyHtml += '            const optionTexts = {};\n';
+bodyHtml += '            group.querySelectorAll(".option-text").forEach(input => {\n';
+bodyHtml += '                if (input.value) optionTexts[input.dataset.lang] = input.value;\n';
+bodyHtml += '            });\n';
+bodyHtml += '            options.push({\n';
+bodyHtml += '                option_index: idx,\n';
+bodyHtml += '                text_json: optionTexts,\n';
+bodyHtml += '                audio_json: {}\n';
+bodyHtml += '            });\n';
+bodyHtml += '        });\n';
+bodyHtml += '    }\n';
+bodyHtml += '    \n';
+bodyHtml += '    const data = {\n';
+bodyHtml += '        short_name: document.getElementById("shortName").value,\n';
+bodyHtml += '        question_text_json: texts,\n';
+bodyHtml += '        question_type: document.getElementById("questionType").value,\n';
+bodyHtml += '        question_index: question.question_index,\n';
+bodyHtml += '        pre_script: document.getElementById("preScript").value || null,\n';
+bodyHtml += '        validation_script: document.getElementById("validationScript").value || null,\n';
+bodyHtml += '        audio_files_json: {},\n';
+bodyHtml += '        validation_error_json: {},\n';
+bodyHtml += '        options: options\n';
+bodyHtml += '    };\n';
+bodyHtml += '    \n';
+bodyHtml += '    try {\n';
+bodyHtml += '        const response = await fetch("/api/admin/survey-config/" + surveyId + "/questions/" + questionId, {\n';
+bodyHtml += '            method: "PUT",\n';
+bodyHtml += '            headers: { "Content-Type": "application/json" },\n';
+bodyHtml += '            body: JSON.stringify(data)\n';
+bodyHtml += '        });\n';
+bodyHtml += '        \n';
+bodyHtml += '        if (response.ok) {\n';
+bodyHtml += '            alert("Question updated successfully");\n';
+bodyHtml += '            location.reload();\n';
+bodyHtml += '        } else {\n';
+bodyHtml += '            const result = await response.json();\n';
+bodyHtml += '            alert("Failed to update: " + result.error);\n';
+bodyHtml += '        }\n';
+bodyHtml += '    } catch (error) {\n';
+bodyHtml += '        alert("Error: " + error.message);\n';
+bodyHtml += '    }\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += '// Close modal when clicking outside\n';
+bodyHtml += 'window.onclick = function(event) {\n';
+bodyHtml += '    const modal = document.getElementById("editModal");\n';
+bodyHtml += '    if (event.target === modal) {\n';
+bodyHtml += '        closeModal();\n';
 bodyHtml += '    }\n';
 bodyHtml += '}\n';
 bodyHtml += '\n';
