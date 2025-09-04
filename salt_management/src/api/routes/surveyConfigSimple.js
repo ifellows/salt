@@ -555,4 +555,69 @@ router.post('/:id/activate', async (req, res) => {
     }
 });
 
+// Delete a survey
+router.delete('/:id', async (req, res) => {
+    const surveyId = req.params.id;
+    
+    try {
+        // Check if survey exists
+        const survey = await getAsync(
+            'SELECT * FROM surveys WHERE id = ?',
+            [surveyId]
+        );
+        
+        if (!survey) {
+            return res.status(404).json({ error: 'Survey not found' });
+        }
+        
+        // Prevent deletion of active survey
+        if (survey.is_active) {
+            return res.status(400).json({ error: 'Cannot delete an active survey. Please activate another survey first.' });
+        }
+        
+        // Check if this is the only survey
+        const surveyCount = await getAsync(
+            'SELECT COUNT(*) as count FROM surveys'
+        );
+        
+        if (surveyCount.count <= 1) {
+            return res.status(400).json({ error: 'Cannot delete the only survey. Create another survey first.' });
+        }
+        
+        // Delete all options for questions in this survey
+        await runAsync(
+            `DELETE FROM options WHERE question_id IN (
+                SELECT id FROM questions WHERE survey_id = ?
+            )`,
+            [surveyId]
+        );
+        
+        // Delete all questions for this survey
+        await runAsync(
+            'DELETE FROM questions WHERE survey_id = ?',
+            [surveyId]
+        );
+        
+        // Delete the survey
+        await runAsync(
+            'DELETE FROM surveys WHERE id = ?',
+            [surveyId]
+        );
+        
+        await logAudit(
+            req.session.userId,
+            'DELETE_SURVEY',
+            'survey',
+            surveyId,
+            survey,
+            null
+        );
+        
+        res.json({ message: 'Survey deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting survey:', error);
+        res.status(500).json({ error: 'Failed to delete survey' });
+    }
+});
+
 module.exports = router;
