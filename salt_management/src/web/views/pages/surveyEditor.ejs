@@ -1,0 +1,277 @@
+<% var body = ` 
+<h2>Edit Survey: ${survey.name}</h2>
+
+<div class="card">
+    <h3>Survey Details</h3>
+    <form id="surveyForm" style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+        <input type="text" id="surveyName" value="${survey.name}" placeholder="Survey Name" style="flex: 1; padding: 0.5rem;">
+        <input type="text" id="surveyDescription" value="${survey.description || ''}" placeholder="Description" style="flex: 2; padding: 0.5rem;">
+        <button type="submit" class="btn">Update Details</button>
+    </form>
+</div>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3>Questions</h3>
+        <button onclick="showAddQuestion()" class="btn">Add Question</button>
+    </div>
+    
+    <div id="questionsList">
+        ${questions.map((q, idx) => `
+            <div class="question-item" style="border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; border-radius: 4px;" data-question-id="${q.id}">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div style="flex: 1;">
+                        <strong>Q${idx + 1}: ${q.short_name}</strong>
+                        <p>${q.question_text}</p>
+                        <p style="color: #666; font-size: 0.9rem;">Type: ${q.question_type}</p>
+                        ${q.question_type === 'multiple_choice' && q.options.length > 0 ? `
+                            <ul style="margin-top: 0.5rem;">
+                                ${q.options.map(opt => `<li>${opt.option_text}</li>`).join('')}
+                            </ul>
+                        ` : ''}
+                        ${q.pre_script ? `<p style="color: #666; font-size: 0.9rem;">Skip Logic: ${q.pre_script}</p>` : ''}
+                        ${q.validation_script ? `<p style="color: #666; font-size: 0.9rem;">Validation: ${q.validation_script}</p>` : ''}
+                    </div>
+                    <div>
+                        <button onclick="editQuestion(${q.id})" class="btn" style="padding: 0.25rem 0.5rem;">Edit</button>
+                        <button onclick="deleteQuestion(${q.id})" class="btn btn-danger" style="padding: 0.25rem 0.5rem; margin-left: 0.5rem;">Delete</button>
+                    </div>
+                </div>
+            </div>
+        `).join('')}
+        ${questions.length === 0 ? '<p style="text-align: center; color: #666;">No questions added yet</p>' : ''}
+    </div>
+</div>
+
+<!-- Add/Edit Question Modal -->
+<div id="questionModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; overflow: auto;">
+    <div style="background: white; max-width: 800px; margin: 50px auto; padding: 2rem; border-radius: 8px;">
+        <h3 id="modalTitle">Add Question</h3>
+        <form id="questionForm">
+            <input type="hidden" id="questionId">
+            
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; margin-bottom: 1rem;">
+                <input type="text" id="shortName" placeholder="Short Name (e.g., q1_age)" required style="padding: 0.5rem;">
+                <input type="text" id="questionText" placeholder="Question Text" required style="padding: 0.5rem;">
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <select id="questionType" onchange="toggleOptionsSection()" style="padding: 0.5rem;">
+                    <option value="multiple_choice">Multiple Choice</option>
+                    <option value="numeric">Numeric</option>
+                    <option value="text">Text</option>
+                    <option value="date">Date</option>
+                </select>
+                <input type="number" id="questionIndex" placeholder="Question Order" required style="padding: 0.5rem;">
+            </div>
+            
+            <div id="optionsSection">
+                <label>Options (for multiple choice):</label>
+                <div id="optionsList" style="margin-bottom: 1rem;">
+                    <div class="option-item" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <input type="text" placeholder="Option text" style="flex: 1; padding: 0.5rem;">
+                        <button type="button" onclick="addOption()" class="btn" style="padding: 0.5rem;">+</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <label>Skip Logic (JEXL expression, optional):</label>
+                <input type="text" id="preScript" placeholder="e.g., q1_age >= 18" style="width: 100%; padding: 0.5rem;">
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <label>Validation Script (JEXL expression, optional):</label>
+                <input type="text" id="validationScript" placeholder="e.g., value >= 0 && value <= 120" style="width: 100%; padding: 0.5rem;">
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <label>Audio File (optional):</label>
+                <input type="text" id="audioFile" placeholder="Audio filename" style="width: 100%; padding: 0.5rem;">
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn">Save Question</button>
+                <button type="button" onclick="closeQuestionModal()" class="btn btn-danger">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const surveyId = ${survey.id};
+
+// Update survey details
+document.getElementById('surveyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const data = {
+        name: document.getElementById('surveyName').value,
+        description: document.getElementById('surveyDescription').value
+    };
+    
+    try {
+        const response = await fetch('/api/admin/survey-config/' + surveyId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            alert('Survey details updated');
+        } else {
+            const result = await response.json();
+            alert('Failed to update: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
+
+// Question modal functions
+function showAddQuestion() {
+    document.getElementById('modalTitle').textContent = 'Add Question';
+    document.getElementById('questionId').value = '';
+    document.getElementById('questionForm').reset();
+    document.getElementById('questionModal').style.display = 'block';
+}
+
+function editQuestion(questionId) {
+    // Find question data
+    const questions = ${JSON.stringify(questions)};
+    const question = questions.find(q => q.id === questionId);
+    
+    if (!question) return;
+    
+    document.getElementById('modalTitle').textContent = 'Edit Question';
+    document.getElementById('questionId').value = questionId;
+    document.getElementById('shortName').value = question.short_name;
+    document.getElementById('questionText').value = question.question_text;
+    document.getElementById('questionType').value = question.question_type;
+    document.getElementById('questionIndex').value = question.question_index;
+    document.getElementById('preScript').value = question.pre_script || '';
+    document.getElementById('validationScript').value = question.validation_script || '';
+    document.getElementById('audioFile').value = question.audio_file || '';
+    
+    // Load options if multiple choice
+    if (question.question_type === 'multiple_choice' && question.options) {
+        const optionsList = document.getElementById('optionsList');
+        optionsList.innerHTML = '';
+        question.options.forEach((opt, idx) => {
+            const div = document.createElement('div');
+            div.className = 'option-item';
+            div.style = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem;';
+            div.innerHTML = \`
+                <input type="text" value="\${opt.option_text}" placeholder="Option text" style="flex: 1; padding: 0.5rem;">
+                <button type="button" onclick="\${idx === 0 ? 'addOption()' : 'removeOption(this)'}" class="btn \${idx === 0 ? '' : 'btn-danger'}" style="padding: 0.5rem;">\${idx === 0 ? '+' : '-'}</button>
+            \`;
+            optionsList.appendChild(div);
+        });
+        if (question.options.length === 0) {
+            addOption();
+        }
+    }
+    
+    toggleOptionsSection();
+    document.getElementById('questionModal').style.display = 'block';
+}
+
+function closeQuestionModal() {
+    document.getElementById('questionModal').style.display = 'none';
+}
+
+function toggleOptionsSection() {
+    const type = document.getElementById('questionType').value;
+    document.getElementById('optionsSection').style.display = 
+        type === 'multiple_choice' ? 'block' : 'none';
+}
+
+function addOption() {
+    const optionsList = document.getElementById('optionsList');
+    const div = document.createElement('div');
+    div.className = 'option-item';
+    div.style = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem;';
+    div.innerHTML = \`
+        <input type="text" placeholder="Option text" style="flex: 1; padding: 0.5rem;">
+        <button type="button" onclick="removeOption(this)" class="btn btn-danger" style="padding: 0.5rem;">-</button>
+    \`;
+    optionsList.appendChild(div);
+}
+
+function removeOption(button) {
+    button.parentElement.remove();
+}
+
+async function deleteQuestion(questionId) {
+    if (!confirm('Delete this question?')) return;
+    
+    try {
+        const response = await fetch('/api/admin/survey-config/' + surveyId + '/questions/' + questionId, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            alert('Question deleted');
+            location.reload();
+        } else {
+            const result = await response.json();
+            alert('Failed to delete: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+// Save question
+document.getElementById('questionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const questionId = document.getElementById('questionId').value;
+    const isEdit = !!questionId;
+    
+    // Collect options
+    const options = [];
+    if (document.getElementById('questionType').value === 'multiple_choice') {
+        document.querySelectorAll('#optionsList .option-item input').forEach(input => {
+            if (input.value.trim()) {
+                options.push({ text: input.value.trim() });
+            }
+        });
+    }
+    
+    const data = {
+        short_name: document.getElementById('shortName').value,
+        question_text: document.getElementById('questionText').value,
+        question_type: document.getElementById('questionType').value,
+        question_index: parseInt(document.getElementById('questionIndex').value),
+        pre_script: document.getElementById('preScript').value || null,
+        validation_script: document.getElementById('validationScript').value || null,
+        audio_file: document.getElementById('audioFile').value || null,
+        options: options
+    };
+    
+    try {
+        const url = isEdit ? 
+            '/api/admin/survey-config/' + surveyId + '/questions/' + questionId :
+            '/api/admin/survey-config/' + surveyId + '/questions';
+            
+        const response = await fetch(url, {
+            method: isEdit ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            alert(isEdit ? 'Question updated' : 'Question added');
+            location.reload();
+        } else {
+            const result = await response.json();
+            alert('Failed to save: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
+</script>
+` %>
+<%- include('../layouts/main', { body: body }) %>

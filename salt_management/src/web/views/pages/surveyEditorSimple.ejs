@@ -1,0 +1,212 @@
+<%
+// Prepare the questions data
+const questionsData = questions.map(q => {
+    const texts = typeof q.question_text_json === 'string' ? JSON.parse(q.question_text_json) : q.question_text_json || {};
+    const audioFiles = typeof q.audio_files_json === 'string' ? JSON.parse(q.audio_files_json) : q.audio_files_json || {};
+    return {
+        id: q.id,
+        question_index: q.question_index,
+        short_name: q.short_name,
+        question_type: q.question_type,
+        texts: texts,
+        audioFiles: audioFiles,
+        pre_script: q.pre_script,
+        validation_script: q.validation_script,
+        options: q.options || []
+    };
+});
+
+// Build the body HTML
+let bodyHtml = '<link rel="stylesheet" href="/css/survey-editor.css">\n';
+bodyHtml += '<h2>Survey Editor: ' + survey.name + ' (v' + survey.version + ')</h2>\n';
+
+// Survey info card
+bodyHtml += '<div class="card">\n';
+bodyHtml += '    <h3>Survey Information</h3>\n';
+bodyHtml += '    <p><strong>Name:</strong> ' + survey.name + '</p>\n';
+bodyHtml += '    <p><strong>Version:</strong> ' + survey.version + '</p>\n';
+bodyHtml += '    <p><strong>Description:</strong> ' + (survey.description || 'No description') + '</p>\n';
+bodyHtml += '    <p><strong>Status:</strong> ' + (survey.is_active ? 'Active' : 'Inactive') + '</p>\n';
+bodyHtml += '</div>\n';
+
+// Questions card
+bodyHtml += '<div class="card">\n';
+bodyHtml += '    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">\n';
+bodyHtml += '        <h3>Questions (' + questions.length + ')</h3>\n';
+bodyHtml += '        <button onclick="saveQuestionOrder()" class="btn">Save Order</button>\n';
+bodyHtml += '    </div>\n';
+bodyHtml += '    <div id="questionsList">\n';
+
+// Add each question
+questionsData.forEach((q, idx) => {
+    bodyHtml += '        <div class="question-item" draggable="true" data-question-id="' + q.id + '" data-question-index="' + q.question_index + '">\n';
+    bodyHtml += '            <div class="question-header">\n';
+    bodyHtml += '                <div style="flex: 1;">\n';
+    bodyHtml += '                    <span class="drag-handle">≡</span>\n';
+    bodyHtml += '                    <span class="question-number">Q' + (q.question_index + 1) + '</span>\n';
+    bodyHtml += '                    <strong>' + q.short_name + '</strong>\n';
+    bodyHtml += '                    <span class="question-type-badge">' + q.question_type.replace('_', ' ') + '</span>\n';
+    bodyHtml += '                </div>\n';
+    bodyHtml += '            </div>\n';
+    bodyHtml += '            <div style="margin-left: 2rem;">\n';
+    bodyHtml += '                <p style="margin: 0.5rem 0;">' + (q.texts.en || 'No English text') + '</p>\n';
+    
+    // Show other language texts
+    Object.keys(q.texts).filter(lang => lang !== 'en').forEach(lang => {
+        bodyHtml += '                <p style="margin: 0.25rem 0; color: #666; font-size: 0.9rem;">\n';
+        bodyHtml += '                    <strong>' + lang + ':</strong> ' + q.texts[lang] + '\n';
+        bodyHtml += '                </p>\n';
+    });
+    
+    // Show options for multiple choice
+    if (q.question_type === 'multiple_choice' && q.options && q.options.length > 0) {
+        bodyHtml += '                <div class="options-list">\n';
+        q.options.forEach((opt, optIdx) => {
+            const optTexts = typeof opt.option_text_json === 'string' ? 
+                JSON.parse(opt.option_text_json) : opt.option_text_json || {};
+            bodyHtml += '                    <div class="option-item">\n';
+            bodyHtml += '                        <span class="option-index">' + optIdx + '</span>\n';
+            bodyHtml += '                        ' + (optTexts.en || 'No text') + '\n';
+            bodyHtml += '                    </div>\n';
+        });
+        bodyHtml += '                </div>\n';
+    }
+    
+    // Show skip logic and validation
+    bodyHtml += '                <div>\n';
+    if (q.pre_script) {
+        bodyHtml += '                    <span class="skip-logic-tag">Skip Logic: ' + q.pre_script + '</span>\n';
+    }
+    if (q.validation_script) {
+        bodyHtml += '                    <span class="validation-tag">Validation: ' + q.validation_script + '</span>\n';
+    }
+    bodyHtml += '                </div>\n';
+    bodyHtml += '            </div>\n';
+    bodyHtml += '        </div>\n';
+});
+
+if (questions.length === 0) {
+    bodyHtml += '        <p style="text-align: center; color: #666; padding: 2rem;">No questions in this survey.</p>\n';
+}
+
+bodyHtml += '    </div>\n';
+bodyHtml += '</div>\n';
+
+// Add CSS styles
+bodyHtml += '<style>\n';
+bodyHtml += '.question-item { background: #f8f8f8; padding: 1rem; margin-bottom: 0.5rem; border-radius: 4px; cursor: move; }\n';
+bodyHtml += '.question-item.dragging { opacity: 0.5; }\n';
+bodyHtml += '.question-item.drag-over { border-top: 3px solid #3498db; }\n';
+bodyHtml += '.question-header { display: flex; justify-content: space-between; align-items: center; }\n';
+bodyHtml += '.drag-handle { color: #666; margin-right: 0.5rem; font-size: 1.2rem; }\n';
+bodyHtml += '.question-number { background: #3498db; color: white; padding: 0.2rem 0.5rem; border-radius: 3px; margin-right: 0.5rem; }\n';
+bodyHtml += '.question-type-badge { background: #95a5a6; color: white; padding: 0.2rem 0.5rem; border-radius: 3px; margin-left: 0.5rem; font-size: 0.8rem; }\n';
+bodyHtml += '.options-list { margin: 0.5rem 0; padding-left: 1rem; }\n';
+bodyHtml += '.option-item { padding: 0.25rem 0; }\n';
+bodyHtml += '.option-index { background: #ecf0f1; padding: 0.2rem 0.4rem; border-radius: 3px; margin-right: 0.5rem; }\n';
+bodyHtml += '.skip-logic-tag { background: #f39c12; color: white; padding: 0.2rem 0.5rem; border-radius: 3px; margin-right: 0.5rem; font-size: 0.8rem; }\n';
+bodyHtml += '.validation-tag { background: #e74c3c; color: white; padding: 0.2rem 0.5rem; border-radius: 3px; font-size: 0.8rem; }\n';
+bodyHtml += '</style>\n';
+
+// Add JavaScript for drag and drop
+bodyHtml += '<script>\n';
+bodyHtml += 'const surveyId = ' + survey.id + ';\n';
+bodyHtml += 'let questionOrder = [' + questions.map(q => q.id).join(', ') + '];\n';
+bodyHtml += 'let draggedElement = null;\n';
+bodyHtml += '\n';
+bodyHtml += 'function initializeDragAndDrop() {\n';
+bodyHtml += '    document.querySelectorAll(".question-item").forEach(item => {\n';
+bodyHtml += '        item.addEventListener("dragstart", handleDragStart);\n';
+bodyHtml += '        item.addEventListener("dragend", handleDragEnd);\n';
+bodyHtml += '        item.addEventListener("dragover", handleDragOver);\n';
+bodyHtml += '        item.addEventListener("drop", handleDrop);\n';
+bodyHtml += '        item.addEventListener("dragenter", handleDragEnter);\n';
+bodyHtml += '        item.addEventListener("dragleave", handleDragLeave);\n';
+bodyHtml += '    });\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function handleDragStart(e) {\n';
+bodyHtml += '    draggedElement = this;\n';
+bodyHtml += '    this.classList.add("dragging");\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function handleDragEnd(e) {\n';
+bodyHtml += '    this.classList.remove("dragging");\n';
+bodyHtml += '    document.querySelectorAll(".question-item").forEach(item => {\n';
+bodyHtml += '        item.classList.remove("drag-over");\n';
+bodyHtml += '    });\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function handleDragOver(e) {\n';
+bodyHtml += '    e.preventDefault();\n';
+bodyHtml += '    return false;\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function handleDragEnter(e) {\n';
+bodyHtml += '    this.classList.add("drag-over");\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function handleDragLeave(e) {\n';
+bodyHtml += '    this.classList.remove("drag-over");\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function handleDrop(e) {\n';
+bodyHtml += '    e.stopPropagation();\n';
+bodyHtml += '    \n';
+bodyHtml += '    if (draggedElement !== this) {\n';
+bodyHtml += '        const allItems = Array.from(document.querySelectorAll(".question-item"));\n';
+bodyHtml += '        const draggedIndex = allItems.indexOf(draggedElement);\n';
+bodyHtml += '        const targetIndex = allItems.indexOf(this);\n';
+bodyHtml += '        \n';
+bodyHtml += '        if (draggedIndex < targetIndex) {\n';
+bodyHtml += '            this.parentNode.insertBefore(draggedElement, this.nextSibling);\n';
+bodyHtml += '        } else {\n';
+bodyHtml += '            this.parentNode.insertBefore(draggedElement, this);\n';
+bodyHtml += '        }\n';
+bodyHtml += '        \n';
+bodyHtml += '        updateQuestionOrder();\n';
+bodyHtml += '    }\n';
+bodyHtml += '    \n';
+bodyHtml += '    return false;\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function updateQuestionOrder() {\n';
+bodyHtml += '    const items = document.querySelectorAll(".question-item");\n';
+bodyHtml += '    questionOrder = Array.from(items).map(item => parseInt(item.dataset.questionId));\n';
+bodyHtml += '    \n';
+bodyHtml += '    items.forEach((item, index) => {\n';
+bodyHtml += '        const numberSpan = item.querySelector(".question-number");\n';
+bodyHtml += '        if (numberSpan) {\n';
+bodyHtml += '            numberSpan.textContent = "Q" + (index + 1);\n';
+bodyHtml += '        }\n';
+bodyHtml += '    });\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'async function saveQuestionOrder() {\n';
+bodyHtml += '    try {\n';
+bodyHtml += '        const response = await fetch("/api/admin/survey-config/" + surveyId + "/reorder", {\n';
+bodyHtml += '            method: "POST",\n';
+bodyHtml += '            headers: { "Content-Type": "application/json" },\n';
+bodyHtml += '            body: JSON.stringify({ questionOrder })\n';
+bodyHtml += '        });\n';
+bodyHtml += '        \n';
+bodyHtml += '        if (response.ok) {\n';
+bodyHtml += '            alert("Question order saved");\n';
+bodyHtml += '        } else {\n';
+bodyHtml += '            const result = await response.json();\n';
+bodyHtml += '            alert("Failed to save order: " + result.error);\n';
+bodyHtml += '        }\n';
+bodyHtml += '    } catch (error) {\n';
+bodyHtml += '        alert("Error: " + error.message);\n';
+bodyHtml += '    }\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += '// Initialize on load\n';
+bodyHtml += 'document.addEventListener("DOMContentLoaded", function() {\n';
+bodyHtml += '    initializeDragAndDrop();\n';
+bodyHtml += '});\n';
+bodyHtml += '</script>\n';
+
+var body = bodyHtml;
+%>
+<%- include('../layouts/main', { title: 'Edit Survey: ' + survey.name, username: username, body: body }) %>

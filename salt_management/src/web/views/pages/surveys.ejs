@@ -1,0 +1,103 @@
+<% var body = ` 
+<h2>Survey Configuration</h2>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3>Survey Versions</h3>
+        <a href="/surveys/new" class="btn">Create New Survey</a>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Version</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Questions</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${surveys.map(survey => `
+                <tr>
+                    <td>v${survey.version}</td>
+                    <td>${survey.name}</td>
+                    <td>${survey.description || '-'}</td>
+                    <td>${survey.question_count}</td>
+                    <td>
+                        ${survey.is_active ? 
+                            '<span style="color: green; font-weight: bold;">Active</span>' : 
+                            '<span style="color: gray;">Inactive</span>'
+                        }
+                    </td>
+                    <td>
+                        <a href="/surveys/${survey.id}/edit" class="btn" style="padding: 0.25rem 0.5rem;">Edit</a>
+                        ${!survey.is_active ? 
+                            `<button onclick="activateSurvey(${survey.id})" class="btn" style="padding: 0.25rem 0.5rem; margin-left: 0.5rem;">Activate</button>` : 
+                            ''
+                        }
+                        <button onclick="cloneSurvey(${survey.id})" class="btn" style="padding: 0.25rem 0.5rem; margin-left: 0.5rem;">Clone</button>
+                    </td>
+                </tr>
+            `).join('')}
+            ${surveys.length === 0 ? '<tr><td colspan="6" style="text-align: center;">No surveys configured</td></tr>' : ''}
+        </tbody>
+    </table>
+</div>
+
+<script>
+async function activateSurvey(surveyId) {
+    if (!confirm('Activate this survey? This will deactivate all other surveys.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/admin/survey-config/' + surveyId + '/activate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Survey activated successfully');
+            location.reload();
+        } else {
+            alert('Failed to activate survey: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+async function cloneSurvey(surveyId) {
+    const name = prompt('Enter name for the cloned survey:');
+    if (!name) return;
+    
+    try {
+        const response = await fetch('/api/admin/survey-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: name,
+                description: 'Cloned survey',
+                basedOnSurveyId: surveyId
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Survey cloned successfully as version ' + result.version);
+            location.reload();
+        } else {
+            alert('Failed to clone survey: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+</script>
+` %>
+<%- include('../layouts/main', { body: body }) %>

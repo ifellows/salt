@@ -1,0 +1,49 @@
+<% var body = ` 
+<h2>Survey Uploads</h2>
+
+<div class="card">
+    <h3 style="margin-bottom: 1rem;">Upload History</h3>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Survey ID</th>
+                <th>Facility</th>
+                <th>Participant ID</th>
+                <th>Status</th>
+                <th>Upload Time</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${uploads.map(upload => `
+                <tr>
+                    <td>${upload.survey_response_id}</td>
+                    <td>${upload.facility_name || 'Unknown'}</td>
+                    <td>${upload.participant_id || '-'}</td>
+                    <td>
+                        <span style="color: ${upload.status === 'completed' ? 'green' : 'red'}">
+                            ${upload.status}
+                        </span>
+                    </td>
+                    <td>${new Date(upload.upload_time).toLocaleString()}</td>
+                    <td>
+                        ${upload.file_path ? 
+                            `<button onclick="viewData('${upload.survey_response_id}')" class="btn" style="padding: 0.25rem 0.5rem;">View</button>` : 
+                            '-'
+                        }
+                    </td>
+                </tr>
+            `).join('')}
+            ${uploads.length === 0 ? '<tr><td colspan="6" style="text-align: center;">No uploads yet</td></tr>' : ''}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function viewData(surveyId) {
+    alert('View functionality will be implemented to show survey data for: ' + surveyId);
+}
+</script>
+` %>
+<%- include('../layouts/main', { body: body }) %>

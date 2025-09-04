@@ -1,0 +1,8 @@
+<% var body = ` 
+<div class="card" style="text-align: center; padding: 3rem;">
+    <h2 style="color: #e74c3c; margin-bottom: 1rem;">Error</h2>
+    <p style="font-size: 1.2rem; margin-bottom: 2rem;">${message}</p>
+    <a href="/" class="btn">Go to Dashboard</a>
+</div>
+` %>
+<%- include('../layouts/main', { body: body }) %>

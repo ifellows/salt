@@ -1,0 +1,71 @@
+<% var body = ` 
+<h2>Create New Survey</h2>
+
+<div class="card">
+    <form id="newSurveyForm">
+        <div style="margin-bottom: 1rem;">
+            <label>Survey Name:</label>
+            <input type="text" id="surveyName" placeholder="e.g., HIV Risk Assessment v2" required style="width: 100%; padding: 0.5rem;">
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+            <label>Description:</label>
+            <textarea id="surveyDescription" placeholder="Brief description of the survey" style="width: 100%; padding: 0.5rem; min-height: 100px;"></textarea>
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+            <label>Base on existing survey (optional):</label>
+            <select id="basedOnSurveyId" style="width: 100%; padding: 0.5rem;">
+                <option value="">-- Start from scratch --</option>
+                ${existingSurveys.map(survey => `
+                    <option value="${survey.id}">v${survey.version}: ${survey.name}</option>
+                `).join('')}
+            </select>
+            <p style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">
+                If selected, all questions and options will be copied to the new survey
+            </p>
+        </div>
+        
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn">Create Survey</button>
+            <a href="/surveys" class="btn btn-danger">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('newSurveyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const data = {
+        name: document.getElementById('surveyName').value,
+        description: document.getElementById('surveyDescription').value
+    };
+    
+    const basedOnId = document.getElementById('basedOnSurveyId').value;
+    if (basedOnId) {
+        data.basedOnSurveyId = parseInt(basedOnId);
+    }
+    
+    try {
+        const response = await fetch('/api/admin/survey-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Survey created successfully as version ' + result.version);
+            window.location.href = '/surveys/' + result.id + '/edit';
+        } else {
+            alert('Failed to create survey: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
+</script>
+` %>
+<%- include('../layouts/main', { body: body }) %>
