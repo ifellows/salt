@@ -49,7 +49,10 @@ class SurveyApplication : Application() {
                 // e.g., PasswordHasher.hash("adminpass")
                 hashedPassword = hashPasswordWithNewSalt("123")!!,
                 fullName = "Administrator User",
-                role = "ADMINISTRATOR" // Consistent with your UserRole enum or string constants
+                role = "ADMINISTRATOR", // Consistent with your UserRole enum or string constants
+                // Default server configuration for testing
+                uploadServerUrl = "http://10.0.2.2:3000",
+                uploadApiKey = "fac_b83d45ae08113b380154e6134fa733a7fa945097983a24adee35d1350818ddbd"
             )
             val staffUser = User(
                 userName = "staff",
@@ -61,7 +64,19 @@ class SurveyApplication : Application() {
             userDao.insertUser(staffUser)
             Log.d("SurveyApplication", "Sample users populated.")
         } else {
-            Log.d("SurveyApplication", "Users already exist, skipping population.")
+            Log.d("SurveyApplication", "Users already exist, checking for server config...")
+            // Update existing admin users with default server config if they don't have any
+            val existingAdmins = userDao.getAllUsers().filter { it.role == "ADMINISTRATOR" }
+            for (admin in existingAdmins) {
+                if (admin.uploadServerUrl.isNullOrBlank() || admin.uploadApiKey.isNullOrBlank()) {
+                    userDao.updateUserServerConfig(
+                        admin.userName,
+                        "http://10.0.2.2:3000",
+                        "fac_b83d45ae08113b380154e6134fa733a7fa945097983a24adee35d1350818ddbd"
+                    )
+                    Log.d("SurveyApplication", "Updated admin user '${admin.userName}' with default server config")
+                }
+            }
         }
         // Check if the database is empty
         if (dao.getAllQuestions().isEmpty()) {

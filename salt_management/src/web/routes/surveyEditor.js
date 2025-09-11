@@ -3,11 +3,8 @@ const { requireAdmin } = require('../../api/middleware/auth');
 const { allAsync, getAsync } = require('../../models/database');
 const router = express.Router();
 
-// All routes require admin authentication
-router.use(requireAdmin);
-
 // Survey list page
-router.get('/surveys', async (req, res) => {
+router.get('/surveys', requireAdmin, async (req, res) => {
     try {
         const surveys = await allAsync(`
             SELECT s.*, 
@@ -33,7 +30,7 @@ router.get('/surveys', async (req, res) => {
 });
 
 // Survey editor page
-router.get('/surveys/:id/edit', async (req, res) => {
+router.get('/surveys/:id/edit', requireAdmin, async (req, res) => {
     try {
         const survey = await getAsync(
             'SELECT * FROM surveys WHERE id = ?',
@@ -45,6 +42,12 @@ router.get('/surveys/:id/edit', async (req, res) => {
                 title: 'Survey Not Found'
             });
         }
+        
+        // Get sections for this survey
+        const sections = await allAsync(
+            'SELECT * FROM sections WHERE survey_id = ? ORDER BY section_index',
+            [req.params.id]
+        );
         
         const questions = await allAsync(
             'SELECT * FROM questions WHERE survey_id = ? ORDER BY question_index',
@@ -66,6 +69,7 @@ router.get('/surveys/:id/edit', async (req, res) => {
             title: `Edit Survey: ${survey.name}`,
             username: req.session.username,
             survey,
+            sections,
             questions: questionsWithOptions
         });
     } catch (error) {
@@ -78,7 +82,7 @@ router.get('/surveys/:id/edit', async (req, res) => {
 });
 
 // Create new survey page
-router.get('/surveys/new', async (req, res) => {
+router.get('/surveys/new', requireAdmin, async (req, res) => {
     try {
         // Get existing surveys to allow cloning
         const surveys = await allAsync(

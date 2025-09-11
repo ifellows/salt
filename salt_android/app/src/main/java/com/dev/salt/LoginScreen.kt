@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -12,12 +13,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.dev.salt.sync.SurveySyncManager
 import com.dev.salt.viewmodel.LoginViewModel
 import com.dev.salt.viewmodel.UserRole
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -152,6 +156,68 @@ fun LoginScreen(
                         Text("Login with Biometric")
                     }
                 }
+            }
+            
+            // Sync Survey button
+            Spacer(modifier = Modifier.height(32.dp))
+            Divider()
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            val context = LocalContext.current
+            val coroutineScope = rememberCoroutineScope()
+            var isSyncing by remember { mutableStateOf(false) }
+            var syncMessage by remember { mutableStateOf<String?>(null) }
+            
+            Text(
+                "Survey Management",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            
+            OutlinedButton(
+                onClick = {
+                    coroutineScope.launch {
+                        isSyncing = true
+                        syncMessage = null
+                        val syncManager = SurveySyncManager(context)
+                        val result = syncManager.downloadAndReplaceSurvey()
+                        isSyncing = false
+                        syncMessage = if (result.isSuccess) {
+                            "Survey downloaded successfully!"
+                        } else {
+                            "Failed: ${result.exceptionOrNull()?.message}"
+                        }
+                    }
+                },
+                enabled = !isSyncing,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isSyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Sync,
+                        contentDescription = "Sync Survey",
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Download Latest Survey")
+                }
+            }
+            
+            syncMessage?.let { message ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (message.startsWith("Failed")) 
+                        MaterialTheme.colorScheme.error 
+                    else 
+                        MaterialTheme.colorScheme.primary
+                )
             }
         }
     }

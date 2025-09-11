@@ -9,6 +9,7 @@ const questionsData = questions.map(q => {
         question_index: q.question_index,
         short_name: q.short_name,
         question_type: q.question_type,
+        section_id: q.section_id,
         texts: texts,
         audioFiles: audioFiles,
         pre_script: q.pre_script,
@@ -20,6 +21,14 @@ const questionsData = questions.map(q => {
 
 // Parse survey languages
 const surveyLanguages = typeof survey.languages === 'string' ? JSON.parse(survey.languages) : survey.languages || ['en'];
+
+// Sections are passed as a separate variable from the route
+// If not available, fall back to empty array
+const sectionsData = typeof sections !== 'undefined' ? sections : [];
+
+// Parse eligibility message
+const eligibilityMessage = typeof survey.eligibility_message_json === 'string' ? 
+    JSON.parse(survey.eligibility_message_json) : survey.eligibility_message_json || {};
 
 // Build the body HTML
 let bodyHtml = '<link rel="stylesheet" href="/css/survey-editor.css">\n';
@@ -36,7 +45,61 @@ bodyHtml += '    <p><strong>Status:</strong> ' + (survey.is_active ? 'Active' : 
 bodyHtml += '    <p><strong>Languages:</strong> ' + surveyLanguages.join(', ') + '</p>\n';
 bodyHtml += '</div>\n';
 
-// Questions card
+// Language management card
+bodyHtml += '<div class="card">\n';
+bodyHtml += '    <h3>Language Management</h3>\n';
+bodyHtml += '    <div style="margin-bottom: 1rem;">\n';
+bodyHtml += '        <strong>Current Languages:</strong>\n';
+bodyHtml += '        <div id="languagesList" style="margin: 0.5rem 0;">\n';
+surveyLanguages.forEach(lang => {
+    bodyHtml += '            <div class="language-item" style="display: inline-block; margin: 0.25rem; padding: 0.5rem; background: #f0f0f0; border-radius: 4px;">\n';
+    bodyHtml += '                ' + lang + '\n';
+    if (surveyLanguages.length > 1) {  // Don't allow removing the last language
+        bodyHtml += '                <button onclick="removeLanguage(\'' + lang + '\')" style="margin-left: 0.5rem; background: #e74c3c; color: white; border: none; padding: 0.2rem 0.5rem; border-radius: 3px; cursor: pointer;">×</button>\n';
+    }
+    bodyHtml += '            </div>\n';
+});
+bodyHtml += '        </div>\n';
+bodyHtml += '    </div>\n';
+bodyHtml += '    <div style="display: flex; gap: 0.5rem; align-items: center;">\n';
+bodyHtml += '        <select id="newLanguageSelect" style="padding: 0.5rem;" onchange="handleLanguageSelectChange()">\n';
+bodyHtml += '            <option value="">Select a language...</option>\n';
+bodyHtml += '            <option value="English">English</option>\n';
+bodyHtml += '            <option value="Swahili">Swahili</option>\n';
+bodyHtml += '            <option value="Spanish">Spanish</option>\n';
+bodyHtml += '            <option value="French">French</option>\n';
+bodyHtml += '            <option value="Portuguese">Portuguese</option>\n';
+bodyHtml += '            <option value="Arabic">Arabic</option>\n';
+bodyHtml += '            <option value="Chinese">Chinese</option>\n';
+bodyHtml += '            <option value="Hindi">Hindi</option>\n';
+bodyHtml += '            <option value="Other">Other...</option>\n';
+bodyHtml += '        </select>\n';
+bodyHtml += '        <input type="text" id="customLanguageInput" placeholder="Enter custom language" style="padding: 0.5rem; display: none;">\n';
+bodyHtml += '        <button onclick="addLanguage()" class="btn">Add Language</button>\n';
+bodyHtml += '    </div>\n';
+bodyHtml += '</div>\n';
+
+// Eligibility settings card
+bodyHtml += '<div class="card">\n';
+bodyHtml += '    <h3>Eligibility Settings</h3>\n';
+bodyHtml += '    <div style="margin-bottom: 1rem;">\n';
+bodyHtml += '        <label><strong>Eligibility Script (JEXL Expression):</strong></label>\n';
+bodyHtml += '        <textarea id="eligibilityScript" style="width: 100%; min-height: 60px; padding: 0.5rem; font-family: monospace;">' + (survey.eligibility_script || '') + '</textarea>\n';
+bodyHtml += '        <small style="color: #666;">This script runs after the eligibility section. Example: consent == "1" && age >= 18 && age <= 65</small>\n';
+bodyHtml += '    </div>\n';
+bodyHtml += '    <div style="margin-bottom: 1rem;">\n';
+bodyHtml += '        <label><strong>Ineligibility Messages:</strong></label>\n';
+surveyLanguages.forEach(lang => {
+    bodyHtml += '        <div style="margin-bottom: 0.5rem;">\n';
+    bodyHtml += '            <label>' + lang + ':</label>\n';
+    bodyHtml += '            <input type="text" class="eligibility-message" data-lang="' + lang + '" value="' + (eligibilityMessage[lang] || '') + '" style="width: 100%; padding: 0.5rem;">\n';
+    bodyHtml += '        </div>\n';
+});
+bodyHtml += '    </div>\n';
+bodyHtml += '    <button onclick="saveEligibilitySettings()" class="btn">Save Eligibility Settings</button>\n';
+bodyHtml += '</div>\n';
+
+// Questions by sections
 bodyHtml += '<div class="card">\n';
 bodyHtml += '    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">\n';
 bodyHtml += '        <h3>Questions (' + questions.length + ')</h3>\n';
@@ -45,10 +108,42 @@ bodyHtml += '            <button onclick="newQuestion()" class="btn" style="marg
 bodyHtml += '            <button onclick="saveQuestionOrder()" class="btn">Save Order</button>\n';
 bodyHtml += '        </div>\n';
 bodyHtml += '    </div>\n';
-bodyHtml += '    <div id="questionsList">\n';
 
-// Add each question
-questionsData.forEach((q, idx) => {
+// Display questions grouped by section
+if (sectionsData.length > 0) {
+    sectionsData.forEach(section => {
+        bodyHtml += '    <div class="section-group" style="margin-bottom: 2rem;">\n';
+        bodyHtml += '        <h4 style="background: #f0f0f0; padding: 0.5rem; border-radius: 4px; margin-bottom: 0.5rem;">';
+        bodyHtml += section.name + ' (' + section.section_type + ')';
+        if (section.section_type === 'eligibility') {
+            bodyHtml += ' <span style="color: #e74c3c; font-size: 0.9rem;">⚠️ Determines eligibility</span>';
+        }
+        bodyHtml += '</h4>\n';
+        bodyHtml += '        <div class="section-questions" data-section-id="' + section.id + '">\n';
+        
+        // Filter questions that belong to this section
+        const sectionQuestions = questionsData.filter(q => q.section_id === section.id);
+        if (sectionQuestions.length === 0) {
+            bodyHtml += '            <p style="text-align: center; color: #999; padding: 1rem;">No questions in this section</p>\n';
+        } else {
+            sectionQuestions.forEach(qData => {
+                addQuestionHtml(qData);
+            });
+        }
+        
+        bodyHtml += '        </div>\n';
+        bodyHtml += '    </div>\n';
+    });
+} else {
+    bodyHtml += '    <div id="questionsList">\n';
+    // Fallback to showing all questions if no sections
+    questionsData.forEach((q, idx) => {
+        addQuestionHtml(q);
+    });
+    bodyHtml += '    </div>\n';
+}
+
+function addQuestionHtml(q) {
     bodyHtml += '        <div class="question-item" draggable="true" data-question-id="' + q.id + '" data-question-index="' + q.question_index + '">\n';
     bodyHtml += '            <div class="question-header">\n';
     bodyHtml += '                <div style="flex: 1;">\n';
@@ -97,13 +192,8 @@ questionsData.forEach((q, idx) => {
     bodyHtml += '                </div>\n';
     bodyHtml += '            </div>\n';
     bodyHtml += '        </div>\n';
-});
-
-if (questions.length === 0) {
-    bodyHtml += '        <p style="text-align: center; color: #666; padding: 2rem;">No questions in this survey.</p>\n';
 }
 
-bodyHtml += '    </div>\n';
 bodyHtml += '</div>\n';
 
 // Add edit modal
@@ -116,6 +206,15 @@ bodyHtml += '        </div>\n';
 bodyHtml += '        <div class="modal-body">\n';
 bodyHtml += '            <form id="editForm">\n';
 bodyHtml += '                <input type="hidden" id="questionId">\n';
+bodyHtml += '                \n';
+bodyHtml += '                <div class="form-group">\n';
+bodyHtml += '                    <label>Section</label>\n';
+bodyHtml += '                    <select id="sectionId" class="form-control">\n';
+sectionsData.forEach(section => {
+    bodyHtml += '                        <option value="' + section.id + '">' + section.name + ' (' + section.section_type + ')</option>\n';
+});
+bodyHtml += '                    </select>\n';
+bodyHtml += '                </div>\n';
 bodyHtml += '                \n';
 bodyHtml += '                <div class="form-group">\n';
 bodyHtml += '                    <label>Short Name</label>\n';
@@ -178,6 +277,8 @@ bodyHtml += '.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.9rem; }\n';
 bodyHtml += '.question-item { background: #f8f8f8; padding: 1rem; margin-bottom: 0.5rem; border-radius: 4px; cursor: move; }\n';
 bodyHtml += '.question-item.dragging { opacity: 0.5; }\n';
 bodyHtml += '.question-item.drag-over { border-top: 3px solid #3498db; }\n';
+bodyHtml += '.section-questions { min-height: 50px; padding: 0.5rem; border: 2px dashed transparent; transition: all 0.3s; }\n';
+bodyHtml += '.section-questions.drag-over { border-color: #3498db; background: #ecf6ff; }\n';
 bodyHtml += '.question-header { display: flex; justify-content: space-between; align-items: center; }\n';
 bodyHtml += '.drag-handle { color: #666; margin-right: 0.5rem; font-size: 1.2rem; }\n';
 bodyHtml += '.question-number { background: #3498db; color: white; padding: 0.2rem 0.5rem; border-radius: 3px; margin-right: 0.5rem; }\n';
@@ -205,9 +306,138 @@ bodyHtml += '</style>\n';
 bodyHtml += '<script>\n';
 bodyHtml += 'const surveyId = ' + survey.id + ';\n';
 bodyHtml += 'const surveyLanguages = ' + JSON.stringify(surveyLanguages) + ';\n';
+bodyHtml += 'const sectionsData = ' + JSON.stringify(sectionsData) + ';\n';
 bodyHtml += 'let questionOrder = [' + questions.map(q => q.id).join(', ') + '];\n';
 bodyHtml += 'let draggedElement = null;\n';
 bodyHtml += 'let questionsData = ' + JSON.stringify(questionsData) + ';\n';
+bodyHtml += '\n';
+bodyHtml += '// Save eligibility settings\n';
+bodyHtml += 'async function saveEligibilitySettings() {\n';
+bodyHtml += '    const eligibilityScript = document.getElementById("eligibilityScript").value;\n';
+bodyHtml += '    const eligibilityMessages = {};\n';
+bodyHtml += '    document.querySelectorAll(".eligibility-message").forEach(input => {\n';
+bodyHtml += '        if (input.value) eligibilityMessages[input.dataset.lang] = input.value;\n';
+bodyHtml += '    });\n';
+bodyHtml += '    \n';
+bodyHtml += '    try {\n';
+bodyHtml += '        const response = await fetch("/api/admin/survey-config/" + surveyId, {\n';
+bodyHtml += '            method: "PUT",\n';
+bodyHtml += '            headers: { "Content-Type": "application/json" },\n';
+bodyHtml += '            body: JSON.stringify({\n';
+bodyHtml += '                eligibility_script: eligibilityScript,\n';
+bodyHtml += '                eligibility_message_json: eligibilityMessages\n';
+bodyHtml += '            })\n';
+bodyHtml += '        });\n';
+bodyHtml += '        \n';
+bodyHtml += '        if (response.ok) {\n';
+bodyHtml += '            alert("Eligibility settings saved successfully");\n';
+bodyHtml += '        } else {\n';
+bodyHtml += '            const result = await response.json();\n';
+bodyHtml += '            alert("Failed to save: " + result.error);\n';
+bodyHtml += '        }\n';
+bodyHtml += '    } catch (error) {\n';
+bodyHtml += '        alert("Error: " + error.message);\n';
+bodyHtml += '    }\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+
+// Language management functions
+bodyHtml += 'function handleLanguageSelectChange() {\n';
+bodyHtml += '    const select = document.getElementById("newLanguageSelect");\n';
+bodyHtml += '    const customInput = document.getElementById("customLanguageInput");\n';
+bodyHtml += '    if (select.value === "Other") {\n';
+bodyHtml += '        customInput.style.display = "block";\n';
+bodyHtml += '    } else {\n';
+bodyHtml += '        customInput.style.display = "none";\n';
+bodyHtml += '    }\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'async function addLanguage() {\n';
+bodyHtml += '    const select = document.getElementById("newLanguageSelect");\n';
+bodyHtml += '    const customInput = document.getElementById("customLanguageInput");\n';
+bodyHtml += '    \n';
+bodyHtml += '    let newLang = select.value;\n';
+bodyHtml += '    if (select.value === "Other") {\n';
+bodyHtml += '        newLang = customInput.value.trim();\n';
+bodyHtml += '    }\n';
+bodyHtml += '    \n';
+bodyHtml += '    if (!newLang || newLang === "") {\n';
+bodyHtml += '        alert("Please select or enter a language");\n';
+bodyHtml += '        return;\n';
+bodyHtml += '    }\n';
+bodyHtml += '    \n';
+bodyHtml += '    // Check if language already exists\n';
+bodyHtml += '    if (surveyLanguages.includes(newLang)) {\n';
+bodyHtml += '        alert("This language already exists in the survey");\n';
+bodyHtml += '        return;\n';
+bodyHtml += '    }\n';
+bodyHtml += '    \n';
+bodyHtml += '    // Add to local array\n';
+bodyHtml += '    surveyLanguages.push(newLang);\n';
+bodyHtml += '    \n';
+bodyHtml += '    // Save to server\n';
+bodyHtml += '    try {\n';
+bodyHtml += '        const response = await fetch("/api/admin/survey-config/" + surveyId, {\n';
+bodyHtml += '            method: "PUT",\n';
+bodyHtml += '            credentials: "same-origin",\n';
+bodyHtml += '            headers: { "Content-Type": "application/json" },\n';
+bodyHtml += '            body: JSON.stringify({ languages: JSON.stringify(surveyLanguages) })\n';
+bodyHtml += '        });\n';
+bodyHtml += '        \n';
+bodyHtml += '        if (response.ok) {\n';
+bodyHtml += '            alert("Language added successfully. Page will reload to update all fields.");\n';
+bodyHtml += '            location.reload();\n';
+bodyHtml += '        } else {\n';
+bodyHtml += '            const result = await response.json();\n';
+bodyHtml += '            alert("Failed to add language: " + result.error);\n';
+bodyHtml += '            // Remove from local array on failure\n';
+bodyHtml += '            surveyLanguages.pop();\n';
+bodyHtml += '        }\n';
+bodyHtml += '    } catch (error) {\n';
+bodyHtml += '        alert("Error: " + error.message);\n';
+bodyHtml += '        surveyLanguages.pop();\n';
+bodyHtml += '    }\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'async function removeLanguage(lang) {\n';
+bodyHtml += '    if (surveyLanguages.length <= 1) {\n';
+bodyHtml += '        alert("Cannot remove the last language");\n';
+bodyHtml += '        return;\n';
+bodyHtml += '    }\n';
+bodyHtml += '    \n';
+bodyHtml += '    if (!confirm("Are you sure you want to remove " + lang + "? This will delete all text and audio for this language.")) {\n';
+bodyHtml += '        return;\n';
+bodyHtml += '    }\n';
+bodyHtml += '    \n';
+bodyHtml += '    // Remove from local array\n';
+bodyHtml += '    const index = surveyLanguages.indexOf(lang);\n';
+bodyHtml += '    if (index > -1) {\n';
+bodyHtml += '        surveyLanguages.splice(index, 1);\n';
+bodyHtml += '    }\n';
+bodyHtml += '    \n';
+bodyHtml += '    // Save to server\n';
+bodyHtml += '    try {\n';
+bodyHtml += '        const response = await fetch("/api/admin/survey-config/" + surveyId, {\n';
+bodyHtml += '            method: "PUT",\n';
+bodyHtml += '            credentials: "same-origin",\n';
+bodyHtml += '            headers: { "Content-Type": "application/json" },\n';
+bodyHtml += '            body: JSON.stringify({ languages: JSON.stringify(surveyLanguages) })\n';
+bodyHtml += '        });\n';
+bodyHtml += '        \n';
+bodyHtml += '        if (response.ok) {\n';
+bodyHtml += '            alert("Language removed successfully. Page will reload to update all fields.");\n';
+bodyHtml += '            location.reload();\n';
+bodyHtml += '        } else {\n';
+bodyHtml += '            const result = await response.json();\n';
+bodyHtml += '            alert("Failed to remove language: " + result.error);\n';
+bodyHtml += '            // Add back to local array on failure\n';
+bodyHtml += '            surveyLanguages.push(lang);\n';
+bodyHtml += '        }\n';
+bodyHtml += '    } catch (error) {\n';
+bodyHtml += '        alert("Error: " + error.message);\n';
+bodyHtml += '        surveyLanguages.push(lang);\n';
+bodyHtml += '    }\n';
+bodyHtml += '}\n';
 bodyHtml += '\n';
 
 // Drag and drop functions
@@ -220,6 +450,13 @@ bodyHtml += '        item.addEventListener("drop", handleDrop);\n';
 bodyHtml += '        item.addEventListener("dragenter", handleDragEnter);\n';
 bodyHtml += '        item.addEventListener("dragleave", handleDragLeave);\n';
 bodyHtml += '    });\n';
+bodyHtml += '    \n';
+bodyHtml += '    // Allow dropping in empty sections\n';
+bodyHtml += '    document.querySelectorAll(".section-questions").forEach(section => {\n';
+bodyHtml += '        section.addEventListener("dragover", handleSectionDragOver);\n';
+bodyHtml += '        section.addEventListener("drop", handleSectionDrop);\n';
+bodyHtml += '        section.addEventListener("dragleave", handleSectionDragLeave);\n';
+bodyHtml += '    });\n';
 bodyHtml += '}\n';
 bodyHtml += '\n';
 bodyHtml += 'function handleDragStart(e) {\n';
@@ -231,6 +468,9 @@ bodyHtml += 'function handleDragEnd(e) {\n';
 bodyHtml += '    this.classList.remove("dragging");\n';
 bodyHtml += '    document.querySelectorAll(".question-item").forEach(item => {\n';
 bodyHtml += '        item.classList.remove("drag-over");\n';
+bodyHtml += '    });\n';
+bodyHtml += '    document.querySelectorAll(".section-questions").forEach(section => {\n';
+bodyHtml += '        section.classList.remove("drag-over");\n';
 bodyHtml += '    });\n';
 bodyHtml += '}\n';
 bodyHtml += '\n';
@@ -255,10 +495,22 @@ bodyHtml += '        const allItems = Array.from(document.querySelectorAll(".que
 bodyHtml += '        const draggedIndex = allItems.indexOf(draggedElement);\n';
 bodyHtml += '        const targetIndex = allItems.indexOf(this);\n';
 bodyHtml += '        \n';
+bodyHtml += '        // Move the element\n';
 bodyHtml += '        if (draggedIndex < targetIndex) {\n';
 bodyHtml += '            this.parentNode.insertBefore(draggedElement, this.nextSibling);\n';
 bodyHtml += '        } else {\n';
 bodyHtml += '            this.parentNode.insertBefore(draggedElement, this);\n';
+bodyHtml += '        }\n';
+bodyHtml += '        \n';
+bodyHtml += '        // Get the section AFTER moving the element\n';
+bodyHtml += '        const newSection = draggedElement.closest(".section-questions");\n';
+bodyHtml += '        const newSectionId = newSection ? newSection.dataset.sectionId : null;\n';
+bodyHtml += '        \n';
+bodyHtml += '        // Update the question section if it was moved to a different section\n';
+bodyHtml += '        if (newSectionId) {\n';
+bodyHtml += '            const questionId = draggedElement.dataset.questionId;\n';
+bodyHtml += '            console.log("Moving question " + questionId + " to section " + newSectionId);\n';
+bodyHtml += '            updateQuestionSection(questionId, newSectionId);\n';
 bodyHtml += '        }\n';
 bodyHtml += '        \n';
 bodyHtml += '        updateQuestionOrder();\n';
@@ -311,6 +563,12 @@ bodyHtml += '    document.getElementById("questionType").value = "multiple_choic
 bodyHtml += '    document.getElementById("preScript").value = "";\n';
 bodyHtml += '    document.getElementById("validationScript").value = "";\n';
 bodyHtml += '    \n';
+bodyHtml += '    // Set default section (main survey section)\n';
+bodyHtml += '    const mainSection = sectionsData.find(s => s.section_type === "main");\n';
+bodyHtml += '    if (mainSection) {\n';
+bodyHtml += '        document.getElementById("sectionId").value = mainSection.id;\n';
+bodyHtml += '    }\n';
+bodyHtml += '    \n';
 bodyHtml += '    // Clear text inputs and audio for each language\n';
 bodyHtml += '    surveyLanguages.forEach(lang => {\n';
 bodyHtml += '        const langId = lang.replace(/\\s+/g, "_");\n';
@@ -343,6 +601,7 @@ bodyHtml += '    document.getElementById("shortName").value = question.short_nam
 bodyHtml += '    document.getElementById("questionType").value = question.question_type;\n';
 bodyHtml += '    document.getElementById("preScript").value = question.pre_script || "";\n';
 bodyHtml += '    document.getElementById("validationScript").value = question.validation_script || "";\n';
+bodyHtml += '    document.getElementById("sectionId").value = question.section_id || "";\n';
 bodyHtml += '    \n';
 bodyHtml += '    // Set text and audio for each language\n';
 bodyHtml += '    surveyLanguages.forEach(lang => {\n';
@@ -378,7 +637,9 @@ bodyHtml += '    \n';
 bodyHtml += '    options.forEach((opt, idx) => {\n';
 bodyHtml += '        const optTexts = typeof opt.option_text_json === "string" ? \n';
 bodyHtml += '            JSON.parse(opt.option_text_json) : opt.option_text_json || {};\n';
-bodyHtml += '        addOptionWithData(optTexts);\n';
+bodyHtml += '        const optAudio = typeof opt.audio_files_json === "string" ? \n';
+bodyHtml += '            JSON.parse(opt.audio_files_json) : opt.audio_files_json || {};\n';
+bodyHtml += '        addOptionWithData(optTexts, optAudio);\n';
 bodyHtml += '    });\n';
 bodyHtml += '}\n';
 bodyHtml += '\n';
@@ -386,16 +647,30 @@ bodyHtml += 'function addOption() {\n';
 bodyHtml += '    addOptionWithData({});\n';
 bodyHtml += '}\n';
 bodyHtml += '\n';
-bodyHtml += 'function addOptionWithData(texts) {\n';
+bodyHtml += 'function addOptionWithData(texts, audioData) {\n';
 bodyHtml += '    const container = document.getElementById("optionsList");\n';
 bodyHtml += '    const optionDiv = document.createElement("div");\n';
-bodyHtml += '    optionDiv.className = "option-input-group";\n';
+bodyHtml += '    const optionIndex = container.children.length;\n';
+bodyHtml += '    optionDiv.className = "option-wrapper";\n';
+bodyHtml += '    optionDiv.style.marginBottom = "1rem";\n';
+bodyHtml += '    optionDiv.style.padding = "0.5rem";\n';
+bodyHtml += '    optionDiv.style.border = "1px solid #ddd";\n';
+bodyHtml += '    optionDiv.style.borderRadius = "4px";\n';
 bodyHtml += '    \n';
 bodyHtml += '    let html = "";\n';
 bodyHtml += '    surveyLanguages.forEach(lang => {\n';
-bodyHtml += '        html += \'<input type="text" class="form-control option-text" data-lang="\' + lang + \'" placeholder="\' + lang + \' option" value="\' + (texts[lang] || "") + \'">\';\n';
+bodyHtml += '        const langId = lang.replace(/\\s+/g, "_");\n';
+bodyHtml += '        const optId = "opt_" + optionIndex + "_" + langId;\n';
+bodyHtml += '        html += \'<div style="margin-bottom: 0.5rem;">\';\n';
+bodyHtml += '        html += \'  <div style="display: flex; gap: 0.5rem; align-items: center;">\';\n';
+bodyHtml += '        html += \'    <input type="text" class="form-control option-text" data-lang="\' + lang + \'" placeholder="\' + lang + \' option" value="\' + (texts[lang] || "") + \'" style="flex: 1;">\';\n';
+bodyHtml += '        html += \'    <button type="button" onclick="toggleOptionRecording(\\\'\' + optId + \'\\\')" class="btn btn-sm" style="width: 100px;">🎤 Record</button>\';\n';
+bodyHtml += '        html += \'    <button type="button" onclick="playOptionAudio(\\\'\' + optId + \'\\\')" class="btn btn-sm" style="display: \' + (audioData && audioData[lang] ? "inline-block" : "none") + \';">▶️ Play</button>\';\n';
+bodyHtml += '        html += \'  </div>\';\n';
+bodyHtml += '        html += \'  <input type="hidden" class="option-audio" data-lang="\' + lang + \'" id="audio_\' + optId + \'" value="\' + (audioData && audioData[lang] || "") + \'">\';\n';
+bodyHtml += '        html += \'</div>\';\n';
 bodyHtml += '    });\n';
-bodyHtml += '    html += \'<button type="button" onclick="removeOption(this)" class="btn btn-danger btn-sm">X</button>\';\n';
+bodyHtml += '    html += \'<button type="button" onclick="removeOption(this)" class="btn btn-danger btn-sm">Remove Option</button>\';\n';
 bodyHtml += '    \n';
 bodyHtml += '    optionDiv.innerHTML = html;\n';
 bodyHtml += '    container.appendChild(optionDiv);\n';
@@ -437,15 +712,25 @@ bodyHtml += '    \n';
 bodyHtml += '    // Collect options if multiple choice\n';
 bodyHtml += '    const options = [];\n';
 bodyHtml += '    if (document.getElementById("questionType").value === "multiple_choice") {\n';
-bodyHtml += '        document.querySelectorAll(".option-input-group").forEach((group, idx) => {\n';
+bodyHtml += '        document.querySelectorAll(".option-wrapper").forEach((group, idx) => {\n';
 bodyHtml += '            const optionTexts = {};\n';
+bodyHtml += '            const optionAudio = {};\n';
+bodyHtml += '            \n';
 bodyHtml += '            group.querySelectorAll(".option-text").forEach(input => {\n';
 bodyHtml += '                if (input.value) optionTexts[input.dataset.lang] = input.value;\n';
 bodyHtml += '            });\n';
+bodyHtml += '            \n';
+bodyHtml += '            group.querySelectorAll(".option-audio").forEach(input => {\n';
+bodyHtml += '                if (input.value) {\n';
+bodyHtml += '                    optionAudio[input.dataset.lang] = input.value;\n';
+bodyHtml += '                    console.log("Option audio saved for " + input.dataset.lang + ", length: " + input.value.length);\n';
+bodyHtml += '                }\n';
+bodyHtml += '            });\n';
+bodyHtml += '            \n';
 bodyHtml += '            options.push({\n';
 bodyHtml += '                option_index: idx,\n';
 bodyHtml += '                text_json: optionTexts,\n';
-bodyHtml += '                audio_json: {}\n';
+bodyHtml += '                audio_json: optionAudio\n';
 bodyHtml += '            });\n';
 bodyHtml += '        });\n';
 bodyHtml += '    }\n';
@@ -458,6 +743,7 @@ bodyHtml += '        pre_script: document.getElementById("preScript").value || n
 bodyHtml += '        validation_script: document.getElementById("validationScript").value || null,\n';
 bodyHtml += '        audio_files_json: audioFiles,\n';
 bodyHtml += '        validation_error_json: {},\n';
+bodyHtml += '        section_id: parseInt(document.getElementById("sectionId").value),\n';
 bodyHtml += '        options: options\n';
 bodyHtml += '    };\n';
 bodyHtml += '    \n';
@@ -627,6 +913,128 @@ bodyHtml += '    const audioData = document.getElementById("audio_" + langId).va
 bodyHtml += '    if (audioData) {\n';
 bodyHtml += '        const audio = new Audio(audioData);\n';
 bodyHtml += '        audio.play();\n';
+bodyHtml += '    }\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += '// Option audio recording functions\n';
+bodyHtml += 'async function toggleOptionRecording(optId) {\n';
+bodyHtml += '    const recordBtn = event.target;\n';
+bodyHtml += '    const audioInput = document.getElementById("audio_" + optId);\n';
+bodyHtml += '    const playBtn = recordBtn.parentElement.querySelector("button:nth-child(3)");\n';
+bodyHtml += '    \n';
+bodyHtml += '    if (mediaRecorder && mediaRecorder.state === "recording") {\n';
+bodyHtml += '        // Stop recording\n';
+bodyHtml += '        mediaRecorder.stop();\n';
+bodyHtml += '        recordBtn.textContent = "🎤 Record";\n';
+bodyHtml += '        recordBtn.style.background = "";\n';
+bodyHtml += '    } else {\n';
+bodyHtml += '        // Start recording\n';
+bodyHtml += '        try {\n';
+bodyHtml += '            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });\n';
+bodyHtml += '            mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });\n';
+bodyHtml += '            audioChunks = [];\n';
+bodyHtml += '            \n';
+bodyHtml += '            mediaRecorder.ondataavailable = (event) => {\n';
+bodyHtml += '                audioChunks.push(event.data);\n';
+bodyHtml += '            };\n';
+bodyHtml += '            \n';
+bodyHtml += '            mediaRecorder.onstop = async () => {\n';
+bodyHtml += '                const audioBlob = new Blob(audioChunks, { type: "audio/webm" });\n';
+bodyHtml += '                \n';
+bodyHtml += '                // Convert WebM to MP3\n';
+bodyHtml += '                try {\n';
+bodyHtml += '                    console.log("Converting option audio to MP3...");\n';
+bodyHtml += '                    const mp3Base64 = await convertToMp3(audioBlob);\n';
+bodyHtml += '                    console.log("Option MP3 conversion successful, length:", mp3Base64.length);\n';
+bodyHtml += '                    audioInput.value = mp3Base64;\n';
+bodyHtml += '                    \n';
+bodyHtml += '                    // Show play button\n';
+bodyHtml += '                    if (playBtn) playBtn.style.display = "inline-block";\n';
+bodyHtml += '                } catch (error) {\n';
+bodyHtml += '                    console.error("Error converting option to MP3:", error);\n';
+bodyHtml += '                    alert("Error converting audio to MP3: " + error.message);\n';
+bodyHtml += '                }\n';
+bodyHtml += '                \n';
+bodyHtml += '                // Stop all tracks\n';
+bodyHtml += '                stream.getTracks().forEach(track => track.stop());\n';
+bodyHtml += '            };\n';
+bodyHtml += '            \n';
+bodyHtml += '            mediaRecorder.start();\n';
+bodyHtml += '            recordBtn.textContent = "⏹ Stop";\n';
+bodyHtml += '            recordBtn.style.background = "#e74c3c";\n';
+bodyHtml += '        } catch (error) {\n';
+bodyHtml += '            alert("Error accessing microphone: " + error.message);\n';
+bodyHtml += '        }\n';
+bodyHtml += '    }\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function playOptionAudio(optId) {\n';
+bodyHtml += '    const audioData = document.getElementById("audio_" + optId).value;\n';
+bodyHtml += '    if (audioData) {\n';
+bodyHtml += '        const audio = new Audio(audioData);\n';
+bodyHtml += '        audio.play();\n';
+bodyHtml += '    }\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function handleSectionDragOver(e) {\n';
+bodyHtml += '    if (e.preventDefault) {\n';
+bodyHtml += '        e.preventDefault();\n';
+bodyHtml += '    }\n';
+bodyHtml += '    this.classList.add("drag-over");\n';
+bodyHtml += '    return false;\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function handleSectionDragLeave(e) {\n';
+bodyHtml += '    this.classList.remove("drag-over");\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'function handleSectionDrop(e) {\n';
+bodyHtml += '    e.stopPropagation();\n';
+bodyHtml += '    e.preventDefault();\n';
+bodyHtml += '    this.classList.remove("drag-over");\n';
+bodyHtml += '    \n';
+bodyHtml += '    // Only handle if dropped on empty section or section with questions\n';
+bodyHtml += '    if (draggedElement && this.classList.contains("section-questions")) {\n';
+bodyHtml += '        const sectionId = this.dataset.sectionId;\n';
+bodyHtml += '        const questionId = draggedElement.dataset.questionId;\n';
+bodyHtml += '        \n';
+bodyHtml += '        // Append to this section\n';
+bodyHtml += '        this.appendChild(draggedElement);\n';
+bodyHtml += '        \n';
+bodyHtml += '        // Update the question section\n';
+bodyHtml += '        console.log("Section drop: Moving question " + questionId + " to section " + sectionId);\n';
+bodyHtml += '        updateQuestionSection(questionId, sectionId);\n';
+bodyHtml += '        \n';
+bodyHtml += '        // Update the question order\n';
+bodyHtml += '        updateQuestionOrder();\n';
+bodyHtml += '    }\n';
+bodyHtml += '    \n';
+bodyHtml += '    return false;\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'async function updateQuestionSection(questionId, sectionId) {\n';
+bodyHtml += '    try {\n';
+bodyHtml += '        console.log("Updating question " + questionId + " to section " + sectionId);\n';
+bodyHtml += '        const response = await fetch("/api/admin/survey-config/" + surveyId + "/questions/" + questionId, {\n';
+bodyHtml += '            method: "PUT",\n';
+bodyHtml += '            credentials: "same-origin",\n';
+bodyHtml += '            headers: { "Content-Type": "application/json" },\n';
+bodyHtml += '            body: JSON.stringify({ section_id: parseInt(sectionId) })\n';
+bodyHtml += '        });\n';
+bodyHtml += '        \n';
+bodyHtml += '        if (response.ok) {\n';
+bodyHtml += '            console.log("Successfully updated question section");\n';
+bodyHtml += '            // Update the local data\n';
+bodyHtml += '            const question = questionsData.find(q => q.id == questionId);\n';
+bodyHtml += '            if (question) {\n';
+bodyHtml += '                question.section_id = parseInt(sectionId);\n';
+bodyHtml += '            }\n';
+bodyHtml += '        } else {\n';
+bodyHtml += '            const result = await response.json();\n';
+bodyHtml += '            console.error("Failed to update question section:", result.error);\n';
+bodyHtml += '        }\n';
+bodyHtml += '    } catch (error) {\n';
+bodyHtml += '        console.error("Error updating question section:", error);\n';
 bodyHtml += '    }\n';
 bodyHtml += '}\n';
 bodyHtml += '\n';

@@ -2,6 +2,16 @@ package com.dev.salt.data
 import androidx.room.*
 import androidx.room.OnConflictStrategy
 import java.util.UUID
+
+@Entity(tableName = "sync_metadata")
+data class SyncMetadata(
+    @PrimaryKey
+    val id: Int = 1, // Single row for sync status
+    @ColumnInfo(name = "last_sync_time") val lastSyncTime: Long = 0,
+    @ColumnInfo(name = "sync_status") val syncStatus: String = "PENDING",
+    @ColumnInfo(name = "last_error") val lastError: String? = null
+)
+
 @Entity(tableName = "questions")
 data class Question(
     @PrimaryKey val id: Int,
@@ -128,7 +138,7 @@ data class ServerConfig(
 @Dao
 interface SurveyDao {
 
-    @Query("SELECT * FROM questions WHERE question_language = :language")
+    @Query("SELECT * FROM questions WHERE question_language = :language ORDER BY question_id")
     fun getQuestionsByLanguage(language: String): MutableList<Question>
 
     @Query("SELECT * FROM answers WHERE survey_id = :surveyId")
@@ -160,6 +170,12 @@ interface SurveyDao {
 
     @Query("SELECT * FROM surveys WHERE id = :surveyId LIMIT 1")
     fun getSurveyById(surveyId: String): Survey?
+    
+    @Delete
+    fun deleteQuestion(question: Question)
+    
+    @Delete
+    fun deleteOption(option: Option)
 }
 
 fun saveSurvey(survey: Survey, surveyDao: SurveyDao) {
@@ -232,6 +248,9 @@ interface UserDao {
 
     @Query("SELECT upload_server_url, upload_api_key FROM users WHERE userName = :userName AND role = 'ADMINISTRATOR' LIMIT 1")
     fun getAdminServerConfig(userName: String): ServerConfig?
+    
+    @Query("SELECT upload_server_url, upload_api_key FROM users WHERE upload_server_url IS NOT NULL AND upload_api_key IS NOT NULL AND role = 'ADMINISTRATOR' LIMIT 1")
+    fun getAnyServerConfig(): ServerConfig?
 }
 
 @Dao
@@ -264,11 +283,27 @@ interface UploadStateDao {
     fun cleanupOldCompletedUploads(beforeTime: Long)
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class], version = 16)
+@Dao
+interface SyncMetadataDao {
+    @Query("SELECT * FROM sync_metadata WHERE id = 1 LIMIT 1")
+    fun getSyncMetadata(): SyncMetadata?
+    
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertSyncMetadata(metadata: SyncMetadata)
+    
+    @Query("UPDATE sync_metadata SET sync_status = :status, last_error = :error WHERE id = 1")
+    fun updateSyncStatus(status: String, error: String? = null)
+    
+    @Query("UPDATE sync_metadata SET last_sync_time = :time, sync_status = 'SUCCESS' WHERE id = 1")
+    fun updateLastSyncSuccess(time: Long)
+}
+
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class], version = 17)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao
     abstract fun uploadStateDao(): UploadStateDao
+    abstract fun syncMetadataDao(): SyncMetadataDao
     companion object {
         private var instance: SurveyDatabase? = null
 

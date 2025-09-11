@@ -43,6 +43,17 @@ router.get('/:id', async (req, res) => {
             survey.languages = JSON.parse(survey.languages);
         }
         
+        // Parse eligibility message if stored as JSON string
+        if (survey.eligibility_message_json && typeof survey.eligibility_message_json === 'string') {
+            survey.eligibility_message_json = JSON.parse(survey.eligibility_message_json);
+        }
+        
+        // Get sections
+        const sections = await allAsync(
+            'SELECT * FROM sections WHERE survey_id = ? ORDER BY section_index',
+            [req.params.id]
+        );
+        
         // Get questions with options
         const questions = await allAsync(
             'SELECT * FROM questions WHERE survey_id = ? ORDER BY question_index',
@@ -82,25 +93,38 @@ router.get('/:id', async (req, res) => {
             })
         );
         
-        res.json({ ...survey, questions: questionsWithOptions });
+        // Organize questions by section
+        const sectionsWithQuestions = sections.map(section => ({
+            ...section,
+            questions: questionsWithOptions.filter(q => q.section_id === section.id)
+        }));
+        
+        res.json({ 
+            ...survey, 
+            sections: sectionsWithQuestions,
+            questions: questionsWithOptions // Keep for backward compatibility
+        });
     } catch (error) {
         console.error('Error fetching survey:', error);
         res.status(500).json({ error: 'Failed to fetch survey' });
     }
 });
 
-// Update survey (including languages)
+// Update survey (creates new version)
 router.put('/:id', [
     body('name').optional().trim(),
     body('description').optional().trim(),
-    body('languages').optional()
+    body('languages').optional(),
+    body('eligibility_script').optional().trim(),
+    body('eligibility_message_json').optional(),
+    body('create_version').optional().isBoolean()
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, description, languages } = req.body;
+    const { name, description, languages, eligibility_script, eligibility_message_json, create_version = true } = req.body;
     const surveyId = req.params.id;
     
     try {
@@ -113,43 +137,135 @@ router.put('/:id', [
             return res.status(404).json({ error: 'Survey not found' });
         }
         
-        // Build update query
-        const updates = [];
-        const params = [];
-        
-        if (name !== undefined) {
-            updates.push('name = ?');
-            params.push(name);
-        }
-        if (description !== undefined) {
-            updates.push('description = ?');
-            params.push(description);
-        }
-        if (languages !== undefined) {
-            updates.push('languages = ?');
-            params.push(languages);
-        }
-        
-        if (updates.length > 0) {
-            updates.push('updated_at = CURRENT_TIMESTAMP');
-            params.push(surveyId);
-            
-            await runAsync(
-                `UPDATE surveys SET ${updates.join(', ')} WHERE id = ?`,
-                params
+        // If create_version is true and survey is not a draft, create a new version
+        if (create_version && !oldSurvey.is_draft) {
+            // Get the next version number for this base survey
+            const baseId = oldSurvey.base_survey_id || oldSurvey.id;
+            const maxVersion = await getAsync(
+                'SELECT MAX(version) as max_version FROM surveys WHERE base_survey_id = ? OR id = ?',
+                [baseId, baseId]
             );
+            const newVersion = (maxVersion?.max_version || 0) + 1;
+            
+            // Create new survey version
+            const newSurveyResult = await runAsync(
+                `INSERT INTO surveys (version, base_survey_id, parent_survey_id, name, description, 
+                 languages, eligibility_script, eligibility_message_json, is_active, is_draft)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [newVersion, baseId, surveyId, 
+                 name || oldSurvey.name,
+                 description !== undefined ? description : oldSurvey.description,
+                 languages || oldSurvey.languages,
+                 eligibility_script !== undefined ? eligibility_script : oldSurvey.eligibility_script,
+                 eligibility_message_json !== undefined ? 
+                    (typeof eligibility_message_json === 'object' ? 
+                        JSON.stringify(eligibility_message_json) : eligibility_message_json) 
+                    : oldSurvey.eligibility_message_json,
+                 0, 0]  // not active, not draft
+            );
+            
+            const newSurveyId = newSurveyResult.id;
+            
+            // Copy all sections, questions, and options to the new version
+            const sections = await allAsync('SELECT * FROM sections WHERE survey_id = ?', [surveyId]);
+            const sectionMapping = {};
+            
+            for (const section of sections) {
+                const sectionResult = await runAsync(
+                    `INSERT INTO sections (survey_id, section_index, section_type, name, description)
+                     VALUES (?, ?, ?, ?, ?)`,
+                    [newSurveyId, section.section_index, section.section_type, section.name, section.description]
+                );
+                sectionMapping[section.id] = sectionResult.id;
+            }
+            
+            const questions = await allAsync('SELECT * FROM questions WHERE survey_id = ?', [surveyId]);
+            
+            for (const question of questions) {
+                const newSectionId = sectionMapping[question.section_id];
+                const questionResult = await runAsync(
+                    `INSERT INTO questions (survey_id, question_index, short_name, question_text_json,
+                     audio_files_json, question_type, validation_script, validation_error_json, pre_script, section_id)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [newSurveyId, question.question_index, question.short_name, question.question_text_json,
+                     question.audio_files_json, question.question_type, question.validation_script,
+                     question.validation_error_json, question.pre_script, newSectionId]
+                );
+                
+                const options = await allAsync('SELECT * FROM options WHERE question_id = ?', [question.id]);
+                for (const option of options) {
+                    await runAsync(
+                        `INSERT INTO options (question_id, option_index, option_text_json, audio_files_json, option_value)
+                         VALUES (?, ?, ?, ?, ?)`,
+                        [questionResult.id, option.option_index, option.option_text_json,
+                         option.audio_files_json, option.option_value]
+                    );
+                }
+            }
+            
+            await logAudit(
+                req.session.userId,
+                'CREATE_SURVEY_VERSION',
+                'survey',
+                newSurveyId,
+                oldSurvey,
+                { version: newVersion, changes: req.body }
+            );
+            
+            res.json({ 
+                message: 'New survey version created successfully',
+                newSurveyId: newSurveyId,
+                version: newVersion
+            });
+            
+        } else {
+            // Update the existing survey (for drafts or when create_version is false)
+            const updates = [];
+            const params = [];
+            
+            if (name !== undefined) {
+                updates.push('name = ?');
+                params.push(name);
+            }
+            if (description !== undefined) {
+                updates.push('description = ?');
+                params.push(description);
+            }
+            if (languages !== undefined) {
+                updates.push('languages = ?');
+                params.push(languages);
+            }
+            if (eligibility_script !== undefined) {
+                updates.push('eligibility_script = ?');
+                params.push(eligibility_script);
+            }
+            if (eligibility_message_json !== undefined) {
+                updates.push('eligibility_message_json = ?');
+                params.push(typeof eligibility_message_json === 'object' ? 
+                    JSON.stringify(eligibility_message_json) : eligibility_message_json);
+            }
+            
+            if (updates.length > 0) {
+                updates.push('updated_at = CURRENT_TIMESTAMP');
+                params.push(surveyId);
+                
+                await runAsync(
+                    `UPDATE surveys SET ${updates.join(', ')} WHERE id = ?`,
+                    params
+                );
+            }
+            
+            await logAudit(
+                req.session.userId,
+                'UPDATE_SURVEY',
+                'survey',
+                surveyId,
+                oldSurvey,
+                { name, description, languages }
+            );
+            
+            res.json({ message: 'Survey updated successfully' });
         }
-        
-        await logAudit(
-            req.session.userId,
-            'UPDATE_SURVEY',
-            'survey',
-            surveyId,
-            oldSurvey,
-            { name, description, languages }
-        );
-        
-        res.json({ message: 'Survey updated successfully' });
     } catch (error) {
         console.error('Error updating survey:', error);
         res.status(500).json({ error: 'Failed to update survey' });
@@ -166,6 +282,7 @@ router.post('/:surveyId/questions', [
     body('validation_script').optional().trim(),
     body('validation_error_json').optional().isObject(),
     body('pre_script').optional().trim(),
+    body('section_id').optional().isInt(),
     body('options').optional().isArray()
 ], async (req, res) => {
     const errors = validationResult(req);
@@ -176,7 +293,8 @@ router.post('/:surveyId/questions', [
     const surveyId = req.params.surveyId;
     const { 
         question_index, short_name, question_text_json, audio_files_json,
-        question_type, validation_script, validation_error_json, pre_script, options = []
+        question_type, validation_script, validation_error_json, pre_script, 
+        section_id, options = []
     } = req.body;
     
     try {
@@ -190,14 +308,24 @@ router.post('/:surveyId/questions', [
             return res.status(404).json({ error: 'Survey not found' });
         }
         
+        // If no section_id provided, get the default survey section
+        let finalSectionId = section_id;
+        if (!finalSectionId) {
+            const defaultSection = await getAsync(
+                'SELECT id FROM sections WHERE survey_id = ? AND section_type = ? LIMIT 1',
+                [surveyId, 'survey']
+            );
+            finalSectionId = defaultSection ? defaultSection.id : null;
+        }
+        
         // Insert question
         const questionResult = await runAsync(
             `INSERT INTO questions (survey_id, question_index, short_name, question_text_json,
-             audio_files_json, question_type, validation_script, validation_error_json, pre_script)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             audio_files_json, question_type, validation_script, validation_error_json, pre_script, section_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [surveyId, question_index, short_name, JSON.stringify(question_text_json),
              JSON.stringify(audio_files_json || {}), question_type, validation_script,
-             JSON.stringify(validation_error_json || {"en": "Invalid answer"}), pre_script]
+             JSON.stringify(validation_error_json || {"English": "Invalid answer"}), pre_script, finalSectionId]
         );
         
         const questionId = questionResult.id;
@@ -243,6 +371,7 @@ router.put('/:surveyId/questions/:questionId', [
     body('validation_script').optional().trim(),
     body('validation_error_json').optional().isObject(),
     body('pre_script').optional().trim(),
+    body('section_id').optional().isInt(),
     body('options').optional().isArray()
 ], async (req, res) => {
     const errors = validationResult(req);
@@ -253,7 +382,7 @@ router.put('/:surveyId/questions/:questionId', [
     const { surveyId, questionId } = req.params;
     const { 
         question_index, short_name, question_text_json, audio_files_json,
-        question_type, validation_script, validation_error_json, pre_script, options
+        question_type, validation_script, validation_error_json, pre_script, section_id, options
     } = req.body;
     
     try {
@@ -302,6 +431,10 @@ router.put('/:surveyId/questions/:questionId', [
         if (pre_script !== undefined) {
             updates.push('pre_script = ?');
             params.push(pre_script);
+        }
+        if (section_id !== undefined) {
+            updates.push('section_id = ?');
+            params.push(section_id);
         }
         
         if (updates.length > 0) {
@@ -433,11 +566,8 @@ router.post('/', [
     const { name, description, languages, basedOnSurveyId } = req.body;
     
     try {
-        // Get next version number
-        const latestVersion = await getAsync(
-            'SELECT MAX(version) as max_version FROM surveys'
-        );
-        const newVersion = (latestVersion?.max_version || 0) + 1;
+        // New surveys always start at version 1
+        const newVersion = 1;
         
         // Use provided languages or get from base survey or use default
         let surveyLanguages = languages || '["en"]';
@@ -451,30 +581,78 @@ router.post('/', [
             }
         }
         
-        // Create new survey
+        // Create new survey with default eligibility script
+        const defaultEligibilityScript = 'consent == "1" && age >= 18 && age <= 65';
         const result = await runAsync(
-            'INSERT INTO surveys (version, name, description, languages) VALUES (?, ?, ?, ?)',
-            [newVersion, name, description, surveyLanguages]
+            'INSERT INTO surveys (version, base_survey_id, name, description, languages, eligibility_script, is_draft) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [newVersion, null, name, description, surveyLanguages, defaultEligibilityScript, 0]
         );
         
         const newSurveyId = result.id;
         
-        // If based on existing survey, copy questions and options
+        // Set base_survey_id to itself for new surveys
+        await runAsync('UPDATE surveys SET base_survey_id = ? WHERE id = ?', [newSurveyId, newSurveyId]);
+        
+        // Create default sections for the new survey
+        const eligibilitySection = await runAsync(
+            `INSERT INTO sections (survey_id, section_index, section_type, name, description) 
+             VALUES (?, ?, ?, ?, ?)`,
+            [newSurveyId, 0, 'eligibility', 'Eligibility', 'Screening questions to determine eligibility']
+        );
+        
+        const mainSection = await runAsync(
+            `INSERT INTO sections (survey_id, section_index, section_type, name, description) 
+             VALUES (?, ?, ?, ?, ?)`,
+            [newSurveyId, 1, 'main', 'Main', 'Primary survey questions']
+        );
+        
+        // If based on existing survey, copy sections, questions and options
         if (basedOnSurveyId) {
+            // Copy additional sections if they exist (beyond the default two)
+            const baseSections = await allAsync(
+                'SELECT * FROM sections WHERE survey_id = ? AND section_type NOT IN (?, ?) ORDER BY section_index',
+                [basedOnSurveyId, 'eligibility', 'main']
+            );
+            
+            const sectionMapping = {};
+            for (const section of baseSections) {
+                const newSectionResult = await runAsync(
+                    `INSERT INTO sections (survey_id, section_index, section_type, name, description) 
+                     VALUES (?, ?, ?, ?, ?)`,
+                    [newSurveyId, section.section_index + 2, section.section_type, section.name, section.description]
+                );
+                sectionMapping[section.id] = newSectionResult.id;
+            }
+            
+            // Map the default sections
+            const baseEligibility = await getAsync(
+                'SELECT id FROM sections WHERE survey_id = ? AND section_type = ?',
+                [basedOnSurveyId, 'eligibility']
+            );
+            const baseMain = await getAsync(
+                'SELECT id FROM sections WHERE survey_id = ? AND section_type = ?',
+                [basedOnSurveyId, 'main']
+            );
+            
+            if (baseEligibility) sectionMapping[baseEligibility.id] = eligibilitySection.id;
+            if (baseMain) sectionMapping[baseMain.id] = mainSection.id;
             const questions = await allAsync(
                 'SELECT * FROM questions WHERE survey_id = ?',
                 [basedOnSurveyId]
             );
             
             for (const question of questions) {
+                // Map the section_id to the new survey's sections
+                const newSectionId = sectionMapping[question.section_id] || mainSection.id;
+                
                 const questionResult = await runAsync(
                     `INSERT INTO questions (survey_id, question_index, short_name, question_text_json, 
-                     audio_files_json, question_type, validation_script, validation_error_json, pre_script)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                     audio_files_json, question_type, validation_script, validation_error_json, pre_script, section_id)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [newSurveyId, question.question_index, question.short_name, 
                      question.question_text_json, question.audio_files_json,
                      question.question_type, question.validation_script, 
-                     question.validation_error_json, question.pre_script]
+                     question.validation_error_json, question.pre_script, newSectionId]
                 );
                 
                 // Copy options for this question

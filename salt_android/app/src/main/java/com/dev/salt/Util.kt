@@ -115,18 +115,52 @@ fun evaluateJexlScript(script: String?, contextData: Map<String, Any>): Any? {
 
 // Helper function to play audio and return MediaPlayer
 public fun playAudio(context: Context, audioFileName: String): MediaPlayer? {
+    if (audioFileName.isEmpty()) {
+        Log.d("PlayAudio", "Empty audio filename, skipping")
+        return null
+    }
+    
     val audioFile = File(context.filesDir, "audio/$audioFileName")
+    Log.d("PlayAudio", "Looking for audio file: ${audioFile.absolutePath}")
+    
     return if (audioFile.exists()) {
         try {
-            val mediaPlayer = MediaPlayer()
-            mediaPlayer.setDataSource(audioFile.absolutePath)
-            mediaPlayer.prepare()
-            mediaPlayer
-        } catch (e: IOException) {
+            Log.d("PlayAudio", "Audio file exists, creating MediaPlayer")
+            
+            // Use MediaPlayer.create() which handles preparation automatically
+            val mediaPlayer = MediaPlayer.create(context, android.net.Uri.fromFile(audioFile))
+            
+            if (mediaPlayer != null) {
+                // Set audio attributes for better compatibility
+                mediaPlayer.setAudioAttributes(
+                    android.media.AudioAttributes.Builder()
+                        .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .setLegacyStreamType(android.media.AudioManager.STREAM_MUSIC)
+                        .build()
+                )
+                
+                // Log duration and file size to verify audio content
+                val duration = mediaPlayer.duration
+                val fileSize = audioFile.length()
+                Log.d("PlayAudio", "MediaPlayer created successfully for: $audioFileName, duration: ${duration}ms, size: ${fileSize} bytes")
+                
+                // Start playing immediately
+                mediaPlayer.start()
+                Log.d("PlayAudio", "Started playing audio: $audioFileName")
+                
+                mediaPlayer
+            } else {
+                Log.e("PlayAudio", "MediaPlayer.create() returned null for: $audioFileName")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("PlayAudio", "Error creating MediaPlayer for: $audioFileName", e)
             e.printStackTrace()
             null
         }
     } else {
+        Log.e("PlayAudio", "Audio file not found: ${audioFile.absolutePath}")
         null
     }
 }
