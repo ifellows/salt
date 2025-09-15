@@ -179,9 +179,12 @@ fun LoginScreen(
                     coroutineScope.launch {
                         isSyncing = true
                         syncMessage = null
+                        
+                        // Sync survey only (facility config will sync at survey start)
                         val syncManager = SurveySyncManager(context)
                         val result = syncManager.downloadAndReplaceSurvey()
                         isSyncing = false
+                        
                         syncMessage = if (result.isSuccess) {
                             "Survey downloaded successfully!"
                         } else {

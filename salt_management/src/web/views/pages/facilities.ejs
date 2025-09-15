@@ -13,6 +13,8 @@
                 <th>Name</th>
                 <th>Location</th>
                 <th>API Key</th>
+                <th>Non-Coupon Allowed</th>
+                <th>Coupons to Issue</th>
                 <th>Uploads</th>
                 <th>Actions</th>
             </tr>
@@ -26,13 +28,22 @@
                         <code style="background: #f5f5f5; padding: 0.25rem;">${facility.api_key.substring(0, 20)}...</code>
                         <button onclick="copyApiKey('${facility.api_key}')" class="btn" style="padding: 0.25rem 0.5rem; margin-left: 0.5rem;">Copy</button>
                     </td>
+                    <td>
+                        <span style="color: ${facility.allow_non_coupon_participants ? 'green' : 'red'}; font-weight: bold;">
+                            ${facility.allow_non_coupon_participants ? 'Yes' : 'No'}
+                        </span>
+                    </td>
+                    <td style="text-align: center;">
+                        <strong>${facility.coupons_to_issue || 3}</strong>
+                    </td>
                     <td>${facility.upload_count}</td>
                     <td>
+                        <button onclick="editFacility(${facility.id}, '${facility.name}', '${facility.location || ''}', ${facility.allow_non_coupon_participants ? 'true' : 'false'}, ${facility.coupons_to_issue || 3})" class="btn" style="padding: 0.25rem 0.5rem;">Edit</button>
                         <button onclick="regenerateKey(${facility.id})" class="btn" style="padding: 0.25rem 0.5rem;">New Key</button>
                     </td>
                 </tr>
             `).join('')}
-            ${facilities.length === 0 ? '<tr><td colspan="5" style="text-align: center;">No facilities registered</td></tr>' : ''}
+            ${facilities.length === 0 ? '<tr><td colspan="7" style="text-align: center;">No facilities registered</td></tr>' : ''}
         </tbody>
     </table>
 </div>
@@ -43,9 +54,50 @@
         <form id="addFacilityForm">
             <input type="text" name="name" placeholder="Facility Name" required style="width: 100%; padding: 0.5rem; margin: 1rem 0;">
             <input type="text" name="location" placeholder="Location (optional)" style="width: 100%; padding: 0.5rem; margin: 1rem 0;">
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">
+                    <input type="checkbox" name="allow_non_coupon_participants" checked style="margin-right: 0.5rem;">
+                    Allow participants without coupons
+                </label>
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Number of coupons to issue:</label>
+                <input type="number" name="coupons_to_issue" value="3" min="0" max="10" required style="width: 100%; padding: 0.5rem;">
+            </div>
+            
             <div style="display: flex; gap: 1rem;">
                 <button type="submit" class="btn">Add Facility</button>
                 <button type="button" onclick="hideAddFacilityForm()" class="btn btn-danger">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="editFacilityModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="background: white; max-width: 500px; margin: 100px auto; padding: 2rem; border-radius: 8px;">
+        <h3>Edit Facility</h3>
+        <form id="editFacilityForm">
+            <input type="hidden" name="id">
+            <input type="text" name="name" placeholder="Facility Name" required style="width: 100%; padding: 0.5rem; margin: 1rem 0;">
+            <input type="text" name="location" placeholder="Location (optional)" style="width: 100%; padding: 0.5rem; margin: 1rem 0;">
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">
+                    <input type="checkbox" name="allow_non_coupon_participants" style="margin-right: 0.5rem;">
+                    Allow participants without coupons
+                </label>
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Number of coupons to issue:</label>
+                <input type="number" name="coupons_to_issue" value="3" min="0" max="10" required style="width: 100%; padding: 0.5rem;">
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn">Update Facility</button>
+                <button type="button" onclick="hideEditFacilityForm()" class="btn btn-danger">Cancel</button>
             </div>
         </form>
     </div>
@@ -58,6 +110,20 @@ function showAddFacilityForm() {
 
 function hideAddFacilityForm() {
     document.getElementById('addFacilityModal').style.display = 'none';
+}
+
+function editFacility(id, name, location, allowNonCoupon, couponsToIssue) {
+    const form = document.getElementById('editFacilityForm');
+    form.id.value = id;
+    form.name.value = name;
+    form.location.value = location;
+    form.allow_non_coupon_participants.checked = allowNonCoupon;
+    form.coupons_to_issue.value = couponsToIssue;
+    document.getElementById('editFacilityModal').style.display = 'block';
+}
+
+function hideEditFacilityForm() {
+    document.getElementById('editFacilityModal').style.display = 'none';
 }
 
 function copyApiKey(key) {
@@ -95,6 +161,9 @@ document.getElementById('addFacilityForm').addEventListener('submit', async (e) 
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
     
+    // Convert checkbox value to boolean
+    data.allow_non_coupon_participants = formData.has('allow_non_coupon_participants');
+    
     try {
         const response = await fetch('/api/admin/facilities', {
             method: 'POST',
@@ -109,6 +178,41 @@ document.getElementById('addFacilityForm').addEventListener('submit', async (e) 
             location.reload();
         } else {
             alert('Failed to add facility: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
+
+document.getElementById('editFacilityForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    const facilityId = data.id;
+    delete data.id;
+    
+    // Convert checkbox value to boolean
+    data.allow_non_coupon_participants = formData.has('allow_non_coupon_participants');
+    // Ensure coupons_to_issue is a number
+    data.coupons_to_issue = parseInt(data.coupons_to_issue, 10);
+    
+    console.log('Sending update:', data);  // Debug log
+    
+    try {
+        const response = await fetch('/api/admin/facilities/' + facilityId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Facility updated successfully');
+            location.reload();
+        } else {
+            alert('Failed to update facility: ' + (result.error || 'Unknown error'));
         }
     } catch (error) {
         alert('Error: ' + error.message);

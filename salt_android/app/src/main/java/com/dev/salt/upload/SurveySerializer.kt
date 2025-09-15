@@ -14,7 +14,9 @@ data class SerializedSurvey(
     val questions: List<SerializedQuestion>,
     val answers: List<SerializedAnswer>,
     val completedAt: String,
-    val deviceInfo: DeviceInfo
+    val deviceInfo: DeviceInfo,
+    val referralCouponCode: String? = null,
+    val issuedCoupons: List<String> = emptyList()
 )
 
 data class SerializedQuestion(
@@ -58,7 +60,8 @@ class SurveySerializer {
         questions: List<Question>,
         answers: List<Answer>,
         options: Map<Int, List<Option>>,
-        deviceInfo: DeviceInfo
+        deviceInfo: DeviceInfo,
+        issuedCoupons: List<String> = emptyList()
     ): JSONObject {
         
         val serializedQuestions = questions.map { question ->
@@ -108,7 +111,9 @@ class SurveySerializer {
             questions = serializedQuestions,
             answers = serializedAnswers,
             completedAt = dateFormat.format(Date()),
-            deviceInfo = deviceInfo
+            deviceInfo = deviceInfo,
+            referralCouponCode = survey.referralCouponCode,
+            issuedCoupons = issuedCoupons
         )
         
         return toJSON(serializedSurvey)
@@ -121,6 +126,16 @@ class SurveySerializer {
             put("startDatetime", survey.startDatetime)
             put("language", survey.language)
             put("completedAt", survey.completedAt)
+            
+            // Coupon information
+            survey.referralCouponCode?.let { put("referralCouponCode", it) }
+            if (survey.issuedCoupons.isNotEmpty()) {
+                put("issuedCoupons", JSONArray().apply {
+                    survey.issuedCoupons.forEach { coupon ->
+                        put(coupon)
+                    }
+                })
+            }
             
             // Device info
             put("deviceInfo", JSONObject().apply {

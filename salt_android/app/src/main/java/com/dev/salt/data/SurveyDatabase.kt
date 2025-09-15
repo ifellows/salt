@@ -43,7 +43,11 @@ data class Survey(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     @ColumnInfo(name = "subject_id") var subjectId: String,
     @ColumnInfo(name = "start_datetime") var startDatetime: Long,
-    @ColumnInfo(name = "language") var language: String
+    @ColumnInfo(name = "language") var language: String,
+    @ColumnInfo(name = "referral_coupon_code") var referralCouponCode: String? = null,
+    @ColumnInfo(name = "contact_phone") var contactPhone: String? = null,
+    @ColumnInfo(name = "contact_email") var contactEmail: String? = null,
+    @ColumnInfo(name = "contact_consent") var contactConsent: Boolean = false
 ) {
     @Ignore
     var questions: MutableList<Question> = mutableListOf()
@@ -123,6 +127,36 @@ data class SurveyUploadState(
     @ColumnInfo(name = "completed_time") val completedTime: Long? = null
 )
 
+@Entity(tableName = "coupons")
+data class Coupon(
+    @PrimaryKey
+    val couponCode: String,
+    @ColumnInfo(name = "issued_to_survey_id") val issuedToSurveyId: String? = null,
+    @ColumnInfo(name = "issued_date") val issuedDate: Long? = null,
+    @ColumnInfo(name = "used_by_survey_id") val usedBySurveyId: String? = null,
+    @ColumnInfo(name = "used_date") val usedDate: Long? = null,
+    @ColumnInfo(name = "status") val status: String = "UNUSED", // UNUSED, ISSUED, USED
+    @ColumnInfo(name = "created_date") val createdDate: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "facility_config")
+data class FacilityConfig(
+    @PrimaryKey
+    val id: Int = 1, // Single row for facility configuration
+    @ColumnInfo(name = "facility_id") val facilityId: Int? = null,
+    @ColumnInfo(name = "facility_name") val facilityName: String? = null,
+    @ColumnInfo(name = "allow_non_coupon_participants") val allowNonCouponParticipants: Boolean = true,
+    @ColumnInfo(name = "coupons_to_issue") val couponsToIssue: Int = 3,
+    @ColumnInfo(name = "last_sync_time") val lastSyncTime: Long? = null,
+    @ColumnInfo(name = "sync_status") val syncStatus: String = "PENDING"
+)
+
+enum class CouponStatus {
+    UNUSED,
+    ISSUED, 
+    USED
+}
+
 enum class UploadStatus {
     PENDING,
     UPLOADING, 
@@ -170,6 +204,9 @@ interface SurveyDao {
 
     @Query("SELECT * FROM surveys WHERE id = :surveyId LIMIT 1")
     fun getSurveyById(surveyId: String): Survey?
+    
+    @Update
+    fun updateSurvey(survey: Survey)
     
     @Delete
     fun deleteQuestion(question: Question)
@@ -284,6 +321,33 @@ interface UploadStateDao {
 }
 
 @Dao
+interface CouponDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertCoupon(coupon: Coupon)
+    
+    @Query("SELECT * FROM coupons WHERE couponCode = :code LIMIT 1")
+    fun getCouponByCode(code: String): Coupon?
+    
+    @Query("SELECT * FROM coupons WHERE issued_to_survey_id = :surveyId")
+    fun getCouponsIssuedToSurvey(surveyId: String): List<Coupon>
+    
+    @Query("SELECT * FROM coupons WHERE status = :status")
+    fun getCouponsByStatus(status: String): List<Coupon>
+    
+    @Query("UPDATE coupons SET status = 'ISSUED', issued_to_survey_id = :surveyId, issued_date = :issuedDate WHERE couponCode = :code")
+    fun markCouponIssued(code: String, surveyId: String, issuedDate: Long)
+    
+    @Query("UPDATE coupons SET status = 'USED', used_by_survey_id = :surveyId, used_date = :usedDate WHERE couponCode = :code")
+    fun markCouponUsed(code: String, surveyId: String, usedDate: Long)
+    
+    @Query("SELECT COUNT(*) FROM coupons WHERE status = 'UNUSED'")
+    fun getUnusedCouponCount(): Int
+    
+    @Query("DELETE FROM coupons WHERE couponCode = :code")
+    fun deleteCoupon(code: String)
+}
+
+@Dao
 interface SyncMetadataDao {
     @Query("SELECT * FROM sync_metadata WHERE id = 1 LIMIT 1")
     fun getSyncMetadata(): SyncMetadata?
@@ -298,12 +362,32 @@ interface SyncMetadataDao {
     fun updateLastSyncSuccess(time: Long)
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class], version = 17)
+@Dao
+interface FacilityConfigDao {
+    @Query("SELECT * FROM facility_config WHERE id = 1 LIMIT 1")
+    fun getFacilityConfig(): FacilityConfig?
+    
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertFacilityConfig(config: FacilityConfig)
+    
+    @Query("UPDATE facility_config SET allow_non_coupon_participants = :allow, coupons_to_issue = :count WHERE id = 1")
+    fun updateFacilitySettings(allow: Boolean, count: Int)
+    
+    @Query("UPDATE facility_config SET facility_id = :facilityId, facility_name = :facilityName WHERE id = 1")
+    fun updateFacilityInfo(facilityId: Int, facilityName: String)
+    
+    @Query("UPDATE facility_config SET last_sync_time = :time, sync_status = 'SUCCESS' WHERE id = 1")
+    fun updateLastSyncSuccess(time: Long)
+}
+
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, Coupon::class, FacilityConfig::class], version = 20)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao
     abstract fun uploadStateDao(): UploadStateDao
     abstract fun syncMetadataDao(): SyncMetadataDao
+    abstract fun couponDao(): CouponDao
+    abstract fun facilityConfigDao(): FacilityConfigDao
     companion object {
         private var instance: SurveyDatabase? = null
 

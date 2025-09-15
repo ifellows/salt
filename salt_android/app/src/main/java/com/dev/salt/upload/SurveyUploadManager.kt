@@ -53,27 +53,21 @@ class SurveyUploadManager(
                     uploadStateDao.insertUploadState(uploadState)
                 }
                 
-                // Get current user and server configuration
-                val currentUser = sessionManager.getCurrentUser()
-                if (currentUser == null) {
-                    Log.e(TAG, "No active user session for upload")
-                    updateUploadState(surveyId, UploadStatus.FAILED, "No active user session")
-                    return@withContext UploadResult.ConfigurationError("No active user session")
+                // Get server configuration from any admin user (same as sync)
+                val serverConfig = userDao.getAnyServerConfig()
+                if (serverConfig == null || serverConfig.uploadServerUrl.isNullOrBlank() || serverConfig.uploadApiKey.isNullOrBlank()) {
+                    Log.e(TAG, "No server configuration found for upload")
+                    updateUploadState(surveyId, UploadStatus.FAILED, "Server not configured")
+                    return@withContext UploadResult.ConfigurationError("Server not configured. Please configure server settings.")
                 }
                 
-                val serverConfig = userDao.getAdminServerConfig(currentUser)
-                if (serverConfig == null || serverConfig.uploadServerUrl.isNullOrBlank()) {
-                    Log.e(TAG, "No server URL configured for upload")
-                    updateUploadState(surveyId, UploadStatus.FAILED, "Upload server URL not configured")
-                    return@withContext UploadResult.ConfigurationError("Upload server URL not configured")
-                }
-                
+                // Disabled retry limit check since WorkManager is disabled
                 // Check retry limits
-                if (uploadState.attemptCount >= MAX_RETRY_ATTEMPTS) {
-                    Log.w(TAG, "Max retry attempts reached for survey: $surveyId")
-                    updateUploadState(surveyId, UploadStatus.FAILED, "Max retry attempts exceeded")
-                    return@withContext UploadResult.UnknownError("Maximum retry attempts exceeded")
-                }
+                // if (uploadState.attemptCount >= MAX_RETRY_ATTEMPTS) {
+                //     Log.w(TAG, "Max retry attempts reached for survey: $surveyId")
+                //     updateUploadState(surveyId, UploadStatus.FAILED, "Max retry attempts exceeded")
+                //     return@withContext UploadResult.UnknownError("Maximum retry attempts exceeded")
+                // }
                 
                 // Mark as uploading
                 updateUploadState(surveyId, UploadStatus.UPLOADING, null)
@@ -94,14 +88,22 @@ class SurveyUploadManager(
                     question.id to surveyDao.getOptionsForQuestion(question.id)
                 }
                 
+                // Get issued coupons for this survey
+                val couponDao = database.couponDao()
+                val issuedCoupons = couponDao.getCouponsIssuedToSurvey(surveyId).map { it.couponCode }
+                Log.d(TAG, "Found ${issuedCoupons.size} issued coupons for survey $surveyId: $issuedCoupons")
+                
                 // Create device info
                 val deviceInfo = serializer.createDeviceInfo(context)
                 
-                // Serialize survey to JSON
-                val jsonData = serializer.serializeSurvey(survey, survey.questions, survey.answers, options, deviceInfo)
+                // Serialize survey to JSON including coupon information
+                val jsonData = serializer.serializeSurvey(survey, survey.questions, survey.answers, options, deviceInfo, issuedCoupons)
+                
+                // Build the upload URL (append endpoint to base URL)
+                val uploadUrl = "${serverConfig.uploadServerUrl}/api/sync/survey/upload"
                 
                 // Perform HTTP upload
-                val uploadResult = performHttpUpload(serverConfig.uploadServerUrl, jsonData, serverConfig.uploadApiKey)
+                val uploadResult = performHttpUpload(uploadUrl, jsonData, serverConfig.uploadApiKey)
                 
                 when (uploadResult) {
                     is UploadResult.Success -> {
@@ -161,7 +163,8 @@ class SurveyUploadManager(
                     setRequestProperty("Content-Type", "application/json; charset=utf-8")
                     setRequestProperty("Accept", "application/json")
                     if (!apiKey.isNullOrBlank()) {
-                        setRequestProperty("Authorization", "Bearer $apiKey")
+                        // Use X-API-Key header like the sync endpoints
+                        setRequestProperty("X-API-Key", apiKey)
                     }
                     setRequestProperty("User-Agent", "SALT-Android-Client/1.0")
                     

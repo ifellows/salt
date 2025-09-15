@@ -23,16 +23,23 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import android.content.Context
+import com.dev.salt.util.CouponGenerator
 
 class SurveyViewModel(
     private val database: SurveyDatabase,
-    private val context: Context? = null
+    private val context: Context? = null,
+    private val referralCouponCode: String? = null
 ) : ViewModel() {
     private val _currentQuestion = MutableStateFlow<Triple<Question, List<Option>, Answer?>?>(null)
     val currentQuestion: StateFlow<Triple<Question, List<Option>, Answer?>?> = _currentQuestion
 
     private val _hasPreviousQuestion = mutableStateOf(false)
     val hasPreviousQuestion: State<Boolean> = _hasPreviousQuestion
+    
+    private val _generatedCoupons = MutableStateFlow<List<String>>(emptyList())
+    val generatedCoupons: StateFlow<List<String>> = _generatedCoupons
+    
+    private val couponGenerator = CouponGenerator(database.couponDao())
     //public var currentQuestion: Pair<Question, List<Option>>? = null//StateFlow<Pair<Question, List<Option>>?> = _currentQuestion
     public var survey : Survey? = null
     public var questions: List<Question> = emptyList()
@@ -43,13 +50,33 @@ class SurveyViewModel(
         viewModelScope.launch {
             loadQuestions()
             survey = makeNewSurvey("en")
+            
+            // Mark the referral coupon as used if one was provided
+            referralCouponCode?.let { code ->
+                try {
+                    database.couponDao().markCouponUsed(
+                        code = code,
+                        surveyId = survey!!.id,
+                        usedDate = System.currentTimeMillis()
+                    )
+                    Log.i("SurveyViewModel", "Marked coupon $code as used for survey ${survey!!.id}")
+                } catch (e: Exception) {
+                    Log.e("SurveyViewModel", "Failed to mark coupon as used", e)
+                }
+            }
+            
             loadSurvey(survey!!)
             loadNextQuestion()
         }
     }
 
     private fun makeNewSurvey(language: String): Survey {
-        val survey: Survey = Survey(language = language, subjectId = randomHash(), startDatetime = System.currentTimeMillis())
+        val survey: Survey = Survey(
+            language = language, 
+            subjectId = randomHash(), 
+            startDatetime = System.currentTimeMillis(),
+            referralCouponCode = referralCouponCode
+        )
         return survey
     }
 
@@ -85,8 +112,27 @@ class SurveyViewModel(
             survey?.let { completedSurvey ->
                 viewModelScope.launch {
                     try {
-                        // Save survey to database
-                        saveSurvey(completedSurvey, database.surveyDao())
+                        // Check if survey already exists before saving
+                        val existingSurvey = database.surveyDao().getSurveyById(completedSurvey.id)
+                        if (existingSurvey == null) {
+                            // Save survey to database
+                            saveSurvey(completedSurvey, database.surveyDao())
+                            
+                            // Generate coupons for completed survey
+                            try {
+                                // Get the number of coupons to issue from facility config
+                                val facilityConfig = database.facilityConfigDao().getFacilityConfig()
+                                val couponsToIssue = facilityConfig?.couponsToIssue ?: 3
+                                
+                                val coupons = couponGenerator.issueCouponsForSurvey(completedSurvey.id, couponsToIssue)
+                                _generatedCoupons.value = coupons
+                                Log.i("SurveyViewModel", "Generated ${coupons.size} coupons for survey ${completedSurvey.id}: $coupons")
+                            } catch (e: Exception) {
+                                Log.e("SurveyViewModel", "Failed to generate coupons for survey ${completedSurvey.id}", e)
+                            }
+                        } else {
+                            Log.w("SurveyViewModel", "Survey ${completedSurvey.id} already exists, skipping save")
+                        }
                         
                         // Trigger upload if context is available
                         context?.let { ctx ->

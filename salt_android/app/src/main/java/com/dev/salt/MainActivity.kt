@@ -31,6 +31,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import androidx.navigation.NavType
 import com.dev.salt.data.SurveyDatabase
 import com.dev.salt.ui.theme.SALTTheme
 import com.dev.salt.viewmodel.LoginViewModel
@@ -64,15 +66,30 @@ import android.util.Log
 // e.g., import com.dev.salt.ui.AdminDashboardScreen
 
 object AppDestinations {
-    const val WELCOME_SCREEN = "welcome"
-    const val LOGIN_SCREEN = "login"
-    const val MENU_SCREEN = "menu" // Assuming this is where survey_staff goes
-    const val ADMIN_DASHBOARD_SCREEN = "admin_dashboard" // For administrators
-    const val USER_MANAGEMENT_SCREEN = "user_management" // For user management
-    const val SURVEY_SCREEN = "survey" // For survey-related screens
-    const val SERVER_SETTINGS_SCREEN = "server_settings" // For server configuration
-    const val UPLOAD_STATUS_SCREEN = "upload_status" // For upload status dashboard
-    // ... other destinations
+    const val WELCOME = "welcome"
+    const val LOGIN = "login"
+    const val MENU = "menu" // Assuming this is where survey_staff goes
+    const val ADMIN_DASHBOARD = "admin_dashboard" // For administrators
+    const val USER_MANAGEMENT = "user_management" // For user management
+    const val SURVEY = "survey" // For survey-related screens
+    const val SERVER_SETTINGS = "server_settings" // For server configuration
+    const val UPLOAD_STATUS = "upload_status" // For upload status dashboard
+    const val COUPON = "coupon" // For coupon validation
+    const val COUPON_ISSUED = "coupon_issued" // For displaying issued coupons
+    const val CONTACT_CONSENT = "contact_consent" // For asking about future contact
+    const val CONTACT_INFO = "contact_info" // For collecting contact information
+    
+    // Compatibility aliases for existing code
+    const val WELCOME_SCREEN = WELCOME
+    const val LOGIN_SCREEN = LOGIN
+    const val MENU_SCREEN = MENU
+    const val ADMIN_DASHBOARD_SCREEN = ADMIN_DASHBOARD
+    const val USER_MANAGEMENT_SCREEN = USER_MANAGEMENT
+    const val SURVEY_SCREEN = SURVEY
+    const val SERVER_SETTINGS_SCREEN = SERVER_SETTINGS
+    const val UPLOAD_STATUS_SCREEN = UPLOAD_STATUS
+    const val COUPON_SCREEN = COUPON
+    const val COUPON_ISSUED_SCREEN = COUPON_ISSUED
 }
 /*delete the database*/
 /*database.clearAllTables()
@@ -247,16 +264,115 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    composable(AppDestinations.SURVEY_SCREEN) {
+                    composable(AppDestinations.COUPON_SCREEN) {
+                        val context: Context = LocalContext.current
+                        val database = SurveyDatabase.getInstance(context)
+                        com.dev.salt.ui.CouponScreen(
+                            navController = navController,
+                            database = database
+                        )
+                    }
+                    
+                    composable(
+                        route = AppDestinations.SURVEY_SCREEN + "?couponCode={couponCode}",
+                        arguments = listOf(
+                            androidx.navigation.navArgument("couponCode") {
+                                type = androidx.navigation.NavType.StringType
+                                nullable = true
+                                defaultValue = null
+                            }
+                        )
+                    ) { backStackEntry ->
                         val context: Context = LocalContext.current
                         // Pass navController to SurveyScreen
                         val database = SurveyDatabase.getInstance(context)
-                        val viewModel: SurveyViewModel = viewModel { SurveyViewModel(database, context) }
+                        // Get the coupon code from navigation arguments
+                        val referralCouponCode: String? = backStackEntry.arguments?.getString("couponCode")
+                        val viewModel: SurveyViewModel = viewModel { 
+                            com.dev.salt.viewmodel.SurveyViewModelFactory(database, context, referralCouponCode).create(SurveyViewModel::class.java)
+                        }
                         val coroutineScope = rememberCoroutineScope()
                         SurveyScreen(
                             viewModel = viewModel, 
                             coroutineScope = coroutineScope,
-                            onNavigateBack = { navController.popBackStack() }
+                            onNavigateBack = { 
+                                // Navigate to contact consent screen when survey completes
+                                val generatedCoupons = viewModel.generatedCoupons.value
+                                val surveyId = viewModel.survey?.id ?: ""
+                                if (generatedCoupons.isNotEmpty()) {
+                                    // Pass survey ID and coupons to contact consent screen
+                                    val couponsParam = generatedCoupons.joinToString(",")
+                                    navController.navigate("${AppDestinations.CONTACT_CONSENT}/$surveyId?coupons=$couponsParam") {
+                                        popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
+                                    }
+                                } else {
+                                    navController.navigate(AppDestinations.MENU_SCREEN) {
+                                        popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = true }
+                                    }
+                                }
+                            }
+                        )
+                    }
+                    
+                    composable(
+                        route = AppDestinations.COUPON_ISSUED_SCREEN + "?coupons={coupons}",
+                        arguments = listOf(
+                            androidx.navigation.navArgument("coupons") {
+                                type = androidx.navigation.NavType.StringType
+                                defaultValue = ""
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val couponsString = backStackEntry.arguments?.getString("coupons") ?: ""
+                        val coupons = if (couponsString.isNotEmpty()) {
+                            couponsString.split(",")
+                        } else {
+                            emptyList()
+                        }
+                        com.dev.salt.ui.CouponIssuedScreen(
+                            navController = navController,
+                            generatedCoupons = coupons
+                        )
+                    }
+                    
+                    composable(
+                        route = "${AppDestinations.CONTACT_CONSENT}/{surveyId}?coupons={coupons}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType },
+                            navArgument("coupons") { 
+                                type = NavType.StringType
+                                defaultValue = ""
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val coupons = backStackEntry.arguments?.getString("coupons") ?: ""
+                        com.dev.salt.ui.ContactConsentScreen(
+                            navController = navController,
+                            surveyId = surveyId,
+                            coupons = coupons
+                        )
+                    }
+                    
+                    composable(
+                        route = "${AppDestinations.CONTACT_INFO}/{surveyId}?coupons={coupons}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType },
+                            navArgument("coupons") { 
+                                type = NavType.StringType
+                                defaultValue = ""
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val context: Context = LocalContext.current
+                        val database = SurveyDatabase.getInstance(context)
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val coupons = backStackEntry.arguments?.getString("coupons") ?: ""
+                        com.dev.salt.ui.ContactInfoScreen(
+                            navController = navController,
+                            database = database,
+                            surveyId = surveyId,
+                            coupons = coupons
                         )
                     }
                     
@@ -338,7 +454,7 @@ fun MenuScreen(
             Text("Survey Staff Area", style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = {
-                navController.navigate(AppDestinations.SURVEY_SCREEN)
+                navController.navigate(AppDestinations.COUPON_SCREEN)
             }) {
                 Text("Start New Survey")
             }

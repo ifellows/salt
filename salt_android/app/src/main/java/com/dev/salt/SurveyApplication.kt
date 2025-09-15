@@ -17,6 +17,8 @@ import kotlin.io.path.exists
 import java.io.File
 import java.io.FileOutputStream
 import com.dev.salt.PasswordUtils.hashPasswordWithNewSalt
+import com.dev.salt.data.Coupon
+import com.dev.salt.data.CouponStatus
 
 class SurveyApplication : Application() {
     private val applicationScope = CoroutineScope(Dispatchers.Default)
@@ -78,6 +80,58 @@ class SurveyApplication : Application() {
                 }
             }
         }
+        
+        // Initialize facility configuration with defaults if not present
+        val facilityConfigDao = database.facilityConfigDao()
+        if (facilityConfigDao.getFacilityConfig() == null) {
+            Log.d("SurveyApplication", "Initializing facility configuration with defaults")
+            val defaultConfig = com.dev.salt.data.FacilityConfig(
+                id = 1,
+                allowNonCouponParticipants = true,
+                couponsToIssue = 3,
+                syncStatus = "PENDING"
+            )
+            facilityConfigDao.insertFacilityConfig(defaultConfig)
+        }
+        
+        // Populate test coupons if none exist
+        val couponDao = database.couponDao()
+        if (couponDao.getUnusedCouponCount() == 0 && couponDao.getCouponsByStatus(CouponStatus.ISSUED.name).isEmpty()) {
+            Log.d("SurveyApplication", "Populating test coupons...")
+            // Create some test coupons that are already issued (as if from previous surveys)
+            val testCoupons = listOf(
+                Coupon(
+                    couponCode = "TEST01",
+                    status = CouponStatus.ISSUED.name,
+                    issuedToSurveyId = "test-survey-1",
+                    issuedDate = System.currentTimeMillis() - 86400000 // Issued 1 day ago
+                ),
+                Coupon(
+                    couponCode = "TEST02",
+                    status = CouponStatus.ISSUED.name,
+                    issuedToSurveyId = "test-survey-2",
+                    issuedDate = System.currentTimeMillis() - 172800000 // Issued 2 days ago
+                ),
+                Coupon(
+                    couponCode = "ABC123",
+                    status = CouponStatus.ISSUED.name,
+                    issuedToSurveyId = "test-survey-3",
+                    issuedDate = System.currentTimeMillis() - 259200000 // Issued 3 days ago
+                ),
+                Coupon(
+                    couponCode = "XYZ789",
+                    status = CouponStatus.ISSUED.name,
+                    issuedToSurveyId = "test-survey-4",
+                    issuedDate = System.currentTimeMillis() - 345600000 // Issued 4 days ago
+                )
+            )
+            
+            testCoupons.forEach { coupon ->
+                couponDao.insertCoupon(coupon)
+            }
+            Log.d("SurveyApplication", "Test coupons populated: ${testCoupons.map { it.couponCode }}")
+        }
+        
         // Check if the database is empty
         if (dao.getAllQuestions().isEmpty()) {
             // Add sample questions and options

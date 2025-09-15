@@ -13,7 +13,11 @@ router.use(requireAdmin);
 router.get('/', async (req, res) => {
     try {
         const facilities = await allAsync(
-            'SELECT id, name, location, created_at, updated_at FROM facilities ORDER BY name'
+            `SELECT id, name, location, 
+                    allow_non_coupon_participants, 
+                    coupons_to_issue,
+                    created_at, updated_at 
+             FROM facilities ORDER BY name`
         );
         res.json(facilities);
     } catch (error) {
@@ -26,7 +30,11 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const facility = await getAsync(
-            'SELECT id, name, location, api_key, created_at, updated_at FROM facilities WHERE id = ?',
+            `SELECT id, name, location, api_key, 
+                    allow_non_coupon_participants, 
+                    coupons_to_issue,
+                    created_at, updated_at 
+             FROM facilities WHERE id = ?`,
             [req.params.id]
         );
         
@@ -54,20 +62,23 @@ router.get('/:id', async (req, res) => {
 // Create new facility
 router.post('/', [
     body('name').notEmpty().trim(),
-    body('location').optional().trim()
+    body('location').optional().trim(),
+    body('allow_non_coupon_participants').optional().isBoolean(),
+    body('coupons_to_issue').optional().isInt({ min: 0, max: 10 })
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, location } = req.body;
+    const { name, location, allow_non_coupon_participants = true, coupons_to_issue = 3 } = req.body;
     const apiKey = `salt_${uuidv4()}`;
 
     try {
         const result = await runAsync(
-            'INSERT INTO facilities (name, location, api_key) VALUES (?, ?, ?)',
-            [name, location, apiKey]
+            `INSERT INTO facilities (name, location, api_key, allow_non_coupon_participants, coupons_to_issue) 
+             VALUES (?, ?, ?, ?, ?)`,
+            [name, location, apiKey, allow_non_coupon_participants ? 1 : 0, coupons_to_issue]
         );
 
         await logAudit(
@@ -95,20 +106,31 @@ router.post('/', [
 // Update facility
 router.put('/:id', [
     body('name').optional().trim(),
-    body('location').optional().trim()
+    body('location').optional().trim(),
+    body('allow_non_coupon_participants').optional().isBoolean(),
+    body('coupons_to_issue').optional().isInt({ min: 0, max: 10 })
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, location } = req.body;
+    const { name, location, allow_non_coupon_participants, coupons_to_issue } = req.body;
     const facilityId = req.params.id;
+    
+    console.log('Facility update request:', {
+        facilityId,
+        name,
+        location,
+        allow_non_coupon_participants,
+        coupons_to_issue,
+        body: req.body
+    });
 
     try {
         // Get current facility for audit
         const oldFacility = await getAsync(
-            'SELECT name, location FROM facilities WHERE id = ?',
+            'SELECT name, location, allow_non_coupon_participants, coupons_to_issue FROM facilities WHERE id = ?',
             [facilityId]
         );
 
@@ -116,15 +138,37 @@ router.put('/:id', [
             return res.status(404).json({ error: 'Facility not found' });
         }
 
-        // Update facility
-        await runAsync(
-            `UPDATE facilities 
-             SET name = COALESCE(?, name), 
-                 location = COALESCE(?, location),
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = ?`,
-            [name, location, facilityId]
-        );
+        // Build update query dynamically based on provided fields
+        const updates = [];
+        const values = [];
+        
+        if (name !== undefined) {
+            updates.push('name = ?');
+            values.push(name);
+        }
+        if (location !== undefined) {
+            updates.push('location = ?');
+            values.push(location);
+        }
+        if (allow_non_coupon_participants !== undefined) {
+            updates.push('allow_non_coupon_participants = ?');
+            values.push(allow_non_coupon_participants ? 1 : 0);
+        }
+        if (coupons_to_issue !== undefined) {
+            updates.push('coupons_to_issue = ?');
+            values.push(coupons_to_issue);
+        }
+        
+        if (updates.length > 0) {
+            updates.push('updated_at = CURRENT_TIMESTAMP');
+            values.push(facilityId);
+            
+            // Update facility
+            await runAsync(
+                `UPDATE facilities SET ${updates.join(', ')} WHERE id = ?`,
+                values
+            );
+        }
 
         await logAudit(
             req.session.userId,
