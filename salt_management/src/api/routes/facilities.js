@@ -16,6 +16,10 @@ router.get('/', async (req, res) => {
             `SELECT id, name, location, 
                     allow_non_coupon_participants, 
                     coupons_to_issue,
+                    seed_recruitment_active,
+                    seed_contact_rate_days,
+                    seed_recruitment_window_min_days,
+                    seed_recruitment_window_max_days,
                     created_at, updated_at 
              FROM facilities ORDER BY name`
         );
@@ -33,6 +37,10 @@ router.get('/:id', async (req, res) => {
             `SELECT id, name, location, api_key, 
                     allow_non_coupon_participants, 
                     coupons_to_issue,
+                    seed_recruitment_active,
+                    seed_contact_rate_days,
+                    seed_recruitment_window_min_days,
+                    seed_recruitment_window_max_days,
                     created_at, updated_at 
              FROM facilities WHERE id = ?`,
             [req.params.id]
@@ -64,21 +72,39 @@ router.post('/', [
     body('name').notEmpty().trim(),
     body('location').optional().trim(),
     body('allow_non_coupon_participants').optional().isBoolean(),
-    body('coupons_to_issue').optional().isInt({ min: 0, max: 10 })
+    body('coupons_to_issue').optional().isInt({ min: 0, max: 10 }),
+    body('seed_recruitment_active').optional().isBoolean(),
+    body('seed_contact_rate_days').optional().isInt({ min: 1, max: 365 }),
+    body('seed_recruitment_window_min_days').optional().isInt({ min: 0 }),
+    body('seed_recruitment_window_max_days').optional().isInt({ min: 1, max: 1095 })
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, location, allow_non_coupon_participants = true, coupons_to_issue = 3 } = req.body;
+    const { 
+        name, 
+        location, 
+        allow_non_coupon_participants = true, 
+        coupons_to_issue = 3,
+        seed_recruitment_active = false,
+        seed_contact_rate_days = 7,
+        seed_recruitment_window_min_days = 0,
+        seed_recruitment_window_max_days = 730
+    } = req.body;
     const apiKey = `salt_${uuidv4()}`;
 
     try {
         const result = await runAsync(
-            `INSERT INTO facilities (name, location, api_key, allow_non_coupon_participants, coupons_to_issue) 
-             VALUES (?, ?, ?, ?, ?)`,
-            [name, location, apiKey, allow_non_coupon_participants ? 1 : 0, coupons_to_issue]
+            `INSERT INTO facilities (name, location, api_key, allow_non_coupon_participants, coupons_to_issue,
+                                   seed_recruitment_active, seed_contact_rate_days, 
+                                   seed_recruitment_window_min_days, seed_recruitment_window_max_days) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [name, location, apiKey, 
+             allow_non_coupon_participants ? 1 : 0, coupons_to_issue,
+             seed_recruitment_active ? 1 : 0, seed_contact_rate_days,
+             seed_recruitment_window_min_days, seed_recruitment_window_max_days]
         );
 
         await logAudit(
@@ -108,14 +134,23 @@ router.put('/:id', [
     body('name').optional().trim(),
     body('location').optional().trim(),
     body('allow_non_coupon_participants').optional().isBoolean(),
-    body('coupons_to_issue').optional().isInt({ min: 0, max: 10 })
+    body('coupons_to_issue').optional().isInt({ min: 0, max: 10 }),
+    body('seed_recruitment_active').optional().isBoolean(),
+    body('seed_contact_rate_days').optional().isInt({ min: 1, max: 365 }),
+    body('seed_recruitment_window_min_days').optional().isInt({ min: 0 }),
+    body('seed_recruitment_window_max_days').optional().isInt({ min: 1, max: 1095 })
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, location, allow_non_coupon_participants, coupons_to_issue } = req.body;
+    const { 
+        name, location, 
+        allow_non_coupon_participants, coupons_to_issue,
+        seed_recruitment_active, seed_contact_rate_days,
+        seed_recruitment_window_min_days, seed_recruitment_window_max_days
+    } = req.body;
     const facilityId = req.params.id;
     
     console.log('Facility update request:', {
@@ -124,6 +159,10 @@ router.put('/:id', [
         location,
         allow_non_coupon_participants,
         coupons_to_issue,
+        seed_recruitment_active,
+        seed_contact_rate_days,
+        seed_recruitment_window_min_days,
+        seed_recruitment_window_max_days,
         body: req.body
     });
 
@@ -158,16 +197,34 @@ router.put('/:id', [
             updates.push('coupons_to_issue = ?');
             values.push(coupons_to_issue);
         }
+        if (seed_recruitment_active !== undefined) {
+            updates.push('seed_recruitment_active = ?');
+            values.push(seed_recruitment_active ? 1 : 0);
+        }
+        if (seed_contact_rate_days !== undefined) {
+            updates.push('seed_contact_rate_days = ?');
+            values.push(seed_contact_rate_days);
+        }
+        if (seed_recruitment_window_min_days !== undefined) {
+            updates.push('seed_recruitment_window_min_days = ?');
+            values.push(seed_recruitment_window_min_days);
+        }
+        if (seed_recruitment_window_max_days !== undefined) {
+            updates.push('seed_recruitment_window_max_days = ?');
+            values.push(seed_recruitment_window_max_days);
+        }
         
         if (updates.length > 0) {
             updates.push('updated_at = CURRENT_TIMESTAMP');
             values.push(facilityId);
             
             // Update facility
-            await runAsync(
+            console.log('Running update query:', `UPDATE facilities SET ${updates.join(', ')} WHERE id = ?`, values);
+            const result = await runAsync(
                 `UPDATE facilities SET ${updates.join(', ')} WHERE id = ?`,
                 values
             );
+            console.log('Update result:', result);
         }
 
         await logAudit(

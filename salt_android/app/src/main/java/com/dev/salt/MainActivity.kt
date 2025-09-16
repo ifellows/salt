@@ -8,12 +8,14 @@ import androidx.activity.compose.setContent
 // If you are using by viewModels() for Activity-level ViewModels, keep this:
 // import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -78,6 +80,8 @@ object AppDestinations {
     const val COUPON_ISSUED = "coupon_issued" // For displaying issued coupons
     const val CONTACT_CONSENT = "contact_consent" // For asking about future contact
     const val CONTACT_INFO = "contact_info" // For collecting contact information
+    const val SEED_RECRUITMENT = "seed_recruitment" // For seed recruitment screen
+    const val LANGUAGE_SELECTION = "language_selection" // For language selection screen
     
     // Compatibility aliases for existing code
     const val WELCOME_SCREEN = WELCOME
@@ -288,30 +292,60 @@ class MainActivity : ComponentActivity() {
                         val database = SurveyDatabase.getInstance(context)
                         // Get the coupon code from navigation arguments
                         val referralCouponCode: String? = backStackEntry.arguments?.getString("couponCode")
-                        val viewModel: SurveyViewModel = viewModel { 
-                            com.dev.salt.viewmodel.SurveyViewModelFactory(database, context, referralCouponCode).create(SurveyViewModel::class.java)
+                        
+                        // Find the most recent survey that matches this referral coupon code
+                        val scope = rememberCoroutineScope()
+                        var surveyId by remember { mutableStateOf<String?>(null) }
+                        var isLoading by remember { mutableStateOf(true) }
+                        
+                        LaunchedEffect(referralCouponCode) {
+                            // Find the most recent survey (it should have been created at language selection)
+                            Log.d("MainActivity", "Looking for most recent survey (coupon code passed: $referralCouponCode)")
+                            val recentSurvey = database.surveyDao().getMostRecentSurvey()
+                            surveyId = recentSurvey?.id
+                            Log.d("MainActivity", "Found survey: $surveyId with language: ${recentSurvey?.language}")
+                            isLoading = false
                         }
-                        val coroutineScope = rememberCoroutineScope()
-                        SurveyScreen(
-                            viewModel = viewModel, 
-                            coroutineScope = coroutineScope,
-                            onNavigateBack = { 
-                                // Navigate to contact consent screen when survey completes
-                                val generatedCoupons = viewModel.generatedCoupons.value
-                                val surveyId = viewModel.survey?.id ?: ""
-                                if (generatedCoupons.isNotEmpty()) {
-                                    // Pass survey ID and coupons to contact consent screen
-                                    val couponsParam = generatedCoupons.joinToString(",")
-                                    navController.navigate("${AppDestinations.CONTACT_CONSENT}/$surveyId?coupons=$couponsParam") {
-                                        popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
-                                    }
-                                } else {
-                                    navController.navigate(AppDestinations.MENU_SCREEN) {
-                                        popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = true }
+                        
+                        if (!isLoading && surveyId != null) {
+                            val viewModel: SurveyViewModel = viewModel(key = surveyId) { 
+                                com.dev.salt.viewmodel.SurveyViewModelFactory(database, context, referralCouponCode, surveyId).create(SurveyViewModel::class.java)
+                            }
+                            val coroutineScope = rememberCoroutineScope()
+                            SurveyScreen(
+                                viewModel = viewModel, 
+                                coroutineScope = coroutineScope,
+                                onNavigateBack = { 
+                                    // Navigate to contact consent screen when survey completes
+                                    val generatedCoupons = viewModel.generatedCoupons.value
+                                    val innerSurveyId = viewModel.survey?.id ?: ""
+                                    Log.d("MainActivity", "Survey completed. Survey ID: $innerSurveyId, Coupons: ${generatedCoupons.size} - $generatedCoupons")
+                                    
+                                    if (generatedCoupons.isNotEmpty()) {
+                                        // Pass survey ID and coupons to contact consent screen
+                                        val couponsParam = generatedCoupons.joinToString(",")
+                                        Log.d("MainActivity", "Navigating to contact consent with coupons: $couponsParam")
+                                        navController.navigate("${AppDestinations.CONTACT_CONSENT}/$innerSurveyId?coupons=$couponsParam") {
+                                            popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
+                                        }
+                                    } else {
+                                        Log.d("MainActivity", "No coupons generated, navigating to contact consent anyway")
+                                        // Still navigate to contact consent even without coupons
+                                        navController.navigate("${AppDestinations.CONTACT_CONSENT}/$innerSurveyId?coupons=") {
+                                            popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
+                                        }
                                     }
                                 }
+                            )
+                        } else {
+                            // Show loading while finding survey
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
                             }
-                        )
+                        }
                     }
                     
                     composable(
@@ -388,6 +422,32 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     
+                    composable(AppDestinations.SEED_RECRUITMENT) {
+                        com.dev.salt.ui.SeedRecruitmentScreen(
+                            navController = navController
+                        )
+                    }
+                    
+                    composable(
+                        route = "${AppDestinations.LANGUAGE_SELECTION}/{surveyId}?couponCode={couponCode}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType },
+                            navArgument("couponCode") { 
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = null
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val couponCode = backStackEntry.arguments?.getString("couponCode")
+                        com.dev.salt.ui.LanguageSelectionScreen(
+                            navController = navController,
+                            surveyId = surveyId,
+                            couponCode = couponCode
+                        )
+                    }
+                    
                     // Add other composables for your survey, admin dashboard, etc.
                     }
                 }
@@ -430,6 +490,19 @@ fun MenuScreen(
     onLogout: () -> Unit,
     showLogout: Boolean = true
 ) {
+    val context = LocalContext.current
+    val database = remember { SurveyDatabase.getInstance(context) }
+    val recruitmentManager = remember { com.dev.salt.util.SeedRecruitmentManager(database) }
+    val scope = rememberCoroutineScope()
+    var showSeedRecruitment by remember { mutableStateOf(false) }
+    
+    // Check if seed recruitment is allowed (recheck each time screen is shown)
+    LaunchedEffect(navController.currentBackStackEntry) {
+        Log.d("MenuScreen", "Checking seed recruitment availability...")
+        showSeedRecruitment = recruitmentManager.isRecruitmentAllowed()
+        Log.d("MenuScreen", "Show seed recruitment button: $showSeedRecruitment")
+    }
+    
     Scaffold(
         topBar = { 
             TopAppBar(
@@ -453,10 +526,26 @@ fun MenuScreen(
         ) {
             Text("Survey Staff Area", style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = {
-                navController.navigate(AppDestinations.COUPON_SCREEN)
-            }) {
+            Button(
+                onClick = {
+                    navController.navigate(AppDestinations.COUPON_SCREEN)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Start New Survey")
+            }
+            
+            // Show seed recruitment button if allowed
+            if (showSeedRecruitment) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        navController.navigate(AppDestinations.SEED_RECRUITMENT)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Recruit Previous Participant")
+                }
             }
             // Add other menu items
         }

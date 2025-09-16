@@ -75,11 +75,20 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope, onN
     }
     
     // End survey when completed and navigate back
-    LaunchedEffect(currentQuestion) {
+    val generatedCoupons by viewModel.generatedCoupons.collectAsState()
+    
+    LaunchedEffect(currentQuestion, generatedCoupons) {
         if (currentQuestion == null && viewModel.currentQuestionIndex >= 0) {
             surveyStateManager.endSurvey()
-            // Navigate back to main menu after a short delay
-            kotlinx.coroutines.delay(2000)
+            // Wait for coupons to be generated before navigating
+            // This gives the ViewModel time to save the survey and generate coupons
+            var waitCount = 0
+            while (generatedCoupons.isEmpty() && waitCount < 30) { // Wait up to 3 seconds
+                kotlinx.coroutines.delay(100)
+                waitCount++
+            }
+            // Navigate back after coupons are ready or timeout
+            kotlinx.coroutines.delay(1000) // Brief pause to show completion message
             onNavigateBack()
         }
     }

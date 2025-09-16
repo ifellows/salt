@@ -28,7 +28,7 @@ The application is designed as a facility-based tablet system where program staf
 ### Database Management
 - Room database with fallback to destructive migration enabled
 - Database schemas are stored in `app/schemas/com.dev.salt.data.SurveyDatabase/`
-- Current database version: 16
+- Current database version: 24
 
 ## Architecture Overview
 
@@ -131,6 +131,23 @@ The SALT application is part of a larger three-tier architecture as illustrated 
 
 ### ✅ Completed in Recent Sessions
 
+**Survey Completion Flow with Coupon Generation** (v24 → v25)
+- Fixed coupon generation at survey completion
+- Enhanced navigation to always show contact consent screen
+- Proper waiting for asynchronous coupon generation
+- Survey answers now saved correctly on completion
+- Coupons generated based on facility configuration (default 3)
+- Existing coupons loaded if survey is re-accessed
+
+**Language Selection Feature** (v21 → v24)
+- `LanguageSelectionScreen.kt` - New screen for language selection after coupon entry
+- Dynamic language detection from available survey questions
+- Proper survey creation flow with language selection
+- Support for multiple languages with native display names
+- Navigation updates to route through language selection
+- SurveyViewModel enhanced to accept existing survey IDs
+- Fixed multilingual question loading with proper ID mapping
+
 **Survey Upload and Data Export System** (v15 → v16)
 - `SurveyUploadManager.kt` - Core upload logic with HTTP POST and retry mechanism
 - `SurveySerializer.kt` - Complete JSON serialization of survey data including device info
@@ -199,7 +216,7 @@ The SALT application is part of a larger three-tier architecture as illustrated 
 
 ### 🔧 Key Infrastructure Updates
 
-- **Database Schema**: Version 16 with upload state tracking and server configuration
+- **Database Schema**: Version 25 with upload state tracking, server configuration, and coupon management
 - **Session Management**: Complete lifecycle management with StateFlow
 - **Survey State Tracking**: Active survey detection and protection
 - **Authentication Flow**: Dual password/biometric support
@@ -279,6 +296,25 @@ Based on current architecture and SALT methodology requirements:
 - **Offline Capability**: Enhanced offline survey completion and sync status
 - **Advanced User Management**: Audit trails, password policies, session history
 - **Survey Analytics Dashboard**: Real-time completion statistics and data visualization
+
+## Target Hardware Configuration
+
+### Recommended Hardware Setup (per facility station)
+- **Tablet**: Samsung Galaxy Tab A7 Lite (8.7" display, Android 11+)
+- **Fingerprint Scanner**: SecuGen Hamster Pro 20 (FBI certified, USB)
+- **Required Adapter**: USB-C to USB-A OTG adapter (for connecting scanner to tablet)
+- **Optional**: Protective tablet case for healthcare environment
+
+### Hardware Requirements
+- Android tablet with USB Host Mode (OTG) support
+- Minimum Android 8.0 (API 26) or higher
+- USB-C or Micro-USB port with OTG capability
+- Sufficient storage for survey data and audio files
+
+### Fingerprint Integration
+- Current implementation uses mock BiometricAuthManager
+- Ready for SecuGen SDK integration when hardware is deployed
+- Supports enrollment, authentication, and secure key storage
 
 ## Missing System Components (for full SALT implementation)
 - Management software for study administrators (Configuration & Monitoring UI)

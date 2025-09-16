@@ -15,6 +15,7 @@
                 <th>API Key</th>
                 <th>Non-Coupon Allowed</th>
                 <th>Coupons to Issue</th>
+                <th>Seed Recruitment</th>
                 <th>Uploads</th>
                 <th>Actions</th>
             </tr>
@@ -36,20 +37,25 @@
                     <td style="text-align: center;">
                         <strong>${facility.coupons_to_issue || 3}</strong>
                     </td>
+                    <td>
+                        <span style="color: ${facility.seed_recruitment_active ? 'green' : 'gray'}; font-weight: bold;">
+                            ${facility.seed_recruitment_active ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
                     <td>${facility.upload_count}</td>
                     <td>
-                        <button onclick="editFacility(${facility.id}, '${facility.name}', '${facility.location || ''}', ${facility.allow_non_coupon_participants ? 'true' : 'false'}, ${facility.coupons_to_issue || 3})" class="btn" style="padding: 0.25rem 0.5rem;">Edit</button>
+                        <button onclick="editFacility(${facility.id}, '${facility.name}', '${facility.location || ''}', ${facility.allow_non_coupon_participants ? 'true' : 'false'}, ${facility.coupons_to_issue || 3}, ${facility.seed_recruitment_active ? 'true' : 'false'}, ${facility.seed_contact_rate_days || 7}, ${facility.seed_recruitment_window_min_days || 0}, ${facility.seed_recruitment_window_max_days || 730})" class="btn" style="padding: 0.25rem 0.5rem;">Edit</button>
                         <button onclick="regenerateKey(${facility.id})" class="btn" style="padding: 0.25rem 0.5rem;">New Key</button>
                     </td>
                 </tr>
             `).join('')}
-            ${facilities.length === 0 ? '<tr><td colspan="7" style="text-align: center;">No facilities registered</td></tr>' : ''}
+            ${facilities.length === 0 ? '<tr><td colspan="8" style="text-align: center;">No facilities registered</td></tr>' : ''}
         </tbody>
     </table>
 </div>
 
-<div id="addFacilityModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000;">
-    <div style="background: white; max-width: 500px; margin: 100px auto; padding: 2rem; border-radius: 8px;">
+<div id="addFacilityModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+    <div style="background: white; max-width: 500px; margin: 2rem auto; padding: 2rem; border-radius: 8px; max-height: 90vh; overflow-y: auto;">
         <h3>Add New Facility</h3>
         <form id="addFacilityForm">
             <input type="text" name="name" placeholder="Facility Name" required style="width: 100%; padding: 0.5rem; margin: 1rem 0;">
@@ -67,6 +73,31 @@
                 <input type="number" name="coupons_to_issue" value="3" min="0" max="10" required style="width: 100%; padding: 0.5rem;">
             </div>
             
+            <hr style="margin: 1.5rem 0;">
+            <h4>Seed Recruitment Settings</h4>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">
+                    <input type="checkbox" name="seed_recruitment_active" style="margin-right: 0.5rem;">
+                    Enable seed recruitment
+                </label>
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Contact rate (days between contacts):</label>
+                <input type="number" name="seed_contact_rate_days" value="7" min="1" max="365" style="width: 100%; padding: 0.5rem;">
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Recruitment window minimum (days):</label>
+                <input type="number" name="seed_recruitment_window_min_days" value="0" min="0" style="width: 100%; padding: 0.5rem;">
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Recruitment window maximum (days):</label>
+                <input type="number" name="seed_recruitment_window_max_days" value="730" min="1" max="1095" style="width: 100%; padding: 0.5rem;">
+            </div>
+            
             <div style="display: flex; gap: 1rem;">
                 <button type="submit" class="btn">Add Facility</button>
                 <button type="button" onclick="hideAddFacilityForm()" class="btn btn-danger">Cancel</button>
@@ -75,8 +106,8 @@
     </div>
 </div>
 
-<div id="editFacilityModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000;">
-    <div style="background: white; max-width: 500px; margin: 100px auto; padding: 2rem; border-radius: 8px;">
+<div id="editFacilityModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+    <div style="background: white; max-width: 500px; margin: 2rem auto; padding: 2rem; border-radius: 8px; max-height: 90vh; overflow-y: auto;">
         <h3>Edit Facility</h3>
         <form id="editFacilityForm">
             <input type="hidden" name="id">
@@ -93,6 +124,31 @@
             <div style="margin: 1rem 0;">
                 <label style="display: block; margin-bottom: 0.5rem;">Number of coupons to issue:</label>
                 <input type="number" name="coupons_to_issue" value="3" min="0" max="10" required style="width: 100%; padding: 0.5rem;">
+            </div>
+            
+            <hr style="margin: 1.5rem 0;">
+            <h4>Seed Recruitment Settings</h4>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">
+                    <input type="checkbox" name="seed_recruitment_active" style="margin-right: 0.5rem;">
+                    Enable seed recruitment
+                </label>
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Contact rate (days between contacts):</label>
+                <input type="number" name="seed_contact_rate_days" value="7" min="1" max="365" style="width: 100%; padding: 0.5rem;">
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Recruitment window minimum (days):</label>
+                <input type="number" name="seed_recruitment_window_min_days" value="0" min="0" style="width: 100%; padding: 0.5rem;">
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Recruitment window maximum (days):</label>
+                <input type="number" name="seed_recruitment_window_max_days" value="730" min="1" max="1095" style="width: 100%; padding: 0.5rem;">
             </div>
             
             <div style="display: flex; gap: 1rem;">
@@ -112,13 +168,17 @@ function hideAddFacilityForm() {
     document.getElementById('addFacilityModal').style.display = 'none';
 }
 
-function editFacility(id, name, location, allowNonCoupon, couponsToIssue) {
+function editFacility(id, name, location, allowNonCoupon, couponsToIssue, seedRecruitmentActive, seedContactRateDays, seedRecruitmentWindowMinDays, seedRecruitmentWindowMaxDays) {
     const form = document.getElementById('editFacilityForm');
     form.id.value = id;
     form.name.value = name;
     form.location.value = location;
     form.allow_non_coupon_participants.checked = allowNonCoupon;
     form.coupons_to_issue.value = couponsToIssue;
+    form.seed_recruitment_active.checked = seedRecruitmentActive;
+    form.seed_contact_rate_days.value = seedContactRateDays || 7;
+    form.seed_recruitment_window_min_days.value = seedRecruitmentWindowMinDays || 0;
+    form.seed_recruitment_window_max_days.value = seedRecruitmentWindowMaxDays || 730;
     document.getElementById('editFacilityModal').style.display = 'block';
 }
 
@@ -163,6 +223,18 @@ document.getElementById('addFacilityForm').addEventListener('submit', async (e) 
     
     // Convert checkbox value to boolean
     data.allow_non_coupon_participants = formData.has('allow_non_coupon_participants');
+    data.seed_recruitment_active = formData.has('seed_recruitment_active');
+    // Convert numeric fields
+    data.seed_contact_rate_days = parseInt(data.seed_contact_rate_days, 10) || 7;
+    data.seed_recruitment_window_min_days = parseInt(data.seed_recruitment_window_min_days, 10) || 0;
+    data.seed_recruitment_window_max_days = parseInt(data.seed_recruitment_window_max_days, 10) || 730;
+    
+    // Remove NaN values
+    Object.keys(data).forEach(key => {
+        if (typeof data[key] === 'number' && isNaN(data[key])) {
+            delete data[key];
+        }
+    });
     
     try {
         const response = await fetch('/api/admin/facilities', {
@@ -194,8 +266,19 @@ document.getElementById('editFacilityForm').addEventListener('submit', async (e)
     
     // Convert checkbox value to boolean
     data.allow_non_coupon_participants = formData.has('allow_non_coupon_participants');
-    // Ensure coupons_to_issue is a number
+    data.seed_recruitment_active = formData.has('seed_recruitment_active');
+    // Ensure numeric fields are numbers
     data.coupons_to_issue = parseInt(data.coupons_to_issue, 10);
+    data.seed_contact_rate_days = parseInt(data.seed_contact_rate_days, 10) || 7;
+    data.seed_recruitment_window_min_days = parseInt(data.seed_recruitment_window_min_days, 10) || 0;
+    data.seed_recruitment_window_max_days = parseInt(data.seed_recruitment_window_max_days, 10) || 730;
+    
+    // Remove NaN values
+    Object.keys(data).forEach(key => {
+        if (typeof data[key] === 'number' && isNaN(data[key])) {
+            delete data[key];
+        }
+    });
     
     console.log('Sending update:', data);  // Debug log
     

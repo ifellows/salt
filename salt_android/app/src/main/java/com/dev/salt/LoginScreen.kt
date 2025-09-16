@@ -30,10 +30,27 @@ fun LoginScreen(
     onLoginSuccess: (UserRole) -> Unit // Callback to navigate based on role
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     // Observe error state from ViewModel for Dialog
     val loginError = loginViewModel.loginError
     var showErrorDialog by remember(loginError) { mutableStateOf(loginError != null) }
+    
+    // Function to sync facility config after successful login
+    fun syncFacilityAfterLogin(role: UserRole) {
+        coroutineScope.launch {
+            try {
+                val database = com.dev.salt.data.SurveyDatabase.getInstance(context)
+                val syncManager = com.dev.salt.sync.FacilityConfigSyncManager(database)
+                syncManager.syncFacilityConfig()
+            } catch (e: Exception) {
+                // Log but don't block login on sync failure
+                android.util.Log.e("LoginScreen", "Failed to sync facility config", e)
+            }
+            onLoginSuccess(role)
+        }
+    }
 
 
     if (showErrorDialog) {
@@ -107,7 +124,7 @@ fun LoginScreen(
                 onClick = {
                     loginViewModel.login { result ->
                         if (result.success) {
-                            onLoginSuccess(result.role)
+                            syncFacilityAfterLogin(result.role)
                         }
                         // Error is handled by the showErrorDialog via observing loginViewModel.loginError
                     }
@@ -133,7 +150,7 @@ fun LoginScreen(
                     onClick = {
                         loginViewModel.authenticateWithBiometric { result ->
                             if (result.success) {
-                                onLoginSuccess(result.role)
+                                syncFacilityAfterLogin(result.role)
                             }
                             // Error is handled by the showErrorDialog via observing loginViewModel.loginError
                         }

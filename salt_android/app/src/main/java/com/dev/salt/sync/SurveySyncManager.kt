@@ -187,92 +187,147 @@ class SurveySyncManager(private val context: Context) {
     private fun insertSurveyData(data: JSONObject) {
         database.runInTransaction {
             try {
+                // Map to track original question ID to language-specific question IDs
+                val questionIdMap = mutableMapOf<Pair<Int, String>, Int>() // (originalId, language) -> newId
+                
                 // Parse questions
                 val questionsArray = data.getJSONArray("questions")
                 for (i in 0 until questionsArray.length()) {
                     val questionJson = questionsArray.getJSONObject(i)
+                    val originalQuestionId = questionJson.getInt("id")
                     
-                    // Get question text - try different formats
-                    val questionText = when {
-                        questionJson.has("question_text_json") -> {
-                            val textJson = questionJson.getJSONObject("question_text_json")
-                            textJson.optString("English", "Question $i")
-                        }
-                        questionJson.has("question_text") -> questionJson.getString("question_text")
-                        else -> "Question $i"
-                    }
-                    
-                    // Handle audio files
-                    var audioFileName = ""
-                    if (questionJson.has("audio_files_json")) {
-                        try {
-                            val audioJson = questionJson.getJSONObject("audio_files_json")
-                            // Try to get English audio first, then any available audio
-                            val audioData = audioJson.optString("English", "")
-                            if (audioData.isNotEmpty()) {
-                                audioFileName = saveAudioFromBase64(audioData)
+                    // Check if we have multilingual support
+                    if (questionJson.has("question_text_json")) {
+                        val textJson = questionJson.getJSONObject("question_text_json")
+                        val audioJson = if (questionJson.has("audio_files_json")) {
+                            questionJson.getJSONObject("audio_files_json")
+                        } else null
+                        
+                        // Create a question for each language
+                        val languages = textJson.keys()
+                        var questionIdCounter = originalQuestionId * 1000 // Multiply to avoid ID conflicts
+                        
+                        while (languages.hasNext()) {
+                            val language = languages.next()
+                            val questionText = textJson.getString(language)
+                            
+                            // Handle audio files for this language
+                            var audioFileName = ""
+                            if (audioJson != null && audioJson.has(language)) {
+                                try {
+                                    val audioData = audioJson.optString(language, "")
+                                    if (audioData.isNotEmpty()) {
+                                        audioFileName = saveAudioFromBase64(audioData)
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("SurveySyncManager", "Error processing $language audio", e)
+                                }
                             }
-                        } catch (e: Exception) {
-                            Log.e("SurveySyncManager", "Error processing question audio", e)
+                            
+                            val newQuestionId = questionIdCounter++
+                            questionIdMap[Pair(originalQuestionId, language)] = newQuestionId
+                            
+                            val question = Question(
+                                id = newQuestionId,
+                                questionId = questionJson.getInt("question_index"),  // Use question_index for ordering
+                                questionShortName = questionJson.optString("short_name", "q${originalQuestionId}"),
+                                statement = questionText,
+                                audioFileName = audioFileName,
+                                questionLanguage = language,  // Use the actual language name
+                                primaryLanguageText = questionText,
+                                questionType = questionJson.optString("question_type", "multiple_choice"),
+                                preScript = questionJson.optString("pre_script", null),
+                                validationScript = questionJson.optString("validation_script", null),
+                                validationErrorText = "Invalid Answer"
+                            )
+                            surveyDao.insertQuestion(question)
                         }
+                    } else {
+                        // Fallback for non-multilingual questions
+                        val questionText = questionJson.optString("question_text", "Question $i")
+                        questionIdMap[Pair(originalQuestionId, "English")] = originalQuestionId
+                        
+                        val question = Question(
+                            id = originalQuestionId,
+                            questionId = questionJson.getInt("question_index"),  // Use question_index for ordering
+                            questionShortName = questionJson.optString("short_name", "q${originalQuestionId}"),
+                            statement = questionText,
+                            audioFileName = "",
+                            questionLanguage = "English",  // Default to English
+                            primaryLanguageText = questionText,
+                            questionType = questionJson.optString("question_type", "multiple_choice"),
+                            preScript = questionJson.optString("pre_script", null),
+                            validationScript = questionJson.optString("validation_script", null),
+                            validationErrorText = "Invalid Answer"
+                        )
+                        surveyDao.insertQuestion(question)
                     }
-                    
-                    val question = Question(
-                        id = questionJson.getInt("id"),
-                        questionId = questionJson.getInt("question_index"),  // Use question_index for ordering
-                        questionShortName = questionJson.optString("short_name", "q${questionJson.getInt("id")}"),
-                        statement = questionText,
-                        audioFileName = audioFileName,
-                        questionLanguage = "en",  // Changed to match the survey language
-                        primaryLanguageText = questionText,
-                        questionType = questionJson.optString("question_type", "multiple_choice"),
-                        preScript = questionJson.optString("pre_script", null),
-                        validationScript = questionJson.optString("validation_script", null),
-                        validationErrorText = "Invalid Answer"
-                    )
-                    surveyDao.insertQuestion(question)
                 }
                 
                 // Parse options
                 val optionsArray = data.getJSONArray("options")
                 for (i in 0 until optionsArray.length()) {
                     val optionJson = optionsArray.getJSONObject(i)
+                    val originalQuestionId = optionJson.getInt("question_id")
                     
-                    // Get option text - try different formats
-                    val optionText = when {
-                        optionJson.has("option_text_json") -> {
-                            val textJson = optionJson.getJSONObject("option_text_json")
-                            textJson.optString("English", "Option $i")
-                        }
-                        optionJson.has("option_text") -> optionJson.getString("option_text")
-                        else -> "Option $i"
-                    }
-                    
-                    // Handle audio files for options
-                    var audioFileName = ""
-                    if (optionJson.has("audio_files_json")) {
-                        try {
-                            val audioJson = optionJson.getJSONObject("audio_files_json")
-                            // Try to get English audio first, then any available audio
-                            val audioData = audioJson.optString("English", "")
-                            if (audioData.isNotEmpty()) {
-                                audioFileName = saveAudioFromBase64(audioData)
+                    // Check if we have multilingual support
+                    if (optionJson.has("option_text_json")) {
+                        val textJson = optionJson.getJSONObject("option_text_json")
+                        val audioJson = if (optionJson.has("audio_files_json")) {
+                            optionJson.getJSONObject("audio_files_json")
+                        } else null
+                        
+                        // Create an option for each language
+                        val languages = textJson.keys()
+                        var optionIdCounter = optionJson.getInt("id") * 1000 // Multiply to avoid ID conflicts
+                        
+                        while (languages.hasNext()) {
+                            val language = languages.next()
+                            val optionText = textJson.getString(language)
+                            
+                            // Get the mapped question ID for this language
+                            val mappedQuestionId = questionIdMap[Pair(originalQuestionId, language)] ?: originalQuestionId
+                            
+                            // Handle audio files for this language
+                            var audioFileName = ""
+                            if (audioJson != null && audioJson.has(language)) {
+                                try {
+                                    val audioData = audioJson.optString(language, "")
+                                    if (audioData.isNotEmpty()) {
+                                        audioFileName = saveAudioFromBase64(audioData)
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("SurveySyncManager", "Error processing $language option audio", e)
+                                }
                             }
-                        } catch (e: Exception) {
-                            Log.e("SurveySyncManager", "Error processing option audio", e)
+                            
+                            val option = Option(
+                                id = optionIdCounter++,
+                                questionId = mappedQuestionId,  // Use the mapped question ID
+                                text = optionText,
+                                audioFileName = audioFileName,
+                                optionQuestionIndex = optionJson.optInt("option_index", i),
+                                language = language,  // Use the actual language name
+                                primaryLanguageText = optionText
+                            )
+                            surveyDao.insertOption(option)
                         }
+                    } else {
+                        // Fallback for non-multilingual options
+                        val optionText = optionJson.optString("option_text", "Option $i")
+                        val mappedQuestionId = questionIdMap[Pair(originalQuestionId, "English")] ?: originalQuestionId
+                        
+                        val option = Option(
+                            id = optionJson.getInt("id"),
+                            questionId = mappedQuestionId,  // Use the mapped question ID
+                            text = optionText,
+                            audioFileName = "",
+                            optionQuestionIndex = optionJson.optInt("option_index", i),
+                            language = "English",  // Default to English
+                            primaryLanguageText = optionText
+                        )
+                        surveyDao.insertOption(option)
                     }
-                    
-                    val option = Option(
-                        id = optionJson.getInt("id"),
-                        questionId = optionJson.getInt("question_id"),
-                        text = optionText,
-                        audioFileName = audioFileName,
-                        optionQuestionIndex = optionJson.optInt("option_index", i),
-                        language = "en",  // Changed to match the survey language
-                        primaryLanguageText = optionText
-                    )
-                    surveyDao.insertOption(option)
                 }
                 
                 Log.d("SurveySyncManager", "Inserted ${questionsArray.length()} questions and ${optionsArray.length()} options")

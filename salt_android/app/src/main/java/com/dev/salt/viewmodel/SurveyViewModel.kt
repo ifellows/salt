@@ -28,7 +28,8 @@ import com.dev.salt.util.CouponGenerator
 class SurveyViewModel(
     private val database: SurveyDatabase,
     private val context: Context? = null,
-    private val referralCouponCode: String? = null
+    private val referralCouponCode: String? = null,
+    private val surveyId: String? = null
 ) : ViewModel() {
     private val _currentQuestion = MutableStateFlow<Triple<Question, List<Option>, Answer?>?>(null)
     val currentQuestion: StateFlow<Triple<Question, List<Option>, Answer?>?> = _currentQuestion
@@ -48,8 +49,18 @@ class SurveyViewModel(
 
     init {
         viewModelScope.launch {
+            Log.d("SurveyViewModel", "Init called with surveyId=$surveyId, referralCouponCode=$referralCouponCode")
             loadQuestions()
-            survey = makeNewSurvey("en")
+            
+            // Load existing survey if surveyId is provided, otherwise create new
+            survey = if (surveyId != null) {
+                val loadedSurvey = database.surveyDao().getSurveyById(surveyId)
+                Log.d("SurveyViewModel", "Loaded existing survey: id=${loadedSurvey?.id}, language=${loadedSurvey?.language}")
+                loadedSurvey ?: makeNewSurvey("en")
+            } else {
+                Log.d("SurveyViewModel", "Creating new survey")
+                makeNewSurvey("en")
+            }
             
             // Mark the referral coupon as used if one was provided
             referralCouponCode?.let { code ->
@@ -84,6 +95,16 @@ class SurveyViewModel(
         survey = surv
         survey?.populateFields(database.surveyDao())
         questions = survey?.questions ?: emptyList()
+        Log.d("SurveyViewModel", "Loaded survey with language: ${survey?.language}")
+        Log.d("SurveyViewModel", "Number of questions loaded: ${questions.size}")
+        
+        // Also check what languages have questions
+        val allLanguages = database.surveyDao().getDistinctLanguages()
+        Log.d("SurveyViewModel", "Available languages in DB: $allLanguages")
+        
+        questions.forEach { q ->
+            Log.d("SurveyViewModel", "Question: id=${q.id}, questionId=${q.questionId}, language=${q.questionLanguage}, text=${q.statement.take(50)}")
+        }
     }
 
     private fun loadQuestions() {
@@ -108,30 +129,43 @@ class SurveyViewModel(
             _currentQuestion.value = null
             //currentQuestion = null // Survey completed
             
+            Log.i("SurveyViewModel", "Survey completed! Index: $currentQuestionIndex, Questions size: ${questions.size}")
+            
             // Survey is completed - save and trigger upload
             survey?.let { completedSurvey ->
                 viewModelScope.launch {
                     try {
-                        // Check if survey already exists before saving
-                        val existingSurvey = database.surveyDao().getSurveyById(completedSurvey.id)
-                        if (existingSurvey == null) {
-                            // Save survey to database
-                            saveSurvey(completedSurvey, database.surveyDao())
-                            
+                        Log.i("SurveyViewModel", "Processing completed survey ${completedSurvey.id}")
+                        
+                        // Save the survey answers (the survey itself was created earlier)
+                        Log.i("SurveyViewModel", "Saving survey answers for ${completedSurvey.id}")
+                        completedSurvey.answers.forEach { answer ->
+                            database.surveyDao().insertAnswer(answer)
+                        }
+                        
+                        // Check if coupons have already been generated for this survey
+                        val existingCoupons = database.couponDao().getCouponsIssuedToSurvey(completedSurvey.id)
+                        
+                        if (existingCoupons.isEmpty()) {
                             // Generate coupons for completed survey
                             try {
                                 // Get the number of coupons to issue from facility config
                                 val facilityConfig = database.facilityConfigDao().getFacilityConfig()
                                 val couponsToIssue = facilityConfig?.couponsToIssue ?: 3
                                 
+                                Log.i("SurveyViewModel", "Generating $couponsToIssue coupons for survey ${completedSurvey.id}")
                                 val coupons = couponGenerator.issueCouponsForSurvey(completedSurvey.id, couponsToIssue)
                                 _generatedCoupons.value = coupons
                                 Log.i("SurveyViewModel", "Generated ${coupons.size} coupons for survey ${completedSurvey.id}: $coupons")
                             } catch (e: Exception) {
                                 Log.e("SurveyViewModel", "Failed to generate coupons for survey ${completedSurvey.id}", e)
+                                // Still set empty list so navigation can proceed
+                                _generatedCoupons.value = emptyList()
                             }
                         } else {
-                            Log.w("SurveyViewModel", "Survey ${completedSurvey.id} already exists, skipping save")
+                            Log.i("SurveyViewModel", "Found ${existingCoupons.size} existing coupons for survey ${completedSurvey.id}")
+                            _generatedCoupons.value = existingCoupons.map { it.couponCode }
+                            Log.i("SurveyViewModel", "Using existing coupons: ${existingCoupons.map { it.couponCode }}")
                         }
                         
                         // Trigger upload if context is available

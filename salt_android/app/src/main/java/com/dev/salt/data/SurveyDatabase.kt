@@ -56,7 +56,13 @@ data class Survey(
     var answers: MutableList<Answer> = mutableListOf()
 
     fun populateFields(surveyDao: SurveyDao) {
+        android.util.Log.d("Survey", "PopulateFields called for survey $id with language: $language")
+        val questionCount = surveyDao.getQuestionCountByLanguage(this.language)
+        android.util.Log.d("Survey", "Found $questionCount questions for language: $language")
+        
         this.questions = surveyDao.getQuestionsByLanguage(this.language)
+        android.util.Log.d("Survey", "Actually loaded ${this.questions.size} questions")
+        
         this.answers = surveyDao.getAnswersBySurveyId(this.id)
         if(answers.size != questions.size){
             for(i in answers.size until questions.size){
@@ -147,8 +153,25 @@ data class FacilityConfig(
     @ColumnInfo(name = "facility_name") val facilityName: String? = null,
     @ColumnInfo(name = "allow_non_coupon_participants") val allowNonCouponParticipants: Boolean = true,
     @ColumnInfo(name = "coupons_to_issue") val couponsToIssue: Int = 3,
+    @ColumnInfo(name = "seed_recruitment_active") val seedRecruitmentActive: Boolean = false,
+    @ColumnInfo(name = "seed_contact_rate_days") val seedContactRateDays: Int = 7,
+    @ColumnInfo(name = "seed_recruitment_window_min_days") val seedRecruitmentWindowMinDays: Int = 0,
+    @ColumnInfo(name = "seed_recruitment_window_max_days") val seedRecruitmentWindowMaxDays: Int = 730,
     @ColumnInfo(name = "last_sync_time") val lastSyncTime: Long? = null,
     @ColumnInfo(name = "sync_status") val syncStatus: String = "PENDING"
+)
+
+@Entity(tableName = "seed_recruitment")
+data class SeedRecruitment(
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
+    @ColumnInfo(name = "selected_subject_id") val selectedSubjectId: String,
+    @ColumnInfo(name = "selected_date") val selectedDate: Long,
+    @ColumnInfo(name = "contact_info") val contactInfo: String,
+    @ColumnInfo(name = "contact_type") val contactType: String, // "phone" or "email"
+    @ColumnInfo(name = "coupon_code") val couponCode: String,
+    @ColumnInfo(name = "message_sent") val messageSent: Boolean = false,
+    @ColumnInfo(name = "sent_date") val sentDate: Long? = null
 )
 
 enum class CouponStatus {
@@ -180,6 +203,9 @@ interface SurveyDao {
 
     @Query("SELECT * FROM questions")
     fun getAllQuestions(): List<Question>
+    
+    @Query("SELECT COUNT(*) FROM questions WHERE question_language = :language")
+    fun getQuestionCountByLanguage(language: String): Int
 
     @Query("SELECT * FROM options WHERE question_id = :questionId")
     fun getOptionsForQuestion(questionId: Int): List<Option>
@@ -193,7 +219,7 @@ interface SurveyDao {
     @Insert
     fun insertSurvey(survey: Survey)
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertAnswer(answer: Answer)
 
     @Delete
@@ -207,6 +233,18 @@ interface SurveyDao {
     
     @Update
     fun updateSurvey(survey: Survey)
+    
+    @Query("SELECT * FROM surveys WHERE contact_phone IS NOT NULL OR contact_email IS NOT NULL")
+    fun getAllSurveysWithContact(): List<Survey>
+    
+    @Query("SELECT DISTINCT question_language FROM questions ORDER BY question_language")
+    fun getDistinctLanguages(): List<String>
+    
+    @Query("SELECT * FROM surveys WHERE referral_coupon_code = :couponCode ORDER BY start_datetime DESC LIMIT 1")
+    fun getMostRecentSurveyByCoupon(couponCode: String?): Survey?
+    
+    @Query("SELECT * FROM surveys ORDER BY start_datetime DESC LIMIT 1")
+    fun getMostRecentSurvey(): Survey?
     
     @Delete
     fun deleteQuestion(question: Question)
@@ -380,7 +418,28 @@ interface FacilityConfigDao {
     fun updateLastSyncSuccess(time: Long)
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, Coupon::class, FacilityConfig::class], version = 20)
+@Dao
+interface SeedRecruitmentDao {
+    @Insert
+    fun insertRecruitment(recruitment: SeedRecruitment): Long
+    
+    @Update
+    fun updateRecruitment(recruitment: SeedRecruitment)
+    
+    @Query("SELECT * FROM seed_recruitment WHERE message_sent = 0 AND selected_date > :minDate ORDER BY selected_date DESC LIMIT 1")
+    fun getActiveRecruitment(minDate: Long): SeedRecruitment?
+    
+    @Query("SELECT * FROM seed_recruitment WHERE sent_date > :minDate")
+    fun getRecentlySentRecruitments(minDate: Long): List<SeedRecruitment>
+    
+    @Query("SELECT * FROM surveys WHERE contact_consent = 1 AND (contact_phone IS NOT NULL OR contact_email IS NOT NULL) AND start_datetime BETWEEN :minDate AND :maxDate AND id NOT IN (SELECT selected_subject_id FROM seed_recruitment WHERE sent_date > :recentContactDate) ORDER BY RANDOM() LIMIT 1")
+    fun getRandomEligibleSubject(minDate: Long, maxDate: Long, recentContactDate: Long): Survey?
+    
+    @Query("UPDATE seed_recruitment SET message_sent = 1, sent_date = :sentDate WHERE id = :id")
+    fun markMessageSent(id: Int, sentDate: Long)
+}
+
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class], version = 25)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao
@@ -388,6 +447,7 @@ abstract class SurveyDatabase : RoomDatabase() {
     abstract fun syncMetadataDao(): SyncMetadataDao
     abstract fun couponDao(): CouponDao
     abstract fun facilityConfigDao(): FacilityConfigDao
+    abstract fun seedRecruitmentDao(): SeedRecruitmentDao
     companion object {
         private var instance: SurveyDatabase? = null
 
