@@ -148,6 +148,13 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
             });
         }
         
+        // Log the fingerprint configuration being sent
+        console.log('Survey sync - fingerprint config:', {
+            fingerprint_enabled: survey.fingerprint_enabled,
+            re_enrollment_days: survey.re_enrollment_days,
+            survey_name: survey.name
+        });
+        
         // Prepare response data
         const responseData = {
             survey: {
@@ -159,6 +166,11 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
                 languages: survey.languages,
                 eligibility_script: survey.eligibility_script,
                 eligibility_message_json: survey.eligibility_message_json
+            },
+            survey_config: {
+                survey_name: survey.name,
+                fingerprint_enabled: Boolean(survey.fingerprint_enabled),
+                re_enrollment_days: survey.re_enrollment_days || 90
             },
             sections: sections,
             questions: questionsWithParsedJson,

@@ -82,6 +82,7 @@ object AppDestinations {
     const val CONTACT_INFO = "contact_info" // For collecting contact information
     const val SEED_RECRUITMENT = "seed_recruitment" // For seed recruitment screen
     const val LANGUAGE_SELECTION = "language_selection" // For language selection screen
+    const val FINGERPRINT_SCREENING = "fingerprint_screening" // For fingerprint screening
     
     // Compatibility aliases for existing code
     const val WELCOME_SCREEN = WELCOME
@@ -425,6 +426,26 @@ class MainActivity : ComponentActivity() {
                     composable(AppDestinations.SEED_RECRUITMENT) {
                         com.dev.salt.ui.SeedRecruitmentScreen(
                             navController = navController
+                        )
+                    }
+                    
+                    composable(
+                        route = "${AppDestinations.FINGERPRINT_SCREENING}/{surveyId}?couponCode={couponCode}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType },
+                            navArgument("couponCode") { 
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = null
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val couponCode = backStackEntry.arguments?.getString("couponCode")
+                        com.dev.salt.ui.FingerprintScreeningScreen(
+                            navController = navController,
+                            surveyId = surveyId,
+                            couponCode = couponCode
                         )
                     }
                     

@@ -187,6 +187,19 @@ class SurveySyncManager(private val context: Context) {
     private fun insertSurveyData(data: JSONObject) {
         database.runInTransaction {
             try {
+                // Parse survey configuration
+                if (data.has("survey_config")) {
+                    val configJson = data.getJSONObject("survey_config")
+                    val surveyConfig = SurveyConfig(
+                        surveyName = configJson.optString("survey_name", null),
+                        fingerprintEnabled = configJson.optBoolean("fingerprint_enabled", false),
+                        reEnrollmentDays = configJson.optInt("re_enrollment_days", 90),
+                        lastSyncTime = System.currentTimeMillis()
+                    )
+                    database.surveyConfigDao().insertSurveyConfig(surveyConfig)
+                    Log.d("SurveySyncManager", "Survey config updated: fingerprint=${surveyConfig.fingerprintEnabled}, reEnrollmentDays=${surveyConfig.reEnrollmentDays}")
+                }
+                
                 // Map to track original question ID to language-specific question IDs
                 val questionIdMap = mutableMapOf<Pair<Int, String>, Int>() // (originalId, language) -> newId
                 

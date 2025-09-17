@@ -131,6 +131,19 @@ The SALT application is part of a larger three-tier architecture as illustrated 
 
 ### ✅ Completed in Recent Sessions
 
+**Fingerprint Screening for Duplicate Enrollment Prevention** (v25 → v27)
+- `FingerprintScreeningScreen.kt` - UI for fingerprint capture with visual instructions
+- `FingerprintManager.kt` - Placeholder methods for SecuGen Hamster Pro 20 integration
+- Database entities for storing fingerprint hashes locally (not sent to server)
+- `SurveyConfig` entity for survey-level configuration from server
+- Duplicate enrollment detection within configurable time window (default 90 days)
+- Fingerprinting enabled/disabled based on survey configuration (not local setting)
+- Re-enrollment period configured per survey from server
+- Navigation flow updated to include optional fingerprint screening before language selection
+- Visual diagram showing proper finger placement on scanner
+- Enrollment rejection screen with days until re-enrollment allowed
+- SurveySyncManager parses `survey_config` from server JSON
+
 **Survey Completion Flow with Coupon Generation** (v24 → v25)
 - Fixed coupon generation at survey completion
 - Enhanced navigation to always show contact consent screen
@@ -216,7 +229,7 @@ The SALT application is part of a larger three-tier architecture as illustrated 
 
 ### 🔧 Key Infrastructure Updates
 
-- **Database Schema**: Version 25 with upload state tracking, server configuration, and coupon management
+- **Database Schema**: Version 27 with upload state tracking, server configuration, coupon management, fingerprint storage, and survey configuration
 - **Session Management**: Complete lifecycle management with StateFlow
 - **Survey State Tracking**: Active survey detection and protection
 - **Authentication Flow**: Dual password/biometric support

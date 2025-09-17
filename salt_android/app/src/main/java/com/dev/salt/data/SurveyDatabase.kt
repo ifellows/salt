@@ -12,6 +12,16 @@ data class SyncMetadata(
     @ColumnInfo(name = "last_error") val lastError: String? = null
 )
 
+@Entity(tableName = "survey_config")
+data class SurveyConfig(
+    @PrimaryKey
+    val id: Int = 1, // Single row for survey configuration
+    @ColumnInfo(name = "survey_name") val surveyName: String? = null,
+    @ColumnInfo(name = "fingerprint_enabled") val fingerprintEnabled: Boolean = false,
+    @ColumnInfo(name = "re_enrollment_days") val reEnrollmentDays: Int = 90,
+    @ColumnInfo(name = "last_sync_time") val lastSyncTime: Long? = null
+)
+
 @Entity(tableName = "questions")
 data class Question(
     @PrimaryKey val id: Int,
@@ -172,6 +182,16 @@ data class SeedRecruitment(
     @ColumnInfo(name = "coupon_code") val couponCode: String,
     @ColumnInfo(name = "message_sent") val messageSent: Boolean = false,
     @ColumnInfo(name = "sent_date") val sentDate: Long? = null
+)
+
+@Entity(tableName = "subject_fingerprints")
+data class SubjectFingerprint(
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
+    @ColumnInfo(name = "survey_id") val surveyId: String,
+    @ColumnInfo(name = "fingerprint_hash") val fingerprintHash: String,
+    @ColumnInfo(name = "enrollment_date") val enrollmentDate: Long,
+    @ColumnInfo(name = "facility_id") val facilityId: Int? = null
 )
 
 enum class CouponStatus {
@@ -401,6 +421,21 @@ interface SyncMetadataDao {
 }
 
 @Dao
+interface SurveyConfigDao {
+    @Query("SELECT * FROM survey_config WHERE id = 1 LIMIT 1")
+    fun getSurveyConfig(): SurveyConfig?
+    
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertSurveyConfig(config: SurveyConfig)
+    
+    @Query("UPDATE survey_config SET fingerprint_enabled = :enabled, re_enrollment_days = :days WHERE id = 1")
+    fun updateFingerprintSettings(enabled: Boolean, days: Int)
+    
+    @Query("UPDATE survey_config SET last_sync_time = :time WHERE id = 1")
+    fun updateLastSyncTime(time: Long)
+}
+
+@Dao
 interface FacilityConfigDao {
     @Query("SELECT * FROM facility_config WHERE id = 1 LIMIT 1")
     fun getFacilityConfig(): FacilityConfig?
@@ -439,15 +474,35 @@ interface SeedRecruitmentDao {
     fun markMessageSent(id: Int, sentDate: Long)
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class], version = 25)
+@Dao
+interface SubjectFingerprintDao {
+    @Insert
+    fun insertFingerprint(fingerprint: SubjectFingerprint): Long
+    
+    @Query("SELECT * FROM subject_fingerprints WHERE fingerprint_hash = :hash AND enrollment_date > :minDate ORDER BY enrollment_date DESC LIMIT 1")
+    fun findRecentFingerprint(hash: String, minDate: Long): SubjectFingerprint?
+    
+    @Query("SELECT * FROM subject_fingerprints WHERE survey_id = :surveyId LIMIT 1")
+    fun getFingerprintBySurveyId(surveyId: String): SubjectFingerprint?
+    
+    @Query("SELECT COUNT(*) FROM subject_fingerprints WHERE fingerprint_hash = :hash AND enrollment_date > :minDate")
+    fun countRecentFingerprints(hash: String, minDate: Long): Int
+    
+    @Query("DELETE FROM subject_fingerprints WHERE enrollment_date < :beforeDate")
+    fun deleteOldFingerprints(beforeDate: Long)
+}
+
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class], version = 27)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao
     abstract fun uploadStateDao(): UploadStateDao
     abstract fun syncMetadataDao(): SyncMetadataDao
+    abstract fun surveyConfigDao(): SurveyConfigDao
     abstract fun couponDao(): CouponDao
     abstract fun facilityConfigDao(): FacilityConfigDao
     abstract fun seedRecruitmentDao(): SeedRecruitmentDao
+    abstract fun subjectFingerprintDao(): SubjectFingerprintDao
     companion object {
         private var instance: SurveyDatabase? = null
 

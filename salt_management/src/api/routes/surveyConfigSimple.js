@@ -117,15 +117,24 @@ router.put('/:id', [
     body('languages').optional(),
     body('eligibility_script').optional().trim(),
     body('eligibility_message_json').optional(),
-    body('create_version').optional().isBoolean()
+    body('create_version').optional().isBoolean(),
+    body('fingerprint_enabled').optional().isInt({ min: 0, max: 1 }),
+    body('re_enrollment_days').optional().isInt({ min: 1, max: 365 })
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, description, languages, eligibility_script, eligibility_message_json, create_version = true } = req.body;
+    const { name, description, languages, eligibility_script, eligibility_message_json, create_version = true, fingerprint_enabled, re_enrollment_days } = req.body;
     const surveyId = req.params.id;
+    
+    console.log('Update survey request:', {
+        surveyId,
+        fingerprint_enabled,
+        re_enrollment_days,
+        body: req.body
+    });
     
     try {
         const oldSurvey = await getAsync(
@@ -244,15 +253,24 @@ router.put('/:id', [
                 params.push(typeof eligibility_message_json === 'object' ? 
                     JSON.stringify(eligibility_message_json) : eligibility_message_json);
             }
+            if (fingerprint_enabled !== undefined) {
+                updates.push('fingerprint_enabled = ?');
+                params.push(fingerprint_enabled);
+            }
+            if (re_enrollment_days !== undefined) {
+                updates.push('re_enrollment_days = ?');
+                params.push(re_enrollment_days);
+            }
             
             if (updates.length > 0) {
                 updates.push('updated_at = CURRENT_TIMESTAMP');
                 params.push(surveyId);
                 
-                await runAsync(
-                    `UPDATE surveys SET ${updates.join(', ')} WHERE id = ?`,
-                    params
-                );
+                const sql = `UPDATE surveys SET ${updates.join(', ')} WHERE id = ?`;
+                console.log('Executing SQL:', sql);
+                console.log('With params:', params);
+                
+                await runAsync(sql, params);
             }
             
             await logAudit(
