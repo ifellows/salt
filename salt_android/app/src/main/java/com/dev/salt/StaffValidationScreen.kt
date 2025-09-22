@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,9 +22,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dev.salt.auth.BiometricAuthManager
 import com.dev.salt.auth.BiometricAuthManagerFactory
+import android.util.Log
 import com.dev.salt.auth.BiometricResult
 import com.dev.salt.data.SurveyDatabase
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.LaunchedEffect
+import android.media.MediaPlayer
+import androidx.compose.runtime.DisposableEffect
 
 @Composable
 fun StaffValidationScreen(
@@ -43,8 +48,48 @@ fun StaffValidationScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var attemptsRemaining by remember { mutableIntStateOf(10) }
 
-    // For now, use a default message. In production, this would come from survey config
-    val validationMessage = "Please hand the tablet back to the staff member who gave it to you"
+    // Load staff validation message from database
+    var validationMessage by remember { mutableStateOf("Please hand the tablet back to the staff member who gave it to you") }
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    LaunchedEffect(Unit) {
+        scope.launch {
+            // Try to get the message in the current language or fallback to any language
+            val systemMessage = database.systemMessageDao().getSystemMessage("staff_validation", "en")
+                ?: database.systemMessageDao().getSystemMessage("staff_validation", "English")
+                ?: database.systemMessageDao().getSystemMessageAnyLanguage("staff_validation")
+
+            if (systemMessage != null) {
+                validationMessage = systemMessage.messageText
+                Log.d("StaffValidation", "Loaded message: ${systemMessage.messageText}")
+
+                // Play audio if available
+                if (!systemMessage.audioFileName.isNullOrEmpty()) {
+                    Log.d("StaffValidation", "Playing audio: ${systemMessage.audioFileName}")
+                    mediaPlayer = playAudio(context, systemMessage.audioFileName)
+                }
+            } else {
+                Log.d("StaffValidation", "No system message found for staff_validation, using default")
+            }
+        }
+    }
+
+    // Clean up MediaPlayer when the screen is disposed
+    DisposableEffect(Unit) {
+        onDispose {
+            mediaPlayer?.let { player ->
+                try {
+                    if (player.isPlaying) {
+                        player.stop()
+                    }
+                    player.release()
+                    Log.d("StaffValidation", "MediaPlayer released")
+                } catch (e: Exception) {
+                    Log.e("StaffValidation", "Error releasing MediaPlayer", e)
+                }
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -85,6 +130,34 @@ fun StaffValidationScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(vertical = 16.dp)
                 )
+
+                // Audio replay button (only show if audio is available)
+                if (mediaPlayer != null) {
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                mediaPlayer?.let { player ->
+                                    if (!player.isPlaying) {
+                                        player.seekTo(0)
+                                        player.start()
+                                        Log.d("StaffValidation", "Replaying audio")
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("StaffValidation", "Error replaying audio", e)
+                            }
+                        },
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Replay",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Replay Audio", fontSize = 14.sp)
+                    }
+                }
 
                 // Error message
                 errorMessage?.let { error ->

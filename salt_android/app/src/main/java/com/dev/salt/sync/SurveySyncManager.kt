@@ -350,7 +350,60 @@ class SurveySyncManager(private val context: Context) {
                         surveyDao.insertOption(option)
                     }
                 }
-                
+
+                // Parse system messages
+                if (data.has("messages")) {
+                    val messagesArray = data.getJSONArray("messages")
+                    val systemMessageDao = database.systemMessageDao()
+
+                    // Clear existing messages
+                    systemMessageDao.deleteAllSystemMessages()
+
+                    for (i in 0 until messagesArray.length()) {
+                        val messageJson = messagesArray.getJSONObject(i)
+                        val messageKey = messageJson.getString("message_key")
+
+                        // Check if we have multilingual support
+                        if (messageJson.has("text")) {
+                            val textJson = messageJson.getJSONObject("text")
+                            val audioJson = if (messageJson.has("audio")) {
+                                messageJson.getJSONObject("audio")
+                            } else null
+
+                            // Create a message for each language
+                            val languages = textJson.keys()
+                            while (languages.hasNext()) {
+                                val language = languages.next()
+                                val messageText = textJson.getString(language)
+
+                                // Handle audio files for this language
+                                var audioFileName: String? = null
+                                if (audioJson != null && audioJson.has(language)) {
+                                    try {
+                                        val audioData = audioJson.optString(language, "")
+                                        if (audioData.isNotEmpty()) {
+                                            audioFileName = saveAudioFromBase64(audioData)
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e("SurveySyncManager", "Error processing message audio for $language", e)
+                                    }
+                                }
+
+                                val systemMessage = SystemMessage(
+                                    messageKey = messageKey,
+                                    messageText = messageText,
+                                    audioFileName = audioFileName,
+                                    language = language,
+                                    messageType = messageJson.optString("message_type", "system")
+                                )
+                                systemMessageDao.insertSystemMessage(systemMessage)
+                                Log.d("SurveySyncManager", "Inserted system message: $messageKey ($language)")
+                            }
+                        }
+                    }
+                    Log.d("SurveySyncManager", "Inserted ${messagesArray.length()} system messages")
+                }
+
                 Log.d("SurveySyncManager", "Inserted ${questionsArray.length()} questions and ${optionsArray.length()} options")
             } catch (e: Exception) {
                 Log.e("SurveySyncManager", "Error parsing survey data", e)

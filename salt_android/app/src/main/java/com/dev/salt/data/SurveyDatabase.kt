@@ -25,6 +25,15 @@ data class SurveyConfig(
     @ColumnInfo(name = "last_sync_time") val lastSyncTime: Long? = null
 )
 
+@Entity(tableName = "system_messages")
+data class SystemMessage(
+    @PrimaryKey val messageKey: String,
+    @ColumnInfo(name = "message_text") val messageText: String,
+    @ColumnInfo(name = "audio_file_name") val audioFileName: String? = null,
+    @ColumnInfo(name = "language") val language: String = "en",
+    @ColumnInfo(name = "message_type") val messageType: String = "system"
+)
+
 @Entity(tableName = "questions")
 data class Question(
     @PrimaryKey val id: Int,
@@ -524,7 +533,25 @@ interface SubjectFingerprintDao {
     fun deleteOldFingerprints(beforeDate: Long)
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class], version = 36)
+@Dao
+interface SystemMessageDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertSystemMessage(message: SystemMessage)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertSystemMessages(messages: List<SystemMessage>)
+
+    @Query("SELECT * FROM system_messages WHERE messageKey = :key AND language = :language LIMIT 1")
+    fun getSystemMessage(key: String, language: String): SystemMessage?
+
+    @Query("SELECT * FROM system_messages WHERE messageKey = :key LIMIT 1")
+    fun getSystemMessageAnyLanguage(key: String): SystemMessage?
+
+    @Query("DELETE FROM system_messages")
+    fun deleteAllSystemMessages()
+}
+
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class], version = 37)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao
@@ -535,6 +562,7 @@ abstract class SurveyDatabase : RoomDatabase() {
     abstract fun facilityConfigDao(): FacilityConfigDao
     abstract fun seedRecruitmentDao(): SeedRecruitmentDao
     abstract fun subjectFingerprintDao(): SubjectFingerprintDao
+    abstract fun systemMessageDao(): SystemMessageDao
     companion object {
         private var instance: SurveyDatabase? = null
 

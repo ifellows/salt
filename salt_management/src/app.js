@@ -69,6 +69,7 @@ const surveyConfigRoutes = require('./api/routes/surveyConfigSimple');
 const surveySyncRoutes = require('./api/routes/surveySync');
 const surveyUploadRoutes = require('./api/routes/surveyUpload');
 const facilityConfigRoutes = require('./api/routes/facilityConfig');
+const surveyMessagesRoutes = require('./api/routes/surveyMessages');
 const webDashboardRoutes = require('./web/routes/dashboard');
 const webSurveyEditorRoutes = require('./web/routes/surveyEditor');
 
@@ -77,6 +78,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/surveys', surveyRoutes);
 app.use('/api/admin/facilities', facilityRoutes);
 app.use('/api/admin/survey-config', surveyConfigRoutes);
+app.use('/api/admin/survey-config', surveyMessagesRoutes);
 app.use('/api/sync', surveySyncRoutes);
 app.use('/api/sync', surveyUploadRoutes);
 app.use('/api/sync', facilityConfigRoutes);

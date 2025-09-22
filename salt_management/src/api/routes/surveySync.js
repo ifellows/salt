@@ -135,7 +135,7 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
                 'SELECT * FROM options WHERE question_id = ? ORDER BY option_index',
                 [question.id]
             );
-            
+
             // Parse JSON fields in options
             questionOptions.forEach(opt => {
                 if (opt.option_text_json && typeof opt.option_text_json === 'string') {
@@ -146,6 +146,32 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
                 }
                 options.push(opt);
             });
+        }
+
+        // Get all messages for the survey
+        const messages = await allAsync(
+            `SELECT message_key, message_text_json, audio_files_json, message_type, display_order
+             FROM survey_messages
+             WHERE survey_id = ?
+             ORDER BY display_order, message_key`,
+            [survey.id]
+        );
+
+        // Parse JSON fields in messages
+        const messagesWithParsedJson = messages.map(msg => ({
+            message_key: msg.message_key,
+            message_type: msg.message_type,
+            display_order: msg.display_order,
+            message_text_json: JSON.parse(msg.message_text_json || '{}'), // Keep original for compatibility
+            audio_files_json: JSON.parse(msg.audio_files_json || '{}'), // Keep original for compatibility
+            text: JSON.parse(msg.message_text_json || '{}'), // Also provide simplified names
+            audio: JSON.parse(msg.audio_files_json || '{}')
+        }));
+
+        // Log the messages being sent
+        console.log('Survey sync - messages found:', messages.length);
+        if (messages.length > 0) {
+            console.log('Sample message:', messagesWithParsedJson[0]);
         }
         
         // Log the fingerprint configuration being sent
@@ -175,7 +201,8 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
             },
             sections: sections,
             questions: questionsWithParsedJson,
-            options: options
+            options: options,
+            messages: messagesWithParsedJson
         };
         
         // Calculate checksum
