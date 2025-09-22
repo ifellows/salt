@@ -119,14 +119,16 @@ router.put('/:id', [
     body('eligibility_message_json').optional(),
     body('create_version').optional().isBoolean(),
     body('fingerprint_enabled').optional().isInt({ min: 0, max: 1 }),
-    body('re_enrollment_days').optional().isInt({ min: 1, max: 365 })
+    body('re_enrollment_days').optional().isInt({ min: 1, max: 365 }),
+    body('staff_validation_message_json').optional()
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+        console.error('Validation errors:', JSON.stringify(errors.array()));
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, description, languages, eligibility_script, eligibility_message_json, create_version = true, fingerprint_enabled, re_enrollment_days } = req.body;
+    const { name, description, languages, eligibility_script, eligibility_message_json, create_version = true, fingerprint_enabled, re_enrollment_days, staff_validation_message_json } = req.body;
     const surveyId = req.params.id;
     
     console.log('Update survey request:', {
@@ -261,7 +263,12 @@ router.put('/:id', [
                 updates.push('re_enrollment_days = ?');
                 params.push(re_enrollment_days);
             }
-            
+            if (staff_validation_message_json !== undefined) {
+                updates.push('staff_validation_message_json = ?');
+                params.push(typeof staff_validation_message_json === 'object' ?
+                    JSON.stringify(staff_validation_message_json) : staff_validation_message_json);
+            }
+
             if (updates.length > 0) {
                 updates.push('updated_at = CURRENT_TIMESTAMP');
                 params.push(surveyId);
@@ -296,15 +303,18 @@ router.post('/:surveyId/questions', [
     body('short_name').notEmpty().trim().matches(/^[a-zA-Z0-9_]+$/),
     body('question_text_json').isObject(),
     body('audio_files_json').optional().isObject(),
-    body('question_type').isIn(['multiple_choice', 'numeric', 'text']),
+    body('question_type').isIn(['multiple_choice', 'numeric', 'text', 'multi_select']),
     body('validation_script').optional().trim(),
     body('validation_error_json').optional().isObject(),
     body('pre_script').optional().trim(),
     body('section_id').optional().isInt(),
-    body('options').optional().isArray()
+    body('options').optional().isArray(),
+    body('min_selections').optional().isInt({ min: 1 }),
+    body('max_selections').optional().isInt({ min: 1 })
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+        console.error('Validation errors:', JSON.stringify(errors.array()));
         return res.status(400).json({ errors: errors.array() });
     }
 
@@ -312,7 +322,7 @@ router.post('/:surveyId/questions', [
     const { 
         question_index, short_name, question_text_json, audio_files_json,
         question_type, validation_script, validation_error_json, pre_script, 
-        section_id, options = []
+        section_id, options = [], min_selections, max_selections
     } = req.body;
     
     try {
@@ -339,11 +349,12 @@ router.post('/:surveyId/questions', [
         // Insert question
         const questionResult = await runAsync(
             `INSERT INTO questions (survey_id, question_index, short_name, question_text_json,
-             audio_files_json, question_type, validation_script, validation_error_json, pre_script, section_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             audio_files_json, question_type, validation_script, validation_error_json, pre_script, section_id, min_selections, max_selections)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [surveyId, question_index, short_name, JSON.stringify(question_text_json),
              JSON.stringify(audio_files_json || {}), question_type, validation_script,
-             JSON.stringify(validation_error_json || {"English": "Invalid answer"}), pre_script, finalSectionId]
+             JSON.stringify(validation_error_json || {"English": "Invalid answer"}), pre_script, finalSectionId,
+             min_selections || null, max_selections || null]
         );
         
         const questionId = questionResult.id;
@@ -385,22 +396,26 @@ router.put('/:surveyId/questions/:questionId', [
     body('short_name').optional().trim().matches(/^[a-zA-Z0-9_]+$/),
     body('question_text_json').optional().isObject(),
     body('audio_files_json').optional().isObject(),
-    body('question_type').optional().isIn(['multiple_choice', 'numeric', 'text']),
+    body('question_type').optional().isIn(['multiple_choice', 'numeric', 'text', 'multi_select']),
     body('validation_script').optional().trim(),
     body('validation_error_json').optional().isObject(),
     body('pre_script').optional().trim(),
     body('section_id').optional().isInt(),
-    body('options').optional().isArray()
+    body('options').optional().isArray(),
+    body('min_selections').optional().isInt({ min: 1 }),
+    body('max_selections').optional().isInt({ min: 1 })
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+        console.error('Validation errors:', JSON.stringify(errors.array()));
         return res.status(400).json({ errors: errors.array() });
     }
 
     const { surveyId, questionId } = req.params;
     const { 
         question_index, short_name, question_text_json, audio_files_json,
-        question_type, validation_script, validation_error_json, pre_script, section_id, options
+        question_type, validation_script, validation_error_json, pre_script, section_id, options,
+        min_selections, max_selections
     } = req.body;
     
     try {
@@ -453,6 +468,14 @@ router.put('/:surveyId/questions/:questionId', [
         if (section_id !== undefined) {
             updates.push('section_id = ?');
             params.push(section_id);
+        }
+        if (min_selections !== undefined) {
+            updates.push('min_selections = ?');
+            params.push(min_selections);
+        }
+        if (max_selections !== undefined) {
+            updates.push('max_selections = ?');
+            params.push(max_selections);
         }
         
         if (updates.length > 0) {
@@ -539,6 +562,7 @@ router.post('/:surveyId/reorder', [
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+        console.error('Validation errors:', JSON.stringify(errors.array()));
         return res.status(400).json({ errors: errors.array() });
     }
 
@@ -578,6 +602,7 @@ router.post('/', [
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+        console.error('Validation errors:', JSON.stringify(errors.array()));
         return res.status(400).json({ errors: errors.array() });
     }
 
@@ -787,13 +812,19 @@ router.delete('/:id', async (req, res) => {
             )`,
             [surveyId]
         );
-        
+
         // Delete all questions for this survey
         await runAsync(
             'DELETE FROM questions WHERE survey_id = ?',
             [surveyId]
         );
-        
+
+        // Delete all sections for this survey
+        await runAsync(
+            'DELETE FROM sections WHERE survey_id = ?',
+            [surveyId]
+        );
+
         // Delete the survey
         await runAsync(
             'DELETE FROM surveys WHERE id = ?',

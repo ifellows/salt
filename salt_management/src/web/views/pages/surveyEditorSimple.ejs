@@ -15,6 +15,8 @@ const questionsData = questions.map(q => {
         pre_script: q.pre_script,
         validation_script: q.validation_script,
         validation_error: validationError,
+        min_selections: q.min_selections,
+        max_selections: q.max_selections,
         options: q.options || []
     };
 });
@@ -61,6 +63,24 @@ bodyHtml += '        <input type="number" id="reEnrollmentDays" value="' + (surv
 bodyHtml += '        <small style="display: block; color: #666; margin-top: 0.25rem;">Number of days before a participant can re-enroll</small>\n';
 bodyHtml += '    </div>\n';
 bodyHtml += '    <button onclick="saveFingerprintSettings()" class="btn">Save Fingerprint Settings</button>\n';
+bodyHtml += '</div>\n';
+
+// Staff validation message card
+bodyHtml += '<div class="card">\n';
+bodyHtml += '    <h3>Staff Validation Message</h3>\n';
+bodyHtml += '    <p style="color: #666; margin-bottom: 1rem;">This message is displayed when staff validation is required (e.g., before contact information collection)</p>\n';
+
+const staffValidationMessage = typeof survey.staff_validation_message_json === 'string' ?
+    JSON.parse(survey.staff_validation_message_json || '{}') : survey.staff_validation_message_json || {};
+surveyLanguages.forEach(lang => {
+    const langId = lang.replace(/\s+/g, '_');
+    bodyHtml += '    <div style="margin-bottom: 1rem;">\n';
+    bodyHtml += '        <label style="display: block; margin-bottom: 0.25rem;">' + lang + ' Message:</label>\n';
+    bodyHtml += '        <textarea id="staffValidation_' + langId + '" class="staff-validation-message form-control" data-lang="' + lang + '" rows="2" style="width: 100%;" placeholder="Please hand the tablet back to the staff member who gave it to you">' + (staffValidationMessage[lang] || "") + '</textarea>\n';
+    bodyHtml += '    </div>\n';
+});
+
+bodyHtml += '    <button onclick="saveStaffValidationMessage()" class="btn">Save Staff Validation Message</button>\n';
 bodyHtml += '</div>\n';
 
 // Language management card
@@ -243,6 +263,7 @@ bodyHtml += '                <div class="form-group">\n';
 bodyHtml += '                    <label>Question Type</label>\n';
 bodyHtml += '                    <select id="questionType" class="form-control" onchange="toggleOptionsSection()">\n';
 bodyHtml += '                        <option value="multiple_choice">Multiple Choice</option>\n';
+bodyHtml += '                        <option value="multi_select">Multi-Select (Check All That Apply)</option>\n';
 bodyHtml += '                        <option value="numeric">Numeric</option>\n';
 bodyHtml += '                        <option value="text">Text</option>\n';
 bodyHtml += '                    </select>\n';
@@ -268,6 +289,21 @@ bodyHtml += '                <div id="optionsSection" style="display: none;">\n'
 bodyHtml += '                    <label>Options</label>\n';
 bodyHtml += '                    <div id="optionsList"></div>\n';
 bodyHtml += '                    <button type="button" onclick="addOption()" class="btn btn-sm">Add Option</button>\n';
+bodyHtml += '                </div>\n';
+bodyHtml += '                \n';
+bodyHtml += '                <div id="multiSelectFields" style="display: none;">\n';
+bodyHtml += '                    <div class="form-row" style="display: flex; gap: 1rem; margin-top: 1rem;">\n';
+bodyHtml += '                        <div class="form-group" style="flex: 1;">\n';
+bodyHtml += '                            <label>Minimum Selections</label>\n';
+bodyHtml += '                            <input type="number" id="minSelections" class="form-control" min="0" placeholder="Leave empty for no minimum">\n';
+bodyHtml += '                            <small style="color: #666;">Minimum number of options that must be selected</small>\n';
+bodyHtml += '                        </div>\n';
+bodyHtml += '                        <div class="form-group" style="flex: 1;">\n';
+bodyHtml += '                            <label>Maximum Selections</label>\n';
+bodyHtml += '                            <input type="number" id="maxSelections" class="form-control" min="1" placeholder="Leave empty for unlimited">\n';
+bodyHtml += '                            <small style="color: #666;">Maximum number of options that can be selected</small>\n';
+bodyHtml += '                        </div>\n';
+bodyHtml += '                    </div>\n';
 bodyHtml += '                </div>\n';
 bodyHtml += '                \n';
 bodyHtml += '                <div class="form-group">\n';
@@ -400,6 +436,39 @@ bodyHtml += '        }\n';
 bodyHtml += '    } catch (error) {\n';
 bodyHtml += '        console.error("Error saving fingerprint settings:", error);\n';
 bodyHtml += '        alert("Error saving fingerprint settings: " + error.message);\n';
+bodyHtml += '    }\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'async function saveStaffValidationMessage() {\n';
+bodyHtml += '    const staffValidationMessages = {};\n';
+bodyHtml += '    document.querySelectorAll(".staff-validation-message").forEach(textarea => {\n';
+bodyHtml += '        const lang = textarea.dataset.lang;\n';
+bodyHtml += '        const value = textarea.value.trim();\n';
+bodyHtml += '        if (value) {\n';
+bodyHtml += '            staffValidationMessages[lang] = value;\n';
+bodyHtml += '        }\n';
+bodyHtml += '    });\n';
+bodyHtml += '    \n';
+bodyHtml += '    try {\n';
+bodyHtml += '        const response = await fetch("/api/admin/survey-config/" + surveyId, {\n';
+bodyHtml += '            method: "PUT",\n';
+bodyHtml += '            credentials: "same-origin",\n';
+bodyHtml += '            headers: { "Content-Type": "application/json" },\n';
+bodyHtml += '            body: JSON.stringify({\n';
+bodyHtml += '                staff_validation_message_json: staffValidationMessages,\n';
+bodyHtml += '                create_version: false\n';
+bodyHtml += '            })\n';
+bodyHtml += '        });\n';
+bodyHtml += '        \n';
+bodyHtml += '        if (response.ok) {\n';
+bodyHtml += '            alert("Staff validation message saved successfully");\n';
+bodyHtml += '        } else {\n';
+bodyHtml += '            const error = await response.json();\n';
+bodyHtml += '            alert("Failed to save staff validation message: " + (error.error || "Unknown error"));\n';
+bodyHtml += '        }\n';
+bodyHtml += '    } catch (error) {\n';
+bodyHtml += '        console.error("Error saving staff validation message:", error);\n';
+bodyHtml += '        alert("Error saving staff validation message: " + error.message);\n';
 bodyHtml += '    }\n';
 bodyHtml += '}\n';
 bodyHtml += '\n';
@@ -654,6 +723,14 @@ bodyHtml += '    document.getElementById("preScript").value = question.pre_scrip
 bodyHtml += '    document.getElementById("validationScript").value = question.validation_script || "";\n';
 bodyHtml += '    document.getElementById("sectionId").value = question.section_id || "";\n';
 bodyHtml += '    \n';
+bodyHtml += '    // Load min/max selections for multi_select questions\n';
+bodyHtml += '    if (question.question_type === "multi_select") {\n';
+bodyHtml += '        const minSelectionsInput = document.getElementById("minSelections");\n';
+bodyHtml += '        const maxSelectionsInput = document.getElementById("maxSelections");\n';
+bodyHtml += '        if (minSelectionsInput) minSelectionsInput.value = question.min_selections || "";\n';
+bodyHtml += '        if (maxSelectionsInput) maxSelectionsInput.value = question.max_selections || "";\n';
+bodyHtml += '    }\n';
+bodyHtml += '    \n';
 bodyHtml += '    // Set text and audio for each language\n';
 bodyHtml += '    surveyLanguages.forEach(lang => {\n';
 bodyHtml += '        const langId = lang.replace(/\\s+/g, "_");\n';
@@ -672,8 +749,8 @@ bodyHtml += '            if (playBtn) playBtn.style.display = "none";\n';
 bodyHtml += '        }\n';
 bodyHtml += '    });\n';
 bodyHtml += '    \n';
-bodyHtml += '    // Setup options if multiple choice\n';
-bodyHtml += '    if (question.question_type === "multiple_choice") {\n';
+bodyHtml += '    // Setup options if multiple choice or multi_select\n';
+bodyHtml += '    if (question.question_type === "multiple_choice" || question.question_type === "multi_select") {\n';
 bodyHtml += '        loadOptions(question.options);\n';
 bodyHtml += '    }\n';
 bodyHtml += '    \n';
@@ -733,8 +810,14 @@ bodyHtml += '}\n';
 bodyHtml += '\n';
 bodyHtml += 'function toggleOptionsSection() {\n';
 bodyHtml += '    const type = document.getElementById("questionType").value;\n';
-bodyHtml += '    document.getElementById("optionsSection").style.display = \n';
-bodyHtml += '        type === "multiple_choice" ? "block" : "none";\n';
+bodyHtml += '    const showOptions = type === "multiple_choice" || type === "multi_select";\n';
+bodyHtml += '    document.getElementById("optionsSection").style.display = showOptions ? "block" : "none";\n';
+bodyHtml += '    \n';
+bodyHtml += '    // Show/hide multi-select specific fields\n';
+bodyHtml += '    const multiSelectFields = document.getElementById("multiSelectFields");\n';
+bodyHtml += '    if (multiSelectFields) {\n';
+bodyHtml += '        multiSelectFields.style.display = type === "multi_select" ? "block" : "none";\n';
+bodyHtml += '    }\n';
 bodyHtml += '}\n';
 bodyHtml += '\n';
 bodyHtml += 'function closeModal() {\n';
@@ -760,9 +843,10 @@ bodyHtml += '            console.log("Audio saved for " + lang + ", length: " + 
 bodyHtml += '        }\n';
 bodyHtml += '    });\n';
 bodyHtml += '    \n';
-bodyHtml += '    // Collect options if multiple choice\n';
+bodyHtml += '    // Collect options if multiple choice or multi_select\n';
+bodyHtml += '    const questionType = document.getElementById("questionType").value;\n';
 bodyHtml += '    const options = [];\n';
-bodyHtml += '    if (document.getElementById("questionType").value === "multiple_choice") {\n';
+bodyHtml += '    if (questionType === "multiple_choice" || questionType === "multi_select") {\n';
 bodyHtml += '        document.querySelectorAll(".option-wrapper").forEach((group, idx) => {\n';
 bodyHtml += '            const optionTexts = {};\n';
 bodyHtml += '            const optionAudio = {};\n';
@@ -789,7 +873,7 @@ bodyHtml += '    \n';
 bodyHtml += '    const data = {\n';
 bodyHtml += '        short_name: document.getElementById("shortName").value,\n';
 bodyHtml += '        question_text_json: texts,\n';
-bodyHtml += '        question_type: document.getElementById("questionType").value,\n';
+bodyHtml += '        question_type: questionType,\n';
 bodyHtml += '        pre_script: document.getElementById("preScript").value || null,\n';
 bodyHtml += '        validation_script: document.getElementById("validationScript").value || null,\n';
 bodyHtml += '        audio_files_json: audioFiles,\n';
@@ -797,6 +881,14 @@ bodyHtml += '        validation_error_json: {},\n';
 bodyHtml += '        section_id: parseInt(document.getElementById("sectionId").value),\n';
 bodyHtml += '        options: options\n';
 bodyHtml += '    };\n';
+bodyHtml += '    \n';
+bodyHtml += '    // Add min/max selections for multi_select questions\n';
+bodyHtml += '    if (questionType === "multi_select") {\n';
+bodyHtml += '        const minSelections = document.getElementById("minSelections")?.value;\n';
+bodyHtml += '        const maxSelections = document.getElementById("maxSelections")?.value;\n';
+bodyHtml += '        if (minSelections) data.min_selections = parseInt(minSelections);\n';
+bodyHtml += '        if (maxSelections) data.max_selections = parseInt(maxSelections);\n';
+bodyHtml += '    }\n';
 bodyHtml += '    \n';
 bodyHtml += '    // For new questions, add at the end\n';
 bodyHtml += '    if (isNewQuestion) {\n';
@@ -827,7 +919,13 @@ bodyHtml += '            alert(isNewQuestion ? "Question created successfully" :
 bodyHtml += '            location.reload();\n';
 bodyHtml += '        } else {\n';
 bodyHtml += '            const result = await response.json();\n';
-bodyHtml += '            alert("Failed to save: " + result.error);\n';
+bodyHtml += '            console.error("Server response:", result);\n';
+bodyHtml += '            if (result.errors && Array.isArray(result.errors)) {\n';
+bodyHtml += '                const errorMessages = result.errors.map(err => err.msg || err.message).join(", ");\n';
+bodyHtml += '                alert("Failed to save: " + errorMessages);\n';
+bodyHtml += '            } else {\n';
+bodyHtml += '                alert("Failed to save: " + (result.error || JSON.stringify(result)));\n';
+bodyHtml += '            }\n';
 bodyHtml += '        }\n';
 bodyHtml += '    } catch (error) {\n';
 bodyHtml += '        alert("Error: " + error.message);\n';

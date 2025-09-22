@@ -196,9 +196,9 @@ fun ContactInfoScreen(
                                 android.util.Log.d("ContactInfo", "Saved contact info for survey $surveyId: $contactType = $contactInfo")
                             }
                             
-                            // Navigate to coupon issued screen
-                            navController.navigate("${AppDestinations.COUPON_ISSUED}?coupons=$coupons") {
-                                popUpTo(AppDestinations.SURVEY) { inclusive = true }
+                            // Navigate to lab collection screen
+                            navController.navigate("${AppDestinations.LAB_COLLECTION}/$surveyId?coupons=$coupons") {
+                                popUpTo(AppDestinations.CONTACT_INFO) { inclusive = false }
                             }
                         } catch (e: Exception) {
                             android.util.Log.e("ContactInfo", "Error saving contact info", e)
@@ -229,8 +229,8 @@ fun ContactInfoScreen(
             // Skip button
             TextButton(
                 onClick = {
-                    navController.navigate("${AppDestinations.COUPON_ISSUED}?coupons=$coupons") {
-                        popUpTo(AppDestinations.SURVEY) { inclusive = true }
+                    navController.navigate("${AppDestinations.LAB_COLLECTION}/$surveyId?coupons=$coupons") {
+                        popUpTo(AppDestinations.CONTACT_INFO) { inclusive = false }
                     }
                 },
                 modifier = Modifier.padding(top = 8.dp)

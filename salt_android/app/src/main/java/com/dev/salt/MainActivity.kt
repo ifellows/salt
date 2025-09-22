@@ -46,6 +46,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import com.dev.salt.viewmodel.LoginViewModelFactory
 import com.dev.salt.auth.BiometricAuthManager
 import com.dev.salt.auth.BiometricAuthManagerFactory
@@ -83,7 +85,11 @@ object AppDestinations {
     const val SEED_RECRUITMENT = "seed_recruitment" // For seed recruitment screen
     const val LANGUAGE_SELECTION = "language_selection" // For language selection screen
     const val FINGERPRINT_SCREENING = "fingerprint_screening" // For fingerprint screening
-    
+    const val STAFF_VALIDATION = "staff_validation" // For staff validation/handoff
+    const val LAB_COLLECTION = "lab_collection" // For lab sample collection
+    const val STAFF_INSTRUCTION = "staff_instruction" // For staff instructions before giving tablet to participant
+    const val SUBJECT_PAYMENT = "subject_payment" // For subject payment confirmation
+
     // Compatibility aliases for existing code
     const val WELCOME_SCREEN = WELCOME
     const val LOGIN_SCREEN = LOGIN
@@ -322,19 +328,15 @@ class MainActivity : ComponentActivity() {
                                     val innerSurveyId = viewModel.survey?.id ?: ""
                                     Log.d("MainActivity", "Survey completed. Survey ID: $innerSurveyId, Coupons: ${generatedCoupons.size} - $generatedCoupons")
                                     
-                                    if (generatedCoupons.isNotEmpty()) {
-                                        // Pass survey ID and coupons to contact consent screen
-                                        val couponsParam = generatedCoupons.joinToString(",")
-                                        Log.d("MainActivity", "Navigating to contact consent with coupons: $couponsParam")
-                                        navController.navigate("${AppDestinations.CONTACT_CONSENT}/$innerSurveyId?coupons=$couponsParam") {
-                                            popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
-                                        }
+                                    // Navigate to staff validation first, then to contact consent
+                                    val couponsParam = if (generatedCoupons.isNotEmpty()) {
+                                        generatedCoupons.joinToString(",")
                                     } else {
-                                        Log.d("MainActivity", "No coupons generated, navigating to contact consent anyway")
-                                        // Still navigate to contact consent even without coupons
-                                        navController.navigate("${AppDestinations.CONTACT_CONSENT}/$innerSurveyId?coupons=") {
-                                            popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
-                                        }
+                                        ""
+                                    }
+                                    Log.d("MainActivity", "Navigating to staff validation with coupons: $couponsParam")
+                                    navController.navigate("${AppDestinations.STAFF_VALIDATION}/$innerSurveyId?coupons=$couponsParam") {
+                                        popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
                                     }
                                 }
                             )
@@ -350,15 +352,21 @@ class MainActivity : ComponentActivity() {
                     }
                     
                     composable(
-                        route = AppDestinations.COUPON_ISSUED_SCREEN + "?coupons={coupons}",
+                        route = AppDestinations.COUPON_ISSUED_SCREEN + "?coupons={coupons}&surveyId={surveyId}",
                         arguments = listOf(
                             androidx.navigation.navArgument("coupons") {
                                 type = androidx.navigation.NavType.StringType
                                 defaultValue = ""
+                            },
+                            androidx.navigation.navArgument("surveyId") {
+                                type = androidx.navigation.NavType.StringType
+                                nullable = true
+                                defaultValue = null
                             }
                         )
                     ) { backStackEntry ->
                         val couponsString = backStackEntry.arguments?.getString("coupons") ?: ""
+                        val surveyId = backStackEntry.arguments?.getString("surveyId")
                         val coupons = if (couponsString.isNotEmpty()) {
                             couponsString.split(",")
                         } else {
@@ -366,15 +374,43 @@ class MainActivity : ComponentActivity() {
                         }
                         com.dev.salt.ui.CouponIssuedScreen(
                             navController = navController,
-                            generatedCoupons = coupons
+                            generatedCoupons = coupons,
+                            surveyId = surveyId,
+                            database = SurveyDatabase.getInstance(this@MainActivity)
                         )
                     }
                     
                     composable(
+                        route = "${AppDestinations.STAFF_VALIDATION}/{surveyId}?coupons={coupons}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType },
+                            navArgument("coupons") {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val coupons = backStackEntry.arguments?.getString("coupons") ?: ""
+                        com.dev.salt.StaffValidationScreen(
+                            onValidationSuccess = {
+                                // Navigate to contact consent after successful validation
+                                navController.navigate("${AppDestinations.CONTACT_CONSENT}/$surveyId?coupons=$coupons") {
+                                    popUpTo("${AppDestinations.STAFF_VALIDATION}/$surveyId") { inclusive = true }
+                                }
+                            },
+                            onCancel = {
+                                // Go back to menu or survey completion
+                                navController.popBackStack()
+                            }
+                        )
+                    }
+
+                    composable(
                         route = "${AppDestinations.CONTACT_CONSENT}/{surveyId}?coupons={coupons}",
                         arguments = listOf(
                             navArgument("surveyId") { type = NavType.StringType },
-                            navArgument("coupons") { 
+                            navArgument("coupons") {
                                 type = NavType.StringType
                                 defaultValue = ""
                             }
@@ -430,6 +466,95 @@ class MainActivity : ComponentActivity() {
                     }
                     
                     composable(
+                        route = "${AppDestinations.LAB_COLLECTION}/{surveyId}?coupons={coupons}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType },
+                            navArgument("coupons") {
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = ""
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val context = LocalContext.current
+                        val database = SurveyDatabase.getInstance(context)
+                        val scope = rememberCoroutineScope()
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val coupons = backStackEntry.arguments?.getString("coupons") ?: ""
+
+                        // Get the survey to get subject ID
+                        var subjectId by remember { mutableStateOf<String?>(null) }
+                        LaunchedEffect(surveyId) {
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                val survey = database.surveyDao().getSurveyById(surveyId)
+                                subjectId = survey?.subjectId ?: ""
+                                Log.d("MainActivity", "Lab Collection - Survey ID: $surveyId, Subject ID: $subjectId")
+                            }
+                        }
+
+                        when (subjectId) {
+                            null -> {
+                                // Loading state
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                            "" -> {
+                                // Error state - survey not found
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("Error: Survey not found", color = androidx.compose.ui.graphics.Color.Red)
+                                }
+                            }
+                            else -> {
+                                // Show the lab collection screen
+                                com.dev.salt.ui.LabCollectionScreen(
+                                    subjectId = subjectId!!,
+                                    onSamplesCollected = {
+                                        // Update survey to record samples were collected, then navigate
+                                        scope.launch {
+                                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                                val survey = database.surveyDao().getSurveyById(surveyId)
+                                                if (survey != null) {
+                                                    val updatedSurvey = survey.copy(sampleCollected = true)
+                                                    database.surveyDao().updateSurvey(updatedSurvey)
+                                                    Log.d("MainActivity", "Updated survey $surveyId: sampleCollected = true")
+                                                }
+                                            }
+                                            // Navigate to coupon issued screen after database update completes
+                                            navController.navigate("${AppDestinations.COUPON_ISSUED}?coupons=$coupons&surveyId=$surveyId") {
+                                                popUpTo("${AppDestinations.LAB_COLLECTION}/$surveyId") { inclusive = true }
+                                            }
+                                        }
+                                    },
+                                    onCancel = {
+                                        // Update survey to record samples were refused, then navigate
+                                        scope.launch {
+                                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                                val survey = database.surveyDao().getSurveyById(surveyId)
+                                                if (survey != null) {
+                                                    val updatedSurvey = survey.copy(sampleCollected = false)
+                                                    database.surveyDao().updateSurvey(updatedSurvey)
+                                                    Log.d("MainActivity", "Updated survey $surveyId: sampleCollected = false")
+                                                }
+                                            }
+                                            // Navigate to coupon issued screen after database update completes
+                                            navController.navigate("${AppDestinations.COUPON_ISSUED}?coupons=$coupons&surveyId=$surveyId") {
+                                                popUpTo("${AppDestinations.LAB_COLLECTION}/$surveyId") { inclusive = true }
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    composable(
                         route = "${AppDestinations.FINGERPRINT_SCREENING}/{surveyId}?couponCode={couponCode}",
                         arguments = listOf(
                             navArgument("surveyId") { type = NavType.StringType },
@@ -468,7 +593,46 @@ class MainActivity : ComponentActivity() {
                             couponCode = couponCode
                         )
                     }
-                    
+
+                    composable(
+                        route = "${AppDestinations.STAFF_INSTRUCTION}/{surveyId}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        com.dev.salt.ui.StaffInstructionScreen(
+                            navController = navController,
+                            surveyId = surveyId,
+                            onContinue = {
+                                // Navigate to the survey screen with the surveyId
+                                navController.navigate("${AppDestinations.SURVEY}?couponCode=&surveyId=$surveyId") {
+                                    popUpTo(AppDestinations.STAFF_INSTRUCTION) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
+                    composable(
+                        route = "${AppDestinations.SUBJECT_PAYMENT}/{surveyId}?coupons={coupons}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType },
+                            navArgument("coupons") {
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = ""
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val coupons = backStackEntry.arguments?.getString("coupons") ?: ""
+                        com.dev.salt.ui.SubjectPaymentScreen(
+                            navController = navController,
+                            surveyId = surveyId,
+                            coupons = coupons
+                        )
+                    }
+
                     // Add other composables for your survey, admin dashboard, etc.
                     }
                 }

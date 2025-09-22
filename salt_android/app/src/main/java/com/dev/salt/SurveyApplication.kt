@@ -19,6 +19,7 @@ import java.io.FileOutputStream
 import com.dev.salt.PasswordUtils.hashPasswordWithNewSalt
 import com.dev.salt.data.Coupon
 import com.dev.salt.data.CouponStatus
+import net.sqlcipher.database.SQLiteDatabase
 
 class SurveyApplication : Application() {
     private val applicationScope = CoroutineScope(Dispatchers.Default)
@@ -26,6 +27,11 @@ class SurveyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         Log.e("SurveyApplication", "onCreate called")
+        
+        // Initialize SQLCipher
+        SQLiteDatabase.loadLibs(this)
+        Log.d("SurveyApplication", "SQLCipher initialized")
+        
         runBlocking {
             populateSampleData()
         }

@@ -2,6 +2,9 @@ package com.dev.salt.data
 import androidx.room.*
 import androidx.room.OnConflictStrategy
 import java.util.UUID
+import net.sqlcipher.database.SQLiteDatabase
+import net.sqlcipher.database.SupportFactory
+import com.dev.salt.security.DatabaseKeyManager
 
 @Entity(tableName = "sync_metadata")
 data class SyncMetadata(
@@ -34,7 +37,9 @@ data class Question(
     @ColumnInfo(name = "question_type") var questionType: String = "multiple_choice",
     @ColumnInfo(name = "pre_script") var preScript: String? = null, // a script to run before the question is asked
     @ColumnInfo(name = "validation_script") var validationScript: String? = null, // a script to determine if an answer value is valid
-    @ColumnInfo(name = "validation_error_text") var validationErrorText: String? = "Invalid Answer" // a script to determine if an answer value is valid
+    @ColumnInfo(name = "validation_error_text") var validationErrorText: String? = "Invalid Answer", // a script to determine if an answer value is valid
+    @ColumnInfo(name = "min_selections") var minSelections: Int? = null, // minimum number of selections for multi_select
+    @ColumnInfo(name = "max_selections") var maxSelections: Int? = null // maximum number of selections for multi_select
 )
 
 @Entity(tableName = "options")
@@ -57,7 +62,12 @@ data class Survey(
     @ColumnInfo(name = "referral_coupon_code") var referralCouponCode: String? = null,
     @ColumnInfo(name = "contact_phone") var contactPhone: String? = null,
     @ColumnInfo(name = "contact_email") var contactEmail: String? = null,
-    @ColumnInfo(name = "contact_consent") var contactConsent: Boolean = false
+    @ColumnInfo(name = "contact_consent") var contactConsent: Boolean = false,
+    @ColumnInfo(name = "sample_collected") var sampleCollected: Boolean? = null, // null=not reached, true=collected, false=refused
+    @ColumnInfo(name = "payment_confirmed") var paymentConfirmed: Boolean? = null,
+    @ColumnInfo(name = "payment_amount") var paymentAmount: Double? = null,
+    @ColumnInfo(name = "payment_type") var paymentType: String? = null,
+    @ColumnInfo(name = "payment_date") var paymentDate: Long? = null
 ) {
     @Ignore
     var questions: MutableList<Question> = mutableListOf()
@@ -76,12 +86,16 @@ data class Survey(
         this.answers = surveyDao.getAnswersBySurveyId(this.id)
         if(answers.size != questions.size){
             for(i in answers.size until questions.size){
+                val question = questions[i]
                 answers.add(Answer(
                     surveyId = id,
-                    questionId = questions[i].id,
+                    questionId = question.id,
                     optionQuestionIndex = null,
                     answerLanguage = this.language,
-                    answerPrimaryLanguageText = null))
+                    answerPrimaryLanguageText = null,
+                    isMultiSelect = question.questionType == "multi_select",
+                    multiSelectIndices = if (question.questionType == "multi_select") "" else null
+                ))
             }
         }
     }
@@ -97,11 +111,16 @@ data class Answer(
     @ColumnInfo(name = "answer_language") var answerLanguage: String,
     @ColumnInfo(name = "answer_primary_language_text") var answerPrimaryLanguageText: String?,
     @ColumnInfo(name = "is_numeric") var isNumeric: Boolean = false,
-    @ColumnInfo(name = "numeric_value") var numericValue: Double? = null
+    @ColumnInfo(name = "numeric_value") var numericValue: Double? = null,
+    @ColumnInfo(name = "is_multi_select") var isMultiSelect: Boolean = false,
+    @ColumnInfo(name = "multi_select_indices") var multiSelectIndices: String? = null // comma-separated indices
 ) {
     fun getValue(returnIndex: Boolean = true): Any? {
         if(isNumeric){
             return numericValue
+        }
+        if(isMultiSelect) {
+            return multiSelectIndices // Returns comma-separated indices
         }
         if(optionQuestionIndex == null && answerPrimaryLanguageText != null){
             return answerPrimaryLanguageText
@@ -110,6 +129,14 @@ data class Answer(
             return optionQuestionIndex
         }
         return answerPrimaryLanguageText
+    }
+    
+    fun getSelectedIndices(): List<Int> {
+        return multiSelectIndices?.split(",")?.mapNotNull { it.toIntOrNull() } ?: emptyList()
+    }
+    
+    fun setSelectedIndices(indices: List<Int>) {
+        multiSelectIndices = indices.joinToString(",")
     }
 }
 
@@ -167,6 +194,11 @@ data class FacilityConfig(
     @ColumnInfo(name = "seed_contact_rate_days") val seedContactRateDays: Int = 7,
     @ColumnInfo(name = "seed_recruitment_window_min_days") val seedRecruitmentWindowMinDays: Int = 0,
     @ColumnInfo(name = "seed_recruitment_window_max_days") val seedRecruitmentWindowMaxDays: Int = 730,
+    @ColumnInfo(name = "subject_payment_type") val subjectPaymentType: String = "None",
+    @ColumnInfo(name = "participation_payment_amount") val participationPaymentAmount: Double = 0.0,
+    @ColumnInfo(name = "recruitment_payment_amount") val recruitmentPaymentAmount: Double = 0.0,
+    @ColumnInfo(name = "payment_currency") val paymentCurrency: String = "USD",
+    @ColumnInfo(name = "payment_currency_symbol") val paymentCurrencySymbol: String = "$",
     @ColumnInfo(name = "last_sync_time") val lastSyncTime: Long? = null,
     @ColumnInfo(name = "sync_status") val syncStatus: String = "PENDING"
 )
@@ -492,7 +524,7 @@ interface SubjectFingerprintDao {
     fun deleteOldFingerprints(beforeDate: Long)
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class], version = 27)
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class], version = 36)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao
@@ -508,12 +540,24 @@ abstract class SurveyDatabase : RoomDatabase() {
 
         fun getInstance(context: android.content.Context): SurveyDatabase {
             return instance ?: synchronized(this) {
-                instance ?: androidx.room.Room.databaseBuilder(
-                    context.applicationContext,
-                    SurveyDatabase::class.java,
-                    "survey_database"
-                ).fallbackToDestructiveMigration().allowMainThreadQueries().build().also { instance = it }
+                instance ?: buildDatabase(context).also { instance = it }
             }
+        }
+        
+        private fun buildDatabase(context: android.content.Context): SurveyDatabase {
+            // Get or create the encryption key
+            val passphrase = DatabaseKeyManager.getDatabasePassphrase(context)
+            val factory = SupportFactory(passphrase)
+            
+            return androidx.room.Room.databaseBuilder(
+                context.applicationContext,
+                SurveyDatabase::class.java,
+                "survey_database_encrypted"
+            )
+                .openHelperFactory(factory)
+                .fallbackToDestructiveMigration()
+                .allowMainThreadQueries()
+                .build()
         }
     }
 }

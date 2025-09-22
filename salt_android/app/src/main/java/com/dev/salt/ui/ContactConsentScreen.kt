@@ -79,11 +79,11 @@ fun ContactConsentScreen(
                 )
             }
             
-            // No button - skip to coupons
+            // No button - go to lab collection
             OutlinedButton(
                 onClick = {
-                    navController.navigate("${AppDestinations.COUPON_ISSUED}?coupons=$coupons") {
-                        popUpTo(AppDestinations.SURVEY) { inclusive = true }
+                    navController.navigate("${AppDestinations.LAB_COLLECTION}/$surveyId?coupons=$coupons") {
+                        popUpTo(AppDestinations.CONTACT_CONSENT) { inclusive = false }
                     }
                 },
                 modifier = Modifier

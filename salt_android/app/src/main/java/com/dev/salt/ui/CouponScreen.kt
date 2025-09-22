@@ -152,9 +152,10 @@ fun CouponScreen(
                                 // Create a new survey and navigate to appropriate screen
                                 GlobalScope.launch(Dispatchers.IO) {
                                     val surveyId = UUID.randomUUID().toString()
+                                    val subjectId = com.dev.salt.generateSubjectId() // Use new 6-char format
                                     val survey = com.dev.salt.data.Survey(
                                         id = surveyId,
-                                        subjectId = UUID.randomUUID().toString(),
+                                        subjectId = subjectId,
                                         startDatetime = System.currentTimeMillis(),
                                         language = "en", // Will be updated in language selection
                                         referralCouponCode = null
@@ -240,9 +241,10 @@ fun CouponScreen(
                                     // Create a new survey and navigate to appropriate screen
                                     GlobalScope.launch(Dispatchers.IO) {
                                         val surveyId = UUID.randomUUID().toString()
+                                        val subjectId = com.dev.salt.generateSubjectId() // Use new 6-char format
                                         val survey = com.dev.salt.data.Survey(
                                             id = surveyId,
-                                            subjectId = UUID.randomUUID().toString(),
+                                            subjectId = subjectId,
                                             startDatetime = System.currentTimeMillis(),
                                             language = "en", // Will be updated in language selection
                                             referralCouponCode = couponCode
@@ -252,10 +254,10 @@ fun CouponScreen(
                                         // Check if fingerprinting is enabled for this survey
                                         val surveyConfig = database.surveyConfigDao().getSurveyConfig()
                                         val fingerprintEnabled = surveyConfig?.fingerprintEnabled ?: false
-                                        
+
                                         Log.d("CouponScreen", "Survey config: $surveyConfig")
                                         Log.d("CouponScreen", "Fingerprint enabled: $fingerprintEnabled")
-                                        
+
                                         withContext(Dispatchers.Main) {
                                             val destination = if (fingerprintEnabled) {
                                                 Log.d("CouponScreen", "Navigating to fingerprint screening")
@@ -264,7 +266,7 @@ fun CouponScreen(
                                                 Log.d("CouponScreen", "Navigating to language selection")
                                                 "${AppDestinations.LANGUAGE_SELECTION}/$surveyId?couponCode=$couponCode"
                                             }
-                                            
+
                                             navController.navigate(destination) {
                                                 popUpTo(AppDestinations.COUPON) { inclusive = true }
                                             }
@@ -306,9 +308,10 @@ fun CouponScreen(
                                     // Create a new survey and navigate to appropriate screen
                                     GlobalScope.launch(Dispatchers.IO) {
                                         val surveyId = UUID.randomUUID().toString()
+                                        val subjectId = com.dev.salt.generateSubjectId() // Use new 6-char format
                                         val survey = com.dev.salt.data.Survey(
                                             id = surveyId,
-                                            subjectId = UUID.randomUUID().toString(),
+                                            subjectId = subjectId,
                                             startDatetime = System.currentTimeMillis(),
                                             language = "en", // Will be updated in language selection
                                             referralCouponCode = couponCode
@@ -318,10 +321,10 @@ fun CouponScreen(
                                         // Check if fingerprinting is enabled for this survey
                                         val surveyConfig = database.surveyConfigDao().getSurveyConfig()
                                         val fingerprintEnabled = surveyConfig?.fingerprintEnabled ?: false
-                                        
+
                                         Log.d("CouponScreen", "Survey config: $surveyConfig")
                                         Log.d("CouponScreen", "Fingerprint enabled: $fingerprintEnabled")
-                                        
+
                                         withContext(Dispatchers.Main) {
                                             val destination = if (fingerprintEnabled) {
                                                 Log.d("CouponScreen", "Navigating to fingerprint screening")
@@ -330,7 +333,7 @@ fun CouponScreen(
                                                 Log.d("CouponScreen", "Navigating to language selection")
                                                 "${AppDestinations.LANGUAGE_SELECTION}/$surveyId?couponCode=$couponCode"
                                             }
-                                            
+
                                             navController.navigate(destination) {
                                                 popUpTo(AppDestinations.COUPON) { inclusive = true }
                                             }

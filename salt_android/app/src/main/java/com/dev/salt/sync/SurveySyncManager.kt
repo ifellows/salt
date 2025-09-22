@@ -251,7 +251,11 @@ class SurveySyncManager(private val context: Context) {
                                 questionType = questionJson.optString("question_type", "multiple_choice"),
                                 preScript = questionJson.optString("pre_script", null),
                                 validationScript = questionJson.optString("validation_script", null),
-                                validationErrorText = "Invalid Answer"
+                                validationErrorText = "Invalid Answer",
+                                minSelections = if (questionJson.has("min_selections") && !questionJson.isNull("min_selections")) 
+                                    questionJson.getInt("min_selections") else null,
+                                maxSelections = if (questionJson.has("max_selections") && !questionJson.isNull("max_selections")) 
+                                    questionJson.getInt("max_selections") else null
                             )
                             surveyDao.insertQuestion(question)
                         }
@@ -271,7 +275,11 @@ class SurveySyncManager(private val context: Context) {
                             questionType = questionJson.optString("question_type", "multiple_choice"),
                             preScript = questionJson.optString("pre_script", null),
                             validationScript = questionJson.optString("validation_script", null),
-                            validationErrorText = "Invalid Answer"
+                            validationErrorText = "Invalid Answer",
+                            minSelections = if (questionJson.has("min_selections") && !questionJson.isNull("min_selections")) 
+                                questionJson.getInt("min_selections") else null,
+                            maxSelections = if (questionJson.has("max_selections") && !questionJson.isNull("max_selections")) 
+                                questionJson.getInt("max_selections") else null
                         )
                         surveyDao.insertQuestion(question)
                     }

@@ -165,7 +165,8 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
                 description: survey.description,
                 languages: survey.languages,
                 eligibility_script: survey.eligibility_script,
-                eligibility_message_json: survey.eligibility_message_json
+                eligibility_message_json: survey.eligibility_message_json,
+                staff_validation_message_json: survey.staff_validation_message_json
             },
             survey_config: {
                 survey_name: survey.name,

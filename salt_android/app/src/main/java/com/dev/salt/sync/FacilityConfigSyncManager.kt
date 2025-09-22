@@ -66,7 +66,14 @@ class FacilityConfigSyncManager(
                             val seedContactRateDays = data.optInt("seed_contact_rate_days", 7)
                             val seedRecruitmentWindowMinDays = data.optInt("seed_recruitment_window_min_days", 0)
                             val seedRecruitmentWindowMaxDays = data.optInt("seed_recruitment_window_max_days", 730)
-                            
+
+                            // Parse payment configuration
+                            val subjectPaymentType = data.optString("subject_payment_type", "None")
+                            val participationPaymentAmount = data.optDouble("participation_payment_amount", 0.0)
+                            val recruitmentPaymentAmount = data.optDouble("recruitment_payment_amount", 0.0)
+                            val paymentCurrency = data.optString("payment_currency", "USD")
+                            val paymentCurrencySymbol = data.optString("payment_currency_symbol", "$")
+
                             // Save to database
                             val config = FacilityConfig(
                                 id = 1,
@@ -78,6 +85,11 @@ class FacilityConfigSyncManager(
                                 seedContactRateDays = seedContactRateDays,
                                 seedRecruitmentWindowMinDays = seedRecruitmentWindowMinDays,
                                 seedRecruitmentWindowMaxDays = seedRecruitmentWindowMaxDays,
+                                subjectPaymentType = subjectPaymentType,
+                                participationPaymentAmount = participationPaymentAmount,
+                                recruitmentPaymentAmount = recruitmentPaymentAmount,
+                                paymentCurrency = paymentCurrency,
+                                paymentCurrencySymbol = paymentCurrencySymbol,
                                 lastSyncTime = System.currentTimeMillis(),
                                 syncStatus = "SUCCESS"
                             )

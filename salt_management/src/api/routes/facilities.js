@@ -76,35 +76,49 @@ router.post('/', [
     body('seed_recruitment_active').optional().isBoolean(),
     body('seed_contact_rate_days').optional().isInt({ min: 1, max: 365 }),
     body('seed_recruitment_window_min_days').optional().isInt({ min: 0 }),
-    body('seed_recruitment_window_max_days').optional().isInt({ min: 1, max: 1095 })
+    body('seed_recruitment_window_max_days').optional().isInt({ min: 1, max: 1095 }),
+    body('subject_payment_type').optional().isIn(['None', 'Cash']),
+    body('participation_payment_amount').optional().isFloat({ min: 0 }),
+    body('recruitment_payment_amount').optional().isFloat({ min: 0 }),
+    body('payment_currency').optional().trim(),
+    body('payment_currency_symbol').optional().trim()
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { 
-        name, 
-        location, 
-        allow_non_coupon_participants = true, 
+    const {
+        name,
+        location,
+        allow_non_coupon_participants = true,
         coupons_to_issue = 3,
         seed_recruitment_active = false,
         seed_contact_rate_days = 7,
         seed_recruitment_window_min_days = 0,
-        seed_recruitment_window_max_days = 730
+        seed_recruitment_window_max_days = 730,
+        subject_payment_type = 'None',
+        participation_payment_amount = 0,
+        recruitment_payment_amount = 0,
+        payment_currency = 'USD',
+        payment_currency_symbol = '$'
     } = req.body;
     const apiKey = `salt_${uuidv4()}`;
 
     try {
         const result = await runAsync(
             `INSERT INTO facilities (name, location, api_key, allow_non_coupon_participants, coupons_to_issue,
-                                   seed_recruitment_active, seed_contact_rate_days, 
-                                   seed_recruitment_window_min_days, seed_recruitment_window_max_days) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [name, location, apiKey, 
+                                   seed_recruitment_active, seed_contact_rate_days,
+                                   seed_recruitment_window_min_days, seed_recruitment_window_max_days,
+                                   subject_payment_type, participation_payment_amount, recruitment_payment_amount,
+                                   payment_currency, payment_currency_symbol)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [name, location, apiKey,
              allow_non_coupon_participants ? 1 : 0, coupons_to_issue,
              seed_recruitment_active ? 1 : 0, seed_contact_rate_days,
-             seed_recruitment_window_min_days, seed_recruitment_window_max_days]
+             seed_recruitment_window_min_days, seed_recruitment_window_max_days,
+             subject_payment_type, participation_payment_amount, recruitment_payment_amount,
+             payment_currency, payment_currency_symbol]
         );
 
         await logAudit(
@@ -138,18 +152,25 @@ router.put('/:id', [
     body('seed_recruitment_active').optional().isBoolean(),
     body('seed_contact_rate_days').optional().isInt({ min: 1, max: 365 }),
     body('seed_recruitment_window_min_days').optional().isInt({ min: 0 }),
-    body('seed_recruitment_window_max_days').optional().isInt({ min: 1, max: 1095 })
+    body('seed_recruitment_window_max_days').optional().isInt({ min: 1, max: 1095 }),
+    body('subject_payment_type').optional().isIn(['None', 'Cash']),
+    body('participation_payment_amount').optional().isFloat({ min: 0 }),
+    body('recruitment_payment_amount').optional().isFloat({ min: 0 }),
+    body('payment_currency').optional().trim(),
+    body('payment_currency_symbol').optional().trim()
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { 
-        name, location, 
+    const {
+        name, location,
         allow_non_coupon_participants, coupons_to_issue,
         seed_recruitment_active, seed_contact_rate_days,
-        seed_recruitment_window_min_days, seed_recruitment_window_max_days
+        seed_recruitment_window_min_days, seed_recruitment_window_max_days,
+        subject_payment_type, participation_payment_amount,
+        recruitment_payment_amount, payment_currency, payment_currency_symbol
     } = req.body;
     const facilityId = req.params.id;
     
@@ -213,7 +234,27 @@ router.put('/:id', [
             updates.push('seed_recruitment_window_max_days = ?');
             values.push(seed_recruitment_window_max_days);
         }
-        
+        if (subject_payment_type !== undefined) {
+            updates.push('subject_payment_type = ?');
+            values.push(subject_payment_type);
+        }
+        if (participation_payment_amount !== undefined) {
+            updates.push('participation_payment_amount = ?');
+            values.push(participation_payment_amount);
+        }
+        if (recruitment_payment_amount !== undefined) {
+            updates.push('recruitment_payment_amount = ?');
+            values.push(recruitment_payment_amount);
+        }
+        if (payment_currency !== undefined) {
+            updates.push('payment_currency = ?');
+            values.push(payment_currency);
+        }
+        if (payment_currency_symbol !== undefined) {
+            updates.push('payment_currency_symbol = ?');
+            values.push(payment_currency_symbol);
+        }
+
         if (updates.length > 0) {
             updates.push('updated_at = CURRENT_TIMESTAMP');
             values.push(facilityId);

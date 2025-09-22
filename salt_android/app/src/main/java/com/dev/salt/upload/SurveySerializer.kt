@@ -16,7 +16,12 @@ data class SerializedSurvey(
     val completedAt: String,
     val deviceInfo: DeviceInfo,
     val referralCouponCode: String? = null,
-    val issuedCoupons: List<String> = emptyList()
+    val issuedCoupons: List<String> = emptyList(),
+    val sampleCollected: Boolean? = null, // null=not reached, true=collected, false=refused
+    val paymentConfirmed: Boolean? = null,
+    val paymentAmount: Double? = null,
+    val paymentType: String? = null,
+    val paymentDate: String? = null
 )
 
 data class SerializedQuestion(
@@ -85,6 +90,10 @@ class SurveySerializer {
             val question = questions.find { it.id == answer.questionId }
             if (question != null) {
                 val (answerValue, answerType, optionText) = when {
+                    answer.isMultiSelect -> {
+                        // For multi-select, return comma-separated indices
+                        Triple(answer.multiSelectIndices ?: "", "multi_select", null)
+                    }
                     answer.isNumeric -> Triple(answer.numericValue, "numeric", null)
                     answer.optionQuestionIndex != null -> {
                         val option = options[question.id]?.find { it.optionQuestionIndex == answer.optionQuestionIndex }
@@ -103,6 +112,9 @@ class SurveySerializer {
             } else null
         }
         
+        // Log sample collection status for debugging
+        android.util.Log.d("SurveySerializer", "Survey ${survey.id} sample collection status: ${survey.sampleCollected}")
+
         val serializedSurvey = SerializedSurvey(
             surveyId = survey.id,
             subjectId = survey.subjectId,
@@ -113,9 +125,14 @@ class SurveySerializer {
             completedAt = dateFormat.format(Date()),
             deviceInfo = deviceInfo,
             referralCouponCode = survey.referralCouponCode,
-            issuedCoupons = issuedCoupons
+            issuedCoupons = issuedCoupons,
+            sampleCollected = survey.sampleCollected,
+            paymentConfirmed = survey.paymentConfirmed,
+            paymentAmount = survey.paymentAmount,
+            paymentType = survey.paymentType,
+            paymentDate = survey.paymentDate?.let { dateFormat.format(Date(it)) }
         )
-        
+
         return toJSON(serializedSurvey)
     }
     
@@ -136,7 +153,24 @@ class SurveySerializer {
                     }
                 })
             }
-            
+
+            // Sample collection status (always include, even if null)
+            when (survey.sampleCollected) {
+                true -> put("sampleCollected", true)
+                false -> put("sampleCollected", false)
+                null -> put("sampleCollected", JSONObject.NULL)
+            }
+
+            // Payment information
+            when (survey.paymentConfirmed) {
+                true -> put("paymentConfirmed", true)
+                false -> put("paymentConfirmed", false)
+                null -> put("paymentConfirmed", JSONObject.NULL)
+            }
+            survey.paymentAmount?.let { put("paymentAmount", it) }
+            survey.paymentType?.let { put("paymentType", it) }
+            survey.paymentDate?.let { put("paymentDate", it) }
+
             // Device info
             put("deviceInfo", JSONObject().apply {
                 put("deviceId", survey.deviceInfo.deviceId)

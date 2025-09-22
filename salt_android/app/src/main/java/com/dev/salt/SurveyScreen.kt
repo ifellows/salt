@@ -1,6 +1,8 @@
 package com.dev.salt
 
 import android.media.MediaPlayer
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Checkbox
+import androidx.compose.ui.Alignment
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Replay
@@ -291,6 +295,67 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope, onN
                             colors = buttonColors // Apply button colors
                         ) {
                             Text(text = option.text)
+                        }
+                    }
+                } else if (question.questionType == "multi_select") {
+                    // Multi-select with checkboxes
+                    // Get the current answer directly from the Triple to ensure reactivity
+                    val currentAnswer = currentQuestion?.third
+                    val selectedIndices = currentAnswer?.getSelectedIndices() ?: emptyList()
+                    
+                    // Debug logging
+                    LaunchedEffect(selectedIndices) {
+                        android.util.Log.d("SurveyScreen", "Multi-select UI: selectedIndices=$selectedIndices")
+                    }
+                    
+                    // Show min/max selection info if applicable
+                    if (question.minSelections != null || question.maxSelections != null) {
+                        Text(
+                            text = when {
+                                question.minSelections == question.maxSelections -> 
+                                    "Select exactly ${question.minSelections} options"
+                                question.minSelections != null && question.maxSelections != null ->
+                                    "Select ${question.minSelections} to ${question.maxSelections} options"
+                                question.minSelections != null ->
+                                    "Select at least ${question.minSelections} options"
+                                question.maxSelections != null ->
+                                    "Select up to ${question.maxSelections} options"
+                                else -> ""
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+                    
+                    options.forEach { option ->
+                        val isSelected = selectedIndices.contains(option.optionQuestionIndex)
+                        val isHighlighted by remember(highlightedButtonIndex, option.id) {
+                            derivedStateOf { highlightedButtonIndex == option.id }
+                        }
+                        
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .background(
+                                    if (isHighlighted) Color.Yellow.copy(alpha = 0.3f) 
+                                    else Color.Transparent
+                                )
+                                .clickable {
+                                    viewModel.toggleMultiSelectOption(option.optionQuestionIndex)
+                                },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = isSelected,
+                                onCheckedChange = {
+                                    viewModel.toggleMultiSelectOption(option.optionQuestionIndex)
+                                }
+                            )
+                            Text(
+                                text = option.text,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
                         }
                     }
                 } else{

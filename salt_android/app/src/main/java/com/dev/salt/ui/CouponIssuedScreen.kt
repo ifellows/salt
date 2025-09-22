@@ -9,10 +9,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -20,12 +21,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.dev.salt.AppDestinations
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CouponIssuedScreen(
     navController: NavController,
-    generatedCoupons: List<String>
+    generatedCoupons: List<String>,
+    surveyId: String? = null,
+    database: com.dev.salt.data.SurveyDatabase? = null
 ) {
     
     Scaffold(
@@ -148,20 +152,26 @@ fun CouponIssuedScreen(
                 }
             }
             
-            // Continue button
+            // Continue to payment button
             Button(
                 onClick = {
-                    navController.navigate(AppDestinations.MENU) {
-                        popUpTo(AppDestinations.SURVEY) { inclusive = true }
-                        popUpTo(AppDestinations.COUPON_ISSUED) { inclusive = true }
+                    if (!surveyId.isNullOrBlank()) {
+                        // Navigate to payment screen
+                        navController.navigate("${AppDestinations.SUBJECT_PAYMENT}/$surveyId?coupons=${generatedCoupons.joinToString(",")}") {
+                            popUpTo(AppDestinations.COUPON_ISSUED) { inclusive = true }
+                        }
+                    } else {
+                        // No surveyId provided, error state
+                        Log.e("CouponIssuedScreen", "No survey ID provided")
                     }
                 },
+                enabled = true,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
             ) {
                 Text(
-                    text = "Return to Menu",
+                    text = "Continue to Payment",
                     style = MaterialTheme.typography.titleMedium
                 )
             }

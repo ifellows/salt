@@ -22,18 +22,21 @@ import javax.crypto.spec.PBEKeySpec
 
 
 fun randomHash(): String {
-    // Generate a random number
-    val randomNumber = Random.nextInt()
+    // Legacy function - kept for compatibility
+    // New surveys should use generateSubjectId()
+    return generateSubjectId()
+}
 
-    // Convert the number to a string
-    val randomString = randomNumber.toString()
-
-    // Compute the MD5 hash
-    val md = MessageDigest.getInstance("MD5")
-    val hashBytes = md.digest(randomString.toByteArray())
-
-    // Convert the hash bytes to a hexadecimal string
-    return hashBytes.joinToString("") { "%02x".format(it) }
+/**
+ * Generates a 6-character alphanumeric subject ID
+ * Format: [A-Z0-9]{6}
+ * Example: "AB3K7P"
+ */
+fun generateSubjectId(): String {
+    val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    return (1..6)
+        .map { chars.random() }
+        .joinToString("")
 }
 
 

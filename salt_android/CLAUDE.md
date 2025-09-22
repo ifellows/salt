@@ -28,7 +28,8 @@ The application is designed as a facility-based tablet system where program staf
 ### Database Management
 - Room database with fallback to destructive migration enabled
 - Database schemas are stored in `app/schemas/com.dev.salt.data.SurveyDatabase/`
-- Current database version: 24
+- Current database version: 34
+- SQLCipher encryption with Android Keystore for secure key management
 
 ## Architecture Overview
 
@@ -131,6 +132,18 @@ The SALT application is part of a larger three-tier architecture as illustrated 
 
 ### ✅ Completed in Recent Sessions
 
+**Multi-Select Question Support** (v27 → v34)
+- **Database Changes**: Added `minSelections` and `maxSelections` to Question entity for validation constraints
+- **Answer Storage**: Enhanced Answer entity with `isMultiSelect` and `multiSelectIndices` fields for comma-separated selections
+- **UI Implementation**: 
+  - Checkbox-based interface for multi-select questions with reactive state management
+  - Visual highlighting during audio playback (yellow background at 30% opacity)
+  - Display of min/max selection requirements to users
+- **Validation**: Enforces minimum and maximum selection constraints with clear error messages
+- **Data Serialization**: Updated SurveySerializer to handle multi-select answers as comma-separated indices
+- **Sync Support**: SurveySyncManager parses min/max selections from server JSON
+- **Key Fix**: Resolved checkbox reactivity by creating new Answer objects instead of mutating in place
+
 **Fingerprint Screening for Duplicate Enrollment Prevention** (v25 → v27)
 - `FingerprintScreeningScreen.kt` - UI for fingerprint capture with visual instructions
 - `FingerprintManager.kt` - Placeholder methods for SecuGen Hamster Pro 20 integration
@@ -229,7 +242,7 @@ The SALT application is part of a larger three-tier architecture as illustrated 
 
 ### 🔧 Key Infrastructure Updates
 
-- **Database Schema**: Version 27 with upload state tracking, server configuration, coupon management, fingerprint storage, and survey configuration
+- **Database Schema**: Version 34 with upload state tracking, server configuration, coupon management, fingerprint storage, survey configuration, and multi-select support
 - **Session Management**: Complete lifecycle management with StateFlow
 - **Survey State Tracking**: Active survey detection and protection
 - **Authentication Flow**: Dual password/biometric support

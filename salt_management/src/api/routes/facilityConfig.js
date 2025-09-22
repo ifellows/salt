@@ -14,7 +14,7 @@ router.get('/facility/config', requireFacilityApiKey, async (req, res) => {
         
         // Get facility configuration
         const facility = await getAsync(
-            `SELECT 
+            `SELECT
                 id as facility_id,
                 name as facility_name,
                 allow_non_coupon_participants,
@@ -22,8 +22,13 @@ router.get('/facility/config', requireFacilityApiKey, async (req, res) => {
                 seed_recruitment_active,
                 seed_contact_rate_days,
                 seed_recruitment_window_min_days,
-                seed_recruitment_window_max_days
-             FROM facilities 
+                seed_recruitment_window_max_days,
+                subject_payment_type,
+                participation_payment_amount,
+                recruitment_payment_amount,
+                payment_currency,
+                payment_currency_symbol
+             FROM facilities
              WHERE id = ?`,
             [facilityId]
         );
@@ -47,6 +52,11 @@ router.get('/facility/config', requireFacilityApiKey, async (req, res) => {
                 seed_contact_rate_days: facility.seed_contact_rate_days || 7,
                 seed_recruitment_window_min_days: facility.seed_recruitment_window_min_days || 0,
                 seed_recruitment_window_max_days: facility.seed_recruitment_window_max_days || 730,
+                subject_payment_type: facility.subject_payment_type || 'None',
+                participation_payment_amount: facility.participation_payment_amount || 0,
+                recruitment_payment_amount: facility.recruitment_payment_amount || 0,
+                payment_currency: facility.payment_currency || 'USD',
+                payment_currency_symbol: facility.payment_currency_symbol || '$',
                 sync_time: new Date().toISOString()
             }
         });

@@ -168,21 +168,9 @@ class SurveyViewModel(
                             Log.i("SurveyViewModel", "Using existing coupons: ${existingCoupons.map { it.couponCode }}")
                         }
                         
-                        // Trigger upload if context is available
-                        context?.let { ctx ->
-                            val uploadManager = SurveyUploadManager(ctx, database)
-                            val uploadWorkManager = SurveyUploadWorkManager(ctx)
-                            
-                            // Immediate upload attempt
-                            val uploadResult = uploadManager.uploadSurvey(completedSurvey.id)
-                            Log.i("SurveyViewModel", "Survey upload result: $uploadResult")
-                            
-                            // Schedule retry if failed
-                            if (uploadResult !is UploadResult.Success) {
-                                uploadWorkManager.scheduleImmediateRetry(completedSurvey.id)
-                                Log.i("SurveyViewModel", "Scheduled retry for failed upload: ${completedSurvey.id}")
-                            }
-                        }
+                        // Upload is now triggered from StaffValidationScreen after all steps are complete
+                        // This ensures sample collection status is recorded before upload
+                        Log.i("SurveyViewModel", "Survey ready for upload: ${completedSurvey.id} (upload will happen after staff validation)")
                     } catch (e: Exception) {
                         Log.e("SurveyViewModel", "Error completing survey", e)
                     }
@@ -258,16 +246,18 @@ class SurveyViewModel(
     //@Composable
     //@OptIn(ExperimentalMaterial3Api::class)
     fun loadNextQuestion() : String? {
+        // Check multi-select validation first
+        val multiSelectError = validateMultiSelectAnswer()
+        if (multiSelectError != null) {
+            Log.d("SurveyViewModel", "Multi-select validation failed: $multiSelectError")
+            return multiSelectError
+        }
+        
         val valid = evaluateCurrentQuestionValidationScript()
         if(!valid){
             Log.d("SurveyViewModel", "Validation failed for question at index $currentQuestionIndex")
-            /*AlertDialog(
-                onDismissRequest = { /* Dismiss logic */ },
-                title = { Text("Invalid Answer") },
-                text = { Text("invalid") },
-                confirmButton = { /* Confirm button logic */ }
-            )*/
-            return "invalid"
+            val errorText = _currentQuestion?.value?.first?.validationErrorText ?: "Invalid Answer"
+            return errorText
         }
         currentQuestionIndex++
         updateCurrentQuestion()
@@ -313,7 +303,98 @@ class SurveyViewModel(
         //    loadNextQuestion()
         //}
     }
+    
+    // Handle multi-select option toggle
+    fun toggleMultiSelectOption(optionIndex: Int) {
+        if (survey == null) return
+        
+        val currentQuestion = _currentQuestion.value?.first ?: return
+        val currentAnswer = survey!!.answers[currentQuestionIndex]
+        
+        // Get current selected indices
+        val selectedIndices = currentAnswer.getSelectedIndices().toMutableList()
+        
+        if (selectedIndices.contains(optionIndex)) {
+            // Remove if already selected
+            selectedIndices.remove(optionIndex)
+        } else {
+            // Check if we can add more selections
+            val maxSelections = currentQuestion.maxSelections
+            if (maxSelections != null && selectedIndices.size >= maxSelections) {
+                // Already at max selections, don't add
+                return
+            }
+            selectedIndices.add(optionIndex)
+        }
+        
+        // Create a new Answer object with updated selections to ensure UI recomposition
+        val updatedAnswer = currentAnswer.copy(
+            isMultiSelect = true,
+            multiSelectIndices = selectedIndices.sorted().joinToString(",")
+        )
+        
+        // Update the actual answer in the survey
+        survey!!.answers[currentQuestionIndex] = updatedAnswer
+        
+        Log.d("SurveyViewModel", "Toggle multi-select: optionIndex=$optionIndex, selectedIndices=$selectedIndices, multiSelectIndices=${updatedAnswer.multiSelectIndices}")
+        
+        // Force recomposition by creating a new Triple with the new answer object
+        // This ensures the UI detects the change because the answer reference has changed
+        val updatedTriple = Triple(
+            _currentQuestion.value!!.first,
+            _currentQuestion.value!!.second,
+            updatedAnswer
+        )
+        _currentQuestion.value = updatedTriple
+    }
+    
+    // Validate multi-select answer
+    fun validateMultiSelectAnswer(): String? {
+        val currentQuestion = _currentQuestion.value?.first ?: return null
+        
+        // Only validate if it's a multi_select question
+        if (currentQuestion.questionType != "multi_select") return null
+        
+        val currentAnswer = survey!!.answers[currentQuestionIndex]
+        val selectedCount = currentAnswer.getSelectedIndices().size
+        val minSelections = currentQuestion.minSelections
+        val maxSelections = currentQuestion.maxSelections
+        
+        Log.d("SurveyViewModel", "Multi-select validation: selected=$selectedCount, min=$minSelections, max=$maxSelections")
+        
+        if (minSelections != null && selectedCount < minSelections) {
+            return currentQuestion.validationErrorText ?: 
+                "Please select at least $minSelections options"
+        }
+        
+        if (maxSelections != null && selectedCount > maxSelections) {
+            return currentQuestion.validationErrorText ?: 
+                "Please select at most $maxSelections options"
+        }
+        
+        return null
+    }
 
+    /**
+     * Get the current language being used in the survey
+     */
+    fun getCurrentLanguage(): String {
+        return survey?.language ?: "en"
+    }
+
+    /**
+     * Get the staff validation message in the specified language
+     * This would typically come from the survey configuration
+     */
+    fun getStaffValidationMessage(language: String): String? {
+        // TODO: Get this from actual survey configuration once synced from server
+        // For now, return a default message
+        return when (language) {
+            "es" -> "Por favor devuelva la tableta al miembro del personal que se la entregó"
+            "fr" -> "Veuillez remettre la tablette au membre du personnel qui vous l'a donnée"
+            else -> "Please hand the tablet back to the staff member who gave it to you"
+        }
+    }
 
 }
 

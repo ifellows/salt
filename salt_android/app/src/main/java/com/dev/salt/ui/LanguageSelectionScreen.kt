@@ -77,7 +77,7 @@ fun LanguageSelectionScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Please select your preferred language for the survey",
+                text = "Please select the participant's preferred language",
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -161,13 +161,8 @@ fun LanguageSelectionScreen(
                                         android.util.Log.e("LanguageSelection", "Survey $surveyId not found in database!")
                                     }
                                     
-                                    // Navigate to survey screen with the coupon code as a parameter
-                                    val route = if (!couponCode.isNullOrEmpty() && couponCode != "null") {
-                                        "${AppDestinations.SURVEY}?couponCode=$couponCode"
-                                    } else {
-                                        "${AppDestinations.SURVEY}?couponCode="
-                                    }
-                                    navController.navigate(route) {
+                                    // Navigate to staff instruction screen
+                                    navController.navigate("${AppDestinations.STAFF_INSTRUCTION}/$surveyId") {
                                         popUpTo(AppDestinations.LANGUAGE_SELECTION) { inclusive = true }
                                     }
                                 } catch (e: Exception) {
