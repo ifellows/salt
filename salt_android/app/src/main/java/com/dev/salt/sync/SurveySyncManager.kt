@@ -55,7 +55,7 @@ class SurveySyncManager(private val context: Context) {
     
     private fun saveAudioFromBase64(base64Data: String?): String {
         if (base64Data.isNullOrEmpty()) return ""
-        
+
         try {
             // Extract base64 portion if it's a data URL
             val base64Content = if (base64Data.startsWith("data:")) {
@@ -63,19 +63,19 @@ class SurveySyncManager(private val context: Context) {
             } else {
                 base64Data
             }
-            
+
             // Calculate MD5 hash of the content
             val hash = calculateMD5(base64Content)
             val filename = "$hash.mp3"
             val audioDir = File(context.filesDir, "audio")
             val audioFile = File(audioDir, filename)
-            
+
             // If file already exists, no need to save again
             if (audioFile.exists()) {
                 Log.d("SurveySyncManager", "Audio file already exists: $filename")
                 return filename
             }
-            
+
             // Decode and save the audio
             val audioBytes = Base64.decode(base64Content, Base64.DEFAULT)
             FileOutputStream(audioFile).use { fos ->
@@ -83,16 +83,65 @@ class SurveySyncManager(private val context: Context) {
                 fos.flush()
                 fos.fd.sync() // Force write to disk
             }
-            
+
             Log.d("SurveySyncManager", "Saved audio file: $filename")
             return filename
-            
+
         } catch (e: Exception) {
             Log.e("SurveySyncManager", "Error saving audio", e)
             return ""
         }
     }
-    
+
+    suspend fun checkForSurveyUpdate(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val config = getServerConfig()
+            if (config == null) {
+                Log.e("SurveySyncManager", "Cannot check for updates: No server configuration")
+                return@withContext false
+            }
+
+            val (serverUrl, apiKey) = config
+            val url = URL("$serverUrl/api/sync/survey/version")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Accept", "application/json")
+            connection.setRequestProperty("X-API-Key", apiKey)
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
+
+            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                val jsonResponse = JSONObject(response)
+
+                if (jsonResponse.getString("status") == "success") {
+                    val data = jsonResponse.getJSONObject("data")
+                    val serverChecksum = data.optString("checksum", "")
+                    val serverLastModified = data.optLong("last_modified", 0)
+
+                    // Get current local checksum from sync metadata
+                    val syncMetadata = syncMetadataDao.getSyncMetadata()
+                    val localChecksum = syncMetadata?.surveyChecksum ?: ""
+
+                    // Compare checksums to determine if update is needed
+                    val needsUpdate = serverChecksum.isNotEmpty() && serverChecksum != localChecksum
+
+                    Log.d("SurveySyncManager", "Version check: serverChecksum=$serverChecksum, localChecksum=$localChecksum, needsUpdate=$needsUpdate")
+                    return@withContext needsUpdate
+                } else {
+                    Log.e("SurveySyncManager", "Server returned error status")
+                    return@withContext false
+                }
+            } else {
+                Log.e("SurveySyncManager", "Server returned ${connection.responseCode}")
+                return@withContext false
+            }
+        } catch (e: Exception) {
+            Log.e("SurveySyncManager", "Error checking for survey updates", e)
+            return@withContext false
+        }
+    }
+
     suspend fun downloadAndReplaceSurvey(): Result<String> = withContext(Dispatchers.IO) {
         try {
             // Check if server is configured
@@ -108,17 +157,22 @@ class SurveySyncManager(private val context: Context) {
             
             // Download survey from server
             val surveyData = downloadSurveyFromServer()
-            
+
             if (surveyData != null) {
                 // Clear existing data
                 clearExistingData()
-                
+
                 // Parse and insert new data
                 insertSurveyData(surveyData)
-                
-                // Update sync metadata
+
+                // Extract and save checksum from metadata
+                val checksum = surveyData.optJSONObject("metadata")?.optString("checksum") ?: ""
+
+                // Update sync metadata with checksum and success status
+                syncMetadataDao.updateSurveyChecksum(checksum)
+                syncMetadataDao.updateSyncStatus("SUCCESS")
                 syncMetadataDao.updateLastSyncSuccess(System.currentTimeMillis())
-                
+
                 Result.success("Survey downloaded successfully")
             } else {
                 syncMetadataDao.updateSyncStatus("ERROR", "Failed to download survey")

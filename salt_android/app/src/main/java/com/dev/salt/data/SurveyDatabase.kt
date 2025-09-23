@@ -12,7 +12,8 @@ data class SyncMetadata(
     val id: Int = 1, // Single row for sync status
     @ColumnInfo(name = "last_sync_time") val lastSyncTime: Long = 0,
     @ColumnInfo(name = "sync_status") val syncStatus: String = "PENDING",
-    @ColumnInfo(name = "last_error") val lastError: String? = null
+    @ColumnInfo(name = "last_error") val lastError: String? = null,
+    @ColumnInfo(name = "survey_checksum") val surveyChecksum: String? = null
 )
 
 @Entity(tableName = "survey_config")
@@ -450,15 +451,18 @@ interface CouponDao {
 interface SyncMetadataDao {
     @Query("SELECT * FROM sync_metadata WHERE id = 1 LIMIT 1")
     fun getSyncMetadata(): SyncMetadata?
-    
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertSyncMetadata(metadata: SyncMetadata)
-    
+
     @Query("UPDATE sync_metadata SET sync_status = :status, last_error = :error WHERE id = 1")
     fun updateSyncStatus(status: String, error: String? = null)
-    
+
     @Query("UPDATE sync_metadata SET last_sync_time = :time, sync_status = 'SUCCESS' WHERE id = 1")
     fun updateLastSyncSuccess(time: Long)
+
+    @Query("UPDATE sync_metadata SET survey_checksum = :checksum WHERE id = 1")
+    fun updateSurveyChecksum(checksum: String)
 }
 
 @Dao
@@ -551,7 +555,7 @@ interface SystemMessageDao {
     fun deleteAllSystemMessages()
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class], version = 37)
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class], version = 38)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao

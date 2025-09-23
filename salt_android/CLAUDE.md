@@ -28,7 +28,7 @@ The application is designed as a facility-based tablet system where program staf
 ### Database Management
 - Room database with fallback to destructive migration enabled
 - Database schemas are stored in `app/schemas/com.dev.salt.data.SurveyDatabase/`
-- Current database version: 34
+- Current database version: 37
 - SQLCipher encryption with Android Keystore for secure key management
 
 ## Architecture Overview
@@ -131,6 +131,18 @@ The SALT application is part of a larger three-tier architecture as illustrated 
 ## Recently Implemented Features
 
 ### ✅ Completed in Recent Sessions
+
+**System Messages Support** (v36 → v37)
+- **Database Changes**: Added `SystemMessage` entity for storing multilingual system messages with audio support
+- **SystemMessageDao**: Full CRUD operations for system messages with language fallback support
+- **Survey Sync Integration**: Downloads and stores system messages during survey synchronization
+- **Staff Validation Screen**:
+  - Displays custom staff validation messages from database
+  - Automatic audio playback when screen loads
+  - Replay button for re-listening to audio messages
+  - Language fallback (en → English → any available)
+  - Proper MediaPlayer resource management with DisposableEffect
+- **Server Integration**: Messages downloaded as part of survey sync with text and audio in multiple languages
 
 **Multi-Select Question Support** (v27 → v34)
 - **Database Changes**: Added `minSelections` and `maxSelections` to Question entity for validation constraints
@@ -242,7 +254,9 @@ The SALT application is part of a larger three-tier architecture as illustrated 
 
 ### 🔧 Key Infrastructure Updates
 
-- **Database Schema**: Version 34 with upload state tracking, server configuration, coupon management, fingerprint storage, survey configuration, and multi-select support
+- **Database Schema**: Version 37 with upload state tracking, server configuration, coupon management, fingerprint storage, survey configuration, multi-select support, and system messages
+- **SQLCipher Database Encryption**: Full database encryption using SQLCipher with Android Keystore for secure key management
+- **Enhanced Security**: DatabaseKeyManager for secure key generation and storage using Android Keystore
 - **Session Management**: Complete lifecycle management with StateFlow
 - **Survey State Tracking**: Active survey detection and protection
 - **Authentication Flow**: Dual password/biometric support

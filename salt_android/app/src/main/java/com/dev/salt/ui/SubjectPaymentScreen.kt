@@ -28,6 +28,7 @@ import com.dev.salt.upload.SurveyUploadWorkManager
 import com.dev.salt.upload.UploadResult
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import androidx.compose.material.icons.filled.PlayArrow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,6 +50,8 @@ fun SubjectPaymentScreen(
     var currentMediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var isUploading by remember { mutableStateOf(false) }
     var uploadMessage by remember { mutableStateOf<String?>(null) }
+    var paymentMessage by remember { mutableStateOf("Thank you for your participation. You will now receive your payment.") }
+    var messageMediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
 
     // Load facility config and survey
     LaunchedEffect(Unit) {
@@ -63,6 +66,31 @@ fun SubjectPaymentScreen(
         }
 
         Log.d("SubjectPaymentScreen", "Payment config: type=${facilityConfig?.subjectPaymentType}, amount=$paymentAmount")
+
+        // Load payment confirmation message from database
+        scope.launch {
+            val lang = survey?.language ?: "en"
+            val systemMessage = database.systemMessageDao().getSystemMessage("payment_confirmation", lang)
+                ?: database.systemMessageDao().getSystemMessage("payment_confirmation", "English")
+                ?: database.systemMessageDao().getSystemMessageAnyLanguage("payment_confirmation")
+
+            if (systemMessage != null) {
+                paymentMessage = systemMessage.messageText
+                Log.d("SubjectPaymentScreen", "Loaded payment message: ${systemMessage.messageText}")
+
+                // Play audio if available
+                if (!systemMessage.audioFileName.isNullOrEmpty()) {
+                    Log.d("SubjectPaymentScreen", "Playing payment audio: ${systemMessage.audioFileName}")
+                    try {
+                        messageMediaPlayer = playAudio(context, systemMessage.audioFileName)
+                    } catch (e: Exception) {
+                        Log.e("SubjectPaymentScreen", "Error playing message audio", e)
+                    }
+                }
+            } else {
+                Log.d("SubjectPaymentScreen", "No payment_confirmation message found, using default")
+            }
+        }
     }
 
     // Play audio instruction if available
@@ -89,6 +117,17 @@ fun SubjectPaymentScreen(
         onDispose {
             currentMediaPlayer?.stop()
             currentMediaPlayer?.release()
+            messageMediaPlayer?.let { player ->
+                try {
+                    if (player.isPlaying) {
+                        player.stop()
+                    }
+                    player.release()
+                    Log.d("SubjectPaymentScreen", "Message MediaPlayer released")
+                } catch (e: Exception) {
+                    Log.e("SubjectPaymentScreen", "Error releasing message MediaPlayer", e)
+                }
+            }
         }
     }
 
@@ -120,12 +159,40 @@ fun SubjectPaymentScreen(
 
             // Thank you message
             Text(
-                text = getPaymentMessage(survey?.language ?: "en"),
+                text = paymentMessage,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.primary
             )
+
+            // Audio replay button (only show if audio is available)
+            if (messageMediaPlayer != null) {
+                OutlinedButton(
+                    onClick = {
+                        try {
+                            messageMediaPlayer?.let { player ->
+                                if (!player.isPlaying) {
+                                    player.seekTo(0)
+                                    player.start()
+                                    Log.d("SubjectPaymentScreen", "Replaying payment audio")
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("SubjectPaymentScreen", "Error replaying audio", e)
+                        }
+                    },
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Replay",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Replay Audio", fontSize = 14.sp)
+                }
+            }
 
             // Payment amount card
             if (paymentAmount > 0) {
@@ -391,14 +458,6 @@ fun SubjectPaymentScreen(
 }
 
 // Helper functions for multilingual support
-private fun getPaymentMessage(language: String): String {
-    return when (language) {
-        "es" -> "Gracias por su participación. Ahora se le pagará el monto a continuación:"
-        "fr" -> "Merci pour votre participation. Vous allez maintenant recevoir le montant ci-dessous:"
-        else -> "Thank you for your participation. You will now be paid the amount below:"
-    }
-}
-
 private fun getPaymentAmountLabel(language: String): String {
     return when (language) {
         "es" -> "Monto del Pago"

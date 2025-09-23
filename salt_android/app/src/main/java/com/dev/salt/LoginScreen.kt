@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -37,16 +36,32 @@ fun LoginScreen(
     val loginError = loginViewModel.loginError
     var showErrorDialog by remember(loginError) { mutableStateOf(loginError != null) }
     
-    // Function to sync facility config after successful login
-    fun syncFacilityAfterLogin(role: UserRole) {
+    // Function to sync facility config and check for survey updates after successful login
+    fun syncAfterLogin(role: UserRole) {
         coroutineScope.launch {
             try {
                 val database = com.dev.salt.data.SurveyDatabase.getInstance(context)
-                val syncManager = com.dev.salt.sync.FacilityConfigSyncManager(database)
-                syncManager.syncFacilityConfig()
+
+                // Sync facility config
+                val facilityConfigManager = com.dev.salt.sync.FacilityConfigSyncManager(database)
+                facilityConfigManager.syncFacilityConfig()
+
+                // Check for survey updates
+                val surveySyncManager = SurveySyncManager(context)
+                val needsUpdate = surveySyncManager.checkForSurveyUpdate()
+
+                if (needsUpdate) {
+                    android.util.Log.i("LoginScreen", "New survey version available, downloading...")
+                    val result = surveySyncManager.downloadAndReplaceSurvey()
+                    if (result.isSuccess) {
+                        android.util.Log.i("LoginScreen", "Survey updated successfully")
+                    } else {
+                        android.util.Log.e("LoginScreen", "Failed to update survey", result.exceptionOrNull())
+                    }
+                }
             } catch (e: Exception) {
                 // Log but don't block login on sync failure
-                android.util.Log.e("LoginScreen", "Failed to sync facility config", e)
+                android.util.Log.e("LoginScreen", "Failed to sync data", e)
             }
             onLoginSuccess(role)
         }
@@ -124,7 +139,7 @@ fun LoginScreen(
                 onClick = {
                     loginViewModel.login { result ->
                         if (result.success) {
-                            syncFacilityAfterLogin(result.role)
+                            syncAfterLogin(result.role)
                         }
                         // Error is handled by the showErrorDialog via observing loginViewModel.loginError
                     }
@@ -150,7 +165,7 @@ fun LoginScreen(
                     onClick = {
                         loginViewModel.authenticateWithBiometric { result ->
                             if (result.success) {
-                                syncFacilityAfterLogin(result.role)
+                                syncAfterLogin(result.role)
                             }
                             // Error is handled by the showErrorDialog via observing loginViewModel.loginError
                         }
@@ -173,71 +188,6 @@ fun LoginScreen(
                         Text("Login with Biometric")
                     }
                 }
-            }
-            
-            // Sync Survey button
-            Spacer(modifier = Modifier.height(32.dp))
-            Divider()
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            val context = LocalContext.current
-            val coroutineScope = rememberCoroutineScope()
-            var isSyncing by remember { mutableStateOf(false) }
-            var syncMessage by remember { mutableStateOf<String?>(null) }
-            
-            Text(
-                "Survey Management",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            
-            OutlinedButton(
-                onClick = {
-                    coroutineScope.launch {
-                        isSyncing = true
-                        syncMessage = null
-                        
-                        // Sync survey only (facility config will sync at survey start)
-                        val syncManager = SurveySyncManager(context)
-                        val result = syncManager.downloadAndReplaceSurvey()
-                        isSyncing = false
-                        
-                        syncMessage = if (result.isSuccess) {
-                            "Survey downloaded successfully!"
-                        } else {
-                            "Failed: ${result.exceptionOrNull()?.message}"
-                        }
-                    }
-                },
-                enabled = !isSyncing,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (isSyncing) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                } else {
-                    Icon(
-                        Icons.Default.Sync,
-                        contentDescription = "Sync Survey",
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Download Latest Survey")
-                }
-            }
-            
-            syncMessage?.let { message ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (message.startsWith("Failed")) 
-                        MaterialTheme.colorScheme.error 
-                    else 
-                        MaterialTheme.colorScheme.primary
-                )
             }
         }
     }

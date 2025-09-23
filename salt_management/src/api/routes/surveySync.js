@@ -14,8 +14,11 @@ function calculateChecksum(survey) {
         survey: survey.survey,
         sections: survey.sections,
         questions: survey.questions,
-        options: survey.options
+        options: survey.options,
+        messages: survey.messages || []  // Include messages in checksum
     });
+
+
     return crypto.createHash('sha256').update(content).digest('hex');
 }
 
@@ -25,34 +28,74 @@ function calculateChecksum(survey) {
  */
 router.get('/survey/version', requireFacilityApiKey, async (req, res) => {
     try {
-        // Get the active survey
+        // Get the full active survey
         const activeSurvey = await getAsync(
-            `SELECT id, version, base_survey_id, name, updated_at 
-             FROM surveys 
-             WHERE is_active = 1 
+            `SELECT * FROM surveys
+             WHERE is_active = 1
              LIMIT 1`
         );
-        
+
         if (!activeSurvey) {
             return res.status(404).json({
                 status: 'error',
                 message: 'No active survey found'
             });
         }
-        
-        // Calculate a simple checksum based on survey and question count
-        // In production, this should be more sophisticated
-        const questionCount = await getAsync(
-            'SELECT COUNT(*) as count FROM questions WHERE survey_id = ?',
+
+        // Get sections
+        const sections = await allAsync(
+            'SELECT * FROM sections WHERE survey_id = ? ORDER BY section_index',
             [activeSurvey.id]
         );
-        
-        const simpleChecksum = crypto
-            .createHash('sha256')
-            .update(`${activeSurvey.id}-${activeSurvey.version}-${questionCount.count}`)
-            .digest('hex')
-            .substring(0, 16);
-        
+
+        // Get all questions
+        const questions = await allAsync(
+            'SELECT * FROM questions WHERE survey_id = ? ORDER BY question_index',
+            [activeSurvey.id]
+        );
+
+        // Get all options
+        const options = [];
+        for (const question of questions) {
+            const questionOptions = await allAsync(
+                'SELECT * FROM options WHERE question_id = ? ORDER BY option_index',
+                [question.id]
+            );
+            options.push(...questionOptions);
+        }
+
+        // Get all messages for the survey
+        const messages = await allAsync(
+            `SELECT message_key, message_text_json, audio_files_json, message_type, display_order
+             FROM survey_messages
+             WHERE survey_id = ?
+             ORDER BY display_order, message_key`,
+            [activeSurvey.id]
+        );
+
+        // Calculate checksum from actual content (same as download endpoint)
+        const contentForChecksum = {
+            survey: activeSurvey,  // Use full survey object
+            sections: sections,
+            questions: questions,
+            options: options,
+            messages: messages
+        };
+
+        const checksum = calculateChecksum(contentForChecksum);
+
+        // Get the latest modification time from related tables
+        const messageUpdate = await getAsync(
+            'SELECT MAX(updated_at) as updated_at FROM survey_messages WHERE survey_id = ?',
+            [activeSurvey.id]
+        );
+
+        // Use the most recent update time
+        const lastUpdated = Math.max(
+            new Date(activeSurvey.updated_at).getTime(),
+            messageUpdate?.updated_at ? new Date(messageUpdate.updated_at).getTime() : 0
+        );
+
         res.json({
             status: 'success',
             data: {
@@ -60,13 +103,14 @@ router.get('/survey/version', requireFacilityApiKey, async (req, res) => {
                 version: activeSurvey.version,
                 base_survey_id: activeSurvey.base_survey_id,
                 name: activeSurvey.name,
-                checksum: simpleChecksum,
+                checksum: checksum,  // Now using full content-based checksum
                 updated_at: activeSurvey.updated_at,
+                last_modified: lastUpdated, // Timestamp in milliseconds
                 is_mandatory_update: false,
                 min_app_version: '1.0.0'
             }
         });
-        
+
     } catch (error) {
         console.error('Error checking survey version:', error);
         res.status(500).json({
@@ -82,9 +126,11 @@ router.get('/survey/version', requireFacilityApiKey, async (req, res) => {
  */
 router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
     try {
-        // Get the active survey
+        // Get the full active survey
         const survey = await getAsync(
-            'SELECT * FROM surveys WHERE is_active = 1 LIMIT 1'
+            `SELECT * FROM surveys
+             WHERE is_active = 1
+             LIMIT 1`
         );
         
         if (!survey) {
@@ -94,7 +140,7 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
             });
         }
         
-        // Parse JSON fields
+        // Parse JSON fields for response
         if (survey.languages && typeof survey.languages === 'string') {
             survey.languages = JSON.parse(survey.languages);
         }
@@ -113,19 +159,20 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
             'SELECT * FROM questions WHERE survey_id = ? ORDER BY question_index',
             [survey.id]
         );
-        
-        // Parse JSON fields in questions
+
+        // Parse JSON fields in questions (create new objects to avoid mutation)
         const questionsWithParsedJson = questions.map(q => {
-            if (q.question_text_json && typeof q.question_text_json === 'string') {
-                q.question_text_json = JSON.parse(q.question_text_json);
+            const parsedQ = { ...q };
+            if (parsedQ.question_text_json && typeof parsedQ.question_text_json === 'string') {
+                parsedQ.question_text_json = JSON.parse(parsedQ.question_text_json);
             }
-            if (q.audio_files_json && typeof q.audio_files_json === 'string') {
-                q.audio_files_json = JSON.parse(q.audio_files_json);
+            if (parsedQ.audio_files_json && typeof parsedQ.audio_files_json === 'string') {
+                parsedQ.audio_files_json = JSON.parse(parsedQ.audio_files_json);
             }
-            if (q.validation_error_json && typeof q.validation_error_json === 'string') {
-                q.validation_error_json = JSON.parse(q.validation_error_json);
+            if (parsedQ.validation_error_json && typeof parsedQ.validation_error_json === 'string') {
+                parsedQ.validation_error_json = JSON.parse(parsedQ.validation_error_json);
             }
-            return q;
+            return parsedQ;
         });
         
         // Get all options
@@ -136,17 +183,21 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
                 [question.id]
             );
 
-            // Parse JSON fields in options
-            questionOptions.forEach(opt => {
-                if (opt.option_text_json && typeof opt.option_text_json === 'string') {
-                    opt.option_text_json = JSON.parse(opt.option_text_json);
-                }
-                if (opt.audio_files_json && typeof opt.audio_files_json === 'string') {
-                    opt.audio_files_json = JSON.parse(opt.audio_files_json);
-                }
-                options.push(opt);
-            });
+            // Store raw options
+            options.push(...questionOptions);
         }
+
+        // Parse JSON fields in options for response
+        const optionsWithParsedJson = options.map(opt => {
+            const parsedOpt = { ...opt };
+            if (parsedOpt.option_text_json && typeof parsedOpt.option_text_json === 'string') {
+                parsedOpt.option_text_json = JSON.parse(parsedOpt.option_text_json);
+            }
+            if (parsedOpt.audio_files_json && typeof parsedOpt.audio_files_json === 'string') {
+                parsedOpt.audio_files_json = JSON.parse(parsedOpt.audio_files_json);
+            }
+            return parsedOpt;
+        });
 
         // Get all messages for the survey
         const messages = await allAsync(
@@ -201,12 +252,26 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
             },
             sections: sections,
             questions: questionsWithParsedJson,
-            options: options,
+            options: optionsWithParsedJson,
             messages: messagesWithParsedJson
         };
         
-        // Calculate checksum
-        const checksum = calculateChecksum(responseData);
+        // Get raw survey for checksum calculation (re-fetch to ensure no mutations)
+        const rawSurvey = await getAsync(
+            `SELECT * FROM surveys
+             WHERE is_active = 1
+             LIMIT 1`
+        );
+
+        // Calculate checksum using raw survey data (to match version endpoint)
+        const checksumData = {
+            survey: rawSurvey,  // Use raw survey object (before JSON parsing)
+            sections: sections,
+            questions: questions,  // Use raw questions, not parsed
+            options: options,
+            messages: messages  // Use raw messages, not parsed
+        };
+        const checksum = calculateChecksum(checksumData);
         
         // Add metadata
         responseData.metadata = {

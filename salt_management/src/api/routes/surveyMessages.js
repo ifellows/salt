@@ -87,6 +87,12 @@ router.put('/:surveyId/messages/:messageKey', async (req, res) => {
             [surveyId, messageKey, textJson, audioJson, type, order]
         );
 
+        // Update the survey's updated_at timestamp to trigger sync
+        await runAsync(
+            `UPDATE surveys SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+            [surveyId]
+        );
+
         // Fetch the updated/created message
         const message = await getAsync(
             `SELECT * FROM survey_messages WHERE survey_id = ? AND message_key = ?`,
