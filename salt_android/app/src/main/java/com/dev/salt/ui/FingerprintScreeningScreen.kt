@@ -26,6 +26,8 @@ import com.dev.salt.data.SurveyDatabase
 import com.dev.salt.fingerprint.FingerprintManager
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
+import androidx.compose.ui.res.stringResource
+import com.dev.salt.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +61,7 @@ fun FingerprintScreeningScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Fingerprint Screening") },
+                title = { Text(stringResource(R.string.fingerprint_title)) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -81,7 +83,7 @@ fun FingerprintScreeningScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Fingerprint,
-                    contentDescription = "Fingerprint",
+                    contentDescription = stringResource(R.string.cd_fingerprint),
                     modifier = Modifier
                         .size(64.dp)
                         .padding(bottom = 16.dp),
@@ -89,7 +91,7 @@ fun FingerprintScreeningScreen(
                 )
                 
                 Text(
-                    text = "Fingerprint Verification Required",
+                    text = stringResource(R.string.fingerprint_verification_required),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -97,7 +99,7 @@ fun FingerprintScreeningScreen(
                 )
                 
                 Text(
-                    text = "Please follow the instructions below to capture the participant's fingerprint",
+                    text = stringResource(R.string.fingerprint_instructions),
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -128,10 +130,10 @@ fun FingerprintScreeningScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                InstructionStep(1, "Ensure the SecuGen device is connected and the green light is on")
-                InstructionStep(2, "Ask the participant to place their right index finger on the scanner")
-                InstructionStep(3, "Press gently and hold until the scan completes")
-                InstructionStep(4, "The device will beep when the scan is successful")
+                InstructionStep(1, stringResource(R.string.fingerprint_step1))
+                InstructionStep(2, stringResource(R.string.fingerprint_step2))
+                InstructionStep(3, stringResource(R.string.fingerprint_step3))
+                InstructionStep(4, stringResource(R.string.fingerprint_step4))
             }
             
             // Error message
@@ -152,26 +154,30 @@ fun FingerprintScreeningScreen(
                     )
                 }
             }
-            
+
             // Capture Button
+            // Get error messages outside onClick lambda
+            val deviceInitError = stringResource(R.string.fingerprint_device_init_failed)
+            val captureFailedError = stringResource(R.string.fingerprint_capture_failed)
+
             Button(
                 onClick = {
                     scope.launch {
                         isCapturing = true
                         errorMessage = null
-                        
+
                         // Initialize device
                         if (!fingerprintManager.initializeDevice()) {
-                            errorMessage = "Failed to initialize fingerprint device"
+                            errorMessage = deviceInitError
                             isCapturing = false
                             return@launch
                         }
-                        
+
                         // Capture fingerprint
                         val fingerprintHash = fingerprintManager.captureFingerprint()
-                        
+
                         if (fingerprintHash == null) {
-                            errorMessage = "Failed to capture fingerprint. Please try again."
+                            errorMessage = captureFailedError
                             isCapturing = false
                             fingerprintManager.closeDevice()
                             return@launch
@@ -217,7 +223,7 @@ fun FingerprintScreeningScreen(
                     )
                 } else {
                     Text(
-                        "Capture Fingerprint",
+                        stringResource(R.string.fingerprint_capture_button),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -230,7 +236,7 @@ fun FingerprintScreeningScreen(
                         navController.navigate("${AppDestinations.LANGUAGE_SELECTION}/$surveyId?couponCode=${couponCode ?: ""}")
                     }
                 ) {
-                    Text("Skip (Testing Only)")
+                    Text(stringResource(R.string.fingerprint_skip_testing))
                 }
             }
         }
@@ -243,13 +249,13 @@ fun FingerprintScreeningScreen(
             icon = {
                 Icon(
                     imageVector = Icons.Default.Warning,
-                    contentDescription = "Warning",
+                    contentDescription = stringResource(R.string.cd_warning),
                     tint = MaterialTheme.colorScheme.error
                 )
             },
             title = {
                 Text(
-                    "Duplicate Enrollment Detected",
+                    stringResource(R.string.fingerprint_duplicate_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -257,12 +263,12 @@ fun FingerprintScreeningScreen(
             text = {
                 Column {
                     Text(
-                        "This participant has already been enrolled in a survey recently.",
+                        stringResource(R.string.fingerprint_duplicate_message),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     Text(
-                        "They are not eligible for re-enrollment for another $daysUntilReEnrollment days.",
+                        stringResource(R.string.fingerprint_reenrollment_days, daysUntilReEnrollment),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -277,7 +283,7 @@ fun FingerprintScreeningScreen(
                         }
                     }
                 ) {
-                    Text("Return to Menu")
+                    Text(stringResource(R.string.fingerprint_return_to_menu))
                 }
             }
         )

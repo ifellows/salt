@@ -19,6 +19,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.dev.salt.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,10 +41,10 @@ fun LabCollectionScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Science,
-                            contentDescription = "Lab",
+                            contentDescription = stringResource(R.string.cd_lab),
                             tint = Color.White
                         )
-                        Text("Biological Sample Collection")
+                        Text(stringResource(R.string.lab_title))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -73,7 +75,7 @@ fun LabCollectionScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Subject ID",
+                        text = stringResource(R.string.lab_subject_id),
                         fontSize = 14.sp,
                         color = Color.Gray,
                         fontWeight = FontWeight.Medium
@@ -120,15 +122,14 @@ fun LabCollectionScreen(
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
-                        text = "Instructions",
+                        text = stringResource(R.string.lab_instructions),
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
                         color = Color(0xFFE65100)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "1. Collect biological samples from the subject\n" +
-                              "2. Label ALL samples with the Subject ID shown above",
+                        text = stringResource(R.string.lab_instructions_text),
                         fontSize = 14.sp,
                         color = Color(0xFF5D4037)
                     )
@@ -148,7 +149,7 @@ fun LabCollectionScreen(
                     ),
                     border = BorderStroke(1.dp, Color(0xFFD32F2F))
                 ) {
-                    Text("Subject Refused")
+                    Text(stringResource(R.string.lab_refused))
                 }
 
                 Button(
@@ -158,7 +159,7 @@ fun LabCollectionScreen(
                         containerColor = Color(0xFF1976D2)
                     )
                 ) {
-                    Text("Samples Collected & Labeled")
+                    Text(stringResource(R.string.lab_collected))
                 }
             }
 

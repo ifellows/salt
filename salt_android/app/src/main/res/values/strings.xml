@@ -1,46 +1,384 @@
 <resources>
-    <string name="app_name">salt</string>
+    <!-- App-level strings -->
+    <string name="app_name">SALT</string>
+    <string name="app_title_welcome">Welcome to SALT</string>
+
+    <!-- Template/Unused strings (required for build) -->
     <string name="action_settings">Settings</string>
-    <!-- Strings used for fragments for navigation -->
     <string name="first_fragment_label">First Fragment</string>
     <string name="second_fragment_label">Second Fragment</string>
     <string name="next">Next</string>
     <string name="previous">Previous</string>
+    <string name="lorem_ipsum">Lorem ipsum dolor sit amet</string>
 
-    <string name="lorem_ipsum">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam in scelerisque sem. Mauris
-        volutpat, dolor id interdum ullamcorper, risus dolor egestas lectus, sit amet mattis purus
-        dui nec risus. Maecenas non sodales nisi, vel dictum dolor. Class aptent taciti sociosqu ad
-        litora torquent per conubia nostra, per inceptos himenaeos. Suspendisse blandit eleifend
-        diam, vel rutrum tellus vulputate quis. Aliquam eget libero aliquet, imperdiet nisl a,
-        ornare ex. Sed rhoncus est ut libero porta lobortis. Fusce in dictum tellus.\n\n
-        Suspendisse interdum ornare ante. Aliquam nec cursus lorem. Morbi id magna felis. Vivamus
-        egestas, est a condimentum egestas, turpis nisl iaculis ipsum, in dictum tellus dolor sed
-        neque. Morbi tellus erat, dapibus ut sem a, iaculis tincidunt dui. Interdum et malesuada
-        fames ac ante ipsum primis in faucibus. Curabitur et eros porttitor, ultricies urna vitae,
-        molestie nibh. Phasellus at commodo eros, non aliquet metus. Sed maximus nisl nec dolor
-        bibendum, vel congue leo egestas.\n\n
-        Sed interdum tortor nibh, in sagittis risus mollis quis. Curabitur mi odio, condimentum sit
-        amet auctor at, mollis non turpis. Nullam pretium libero vestibulum, finibus orci vel,
-        molestie quam. Fusce blandit tincidunt nulla, quis sollicitudin libero facilisis et. Integer
-        interdum nunc ligula, et fermentum metus hendrerit id. Vestibulum lectus felis, dictum at
-        lacinia sit amet, tristique id quam. Cras eu consequat dui. Suspendisse sodales nunc ligula,
-        in lobortis sem porta sed. Integer id ultrices magna, in luctus elit. Sed a pellentesque
-        est.\n\n
-        Aenean nunc velit, lacinia sed dolor sed, ultrices viverra nulla. Etiam a venenatis nibh.
-        Morbi laoreet, tortor sed facilisis varius, nibh orci rhoncus nulla, id elementum leo dui
-        non lorem. Nam mollis ipsum quis auctor varius. Quisque elementum eu libero sed commodo. In
-        eros nisl, imperdiet vel imperdiet et, scelerisque a mauris. Pellentesque varius ex nunc,
-        quis imperdiet eros placerat ac. Duis finibus orci et est auctor tincidunt. Sed non viverra
-        ipsum. Nunc quis augue egestas, cursus lorem at, molestie sem. Morbi a consectetur ipsum, a
-        placerat diam. Etiam vulputate dignissim convallis. Integer faucibus mauris sit amet finibus
-        convallis.\n\n
-        Phasellus in aliquet mi. Pellentesque habitant morbi tristique senectus et netus et
-        malesuada fames ac turpis egestas. In volutpat arcu ut felis sagittis, in finibus massa
-        gravida. Pellentesque id tellus orci. Integer dictum, lorem sed efficitur ullamcorper,
-        libero justo consectetur ipsum, in mollis nisl ex sed nisl. Donec maximus ullamcorper
-        sodales. Praesent bibendum rhoncus tellus nec feugiat. In a ornare nulla. Donec rhoncus
-        libero vel nunc consequat, quis tincidunt nisl eleifend. Cras bibendum enim a justo luctus
-        vestibulum. Fusce dictum libero quis erat maximus, vitae volutpat diam dignissim.
-    </string>
+    <!-- Common UI elements -->
+    <string name="common_ok">OK</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_continue">Continue</string>
+    <string name="common_back">Back</string>
+    <string name="common_next">Next</string>
+    <string name="common_previous">Previous</string>
+    <string name="common_save">Save</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_add">Add</string>
+    <string name="common_edit">Edit</string>
+    <string name="common_refresh">Refresh</string>
+    <string name="common_retry">Retry</string>
+    <string name="common_skip">Skip</string>
+    <string name="common_confirm">Confirm</string>
+    <string name="common_error">Error</string>
+    <string name="common_warning">Warning</string>
+    <string name="common_success">Success</string>
+    <string name="common_loading">Loading…</string>
+    <string name="common_logout">Logout</string>
+    <string name="common_exit">Exit</string>
+    <string name="common_replay">Replay</string>
+
+    <!-- Login/Authentication strings -->
+    <string name="login_title">Login</string>
+    <string name="login_subtitle">Please Log In</string>
+    <string name="login_username">Username</string>
+    <string name="login_password">Password</string>
+    <string name="login_button_login">Login</string>
+    <string name="login_button_biometric">Login with Biometric</string>
+    <string name="login_failed_title">Login Failed</string>
+    <string name="login_error_empty">Username and password cannot be empty.</string>
+    <string name="login_error_invalid_password">Invalid password.</string>
+    <string name="login_error_invalid_username">Invalid username.</string>
+    <string name="login_error_user_not_found">User not found</string>
+    <string name="login_error_invalid_credentials">Invalid username or password.</string>
+    <string name="login_error_unexpected">An unexpected error occurred. Please try again.</string>
+    <string name="login_error_biometric_failed">Biometric authentication failed</string>
+    <string name="login_error_biometric_unavailable">Biometric authentication not available</string>
+    <string name="login_error_authentication">Authentication error</string>
+
+    <!-- Staff Validation strings -->
+    <string name="staff_validation_title">Staff Validation Required</string>
+    <string name="staff_validation_dialog_title">Staff Login</string>
+    <string name="staff_validation_attempts_remaining">Attempts remaining: %1$d</string>
+    <string name="staff_validation_test_credentials">Test credentials: admin/123 or staff/123</string>
+    <string name="staff_validation_cancelled">Authentication cancelled</string>
+    <string name="staff_validation_invalid">Invalid username or password</string>
+
+    <!-- Session Management strings -->
+    <string name="session_expiring_title">Session Expiring</string>
+    <string name="session_expiring_message">Your session will expire in:</string>
+    <string name="session_expiring_prompt">Would you like to extend your session?</string>
+    <string name="session_extend_button">Extend Session</string>
+    <string name="session_expired_title">Session Expired</string>
+    <string name="session_expired_message">Your session has expired for security reasons. Please login again to continue.</string>
+    <string name="session_login_again">Login Again</string>
+
+    <!-- Main Menu strings -->
+    <string name="menu_welcome">Welcome!</string>
+    <string name="menu_staff_title">Survey Staff Menu</string>
+    <string name="menu_staff_area">Survey Staff Area</string>
+    <string name="menu_admin_title">Administrator Dashboard</string>
+    <string name="menu_admin_area">Admin Dashboard</string>
+    <string name="menu_start_survey">Start New Survey</string>
+    <string name="menu_recruit_participant">Recruit Previous Participant</string>
+    <string name="menu_manage_users">Manage Users</string>
+    <string name="menu_server_settings">Server Settings</string>
+    <string name="menu_upload_status">Upload Status</string>
+
+    <!-- Logout strings -->
+    <string name="logout_confirm_title">Confirm Logout</string>
+    <string name="logout_confirm_message">Are you sure you want to logout? Your session will be ended and you will need to login again.</string>
+    <string name="logout_button">Logout</string>
+
+    <!-- User Management strings -->
+    <string name="user_management_title">User Management</string>
+    <string name="user_add_button">Add User</string>
+    <string name="user_delete_button">Delete User</string>
+    <string name="user_role_label">Role:</string>
+    <string name="user_username_display">@%1$s</string>
+    <string name="user_biometric_enrolled">Enrolled: %1$s</string>
+    <string name="user_biometric_not_supported">Biometric not supported</string>
+    <string name="user_biometric_enable">Enable</string>
+    <string name="user_biometric_disable">Disable</string>
+    <string name="user_biometric_disable_title">Disable Biometric</string>
+
+    <!-- Add User Dialog -->
+    <string name="user_add_dialog_title">Add New User</string>
+    <string name="user_add_username">Username</string>
+    <string name="user_add_fullname">Full Name</string>
+    <string name="user_add_password">Password</string>
+    <string name="user_add_role">Role</string>
+    <string name="user_add_button_add">Add User</string>
+
+    <!-- Delete User Dialog -->
+    <string name="user_delete_dialog_title">Delete User</string>
+    <string name="user_delete_button_delete">Delete</string>
+
+    <!-- Coupon/Survey Registration strings -->
+    <string name="coupon_title">Survey Registration</string>
+    <string name="coupon_syncing">Syncing facility settings…</string>
+    <string name="coupon_question">Does this person have a coupon?</string>
+    <string name="coupon_no_coupon_message">Participation requires a valid coupon code. Please ask for assistance.</string>
+    <string name="coupon_enter_section">Enter Coupon Code</string>
+    <string name="coupon_field_label">Coupon Code</string>
+    <string name="coupon_field_hint">Enter 6-character code</string>
+    <string name="coupon_error_required">Coupon required for participation</string>
+    <string name="coupon_error_length">Coupon code must be %1$d characters</string>
+    <string name="coupon_error_invalid">Invalid coupon code</string>
+    <string name="coupon_error_already_used">This coupon has already been used</string>
+    <string name="coupon_error_not_issued">This coupon has not been issued yet</string>
+    <string name="coupon_error_validation">Error validating coupon. Please try again.</string>
+
+    <!-- Language Selection strings -->
+    <string name="language_title">Select Language</string>
+    <string name="language_instruction_english">Please select the participant\'s preferred language</string>
+    <string name="language_instruction_spanish">Por favor seleccione su idioma preferido para la encuesta</string>
+
+    <!-- Staff Instructions strings -->
+    <string name="staff_instructions_title">Staff Instructions</string>
+    <string name="staff_instructions_before">Before Starting the Survey</string>
+    <string name="staff_instructions_important">Important</string>
+    <string name="staff_instructions_message">The participant will complete the survey independently. Please ensure privacy and hand the device to the participant after this screen.</string>
+
+    <!-- Survey Screen strings -->
+    <string name="survey_title">SALT Survey</string>
+    <string name="survey_error_not_found">Error: Survey not found</string>
+    <string name="survey_validation_error_default">Invalid Answer</string>
+
+    <!-- Contact Information strings -->
+    <string name="contact_consent_title">Future Participation</string>
+    <string name="contact_consent_question">Would you be willing to be contacted to participate in this survey in the future?</string>
+    <string name="contact_consent_privacy">Your contact information will be kept confidential and used only for survey invitations.</string>
+    <string name="contact_info_title">Contact Information</string>
+    <string name="contact_info_instruction">Please provide your contact information</string>
+    <string name="contact_info_optional">You can provide either a phone number or email address</string>
+    <string name="contact_info_phone">Phone Number</string>
+    <string name="contact_info_email">Email Address</string>
+    <string name="contact_info_phone_hint">Enter your phone number</string>
+    <string name="contact_info_email_hint">Enter your email address</string>
+
+    <!-- Fingerprint Screening strings -->
+    <string name="fingerprint_title">Fingerprint Screening</string>
+    <string name="fingerprint_verification_required">Fingerprint Verification Required</string>
+    <string name="fingerprint_instruction">Please follow the instructions below to capture the participant\'s fingerprint</string>
+    <string name="fingerprint_skip_testing">Skip (Testing Only)</string>
+    <string name="fingerprint_return_menu">Return to Menu</string>
+    <string name="fingerprint_error_init">Failed to initialize fingerprint device</string>
+    <string name="fingerprint_error_capture">Failed to capture fingerprint. Please try again.</string>
+
+    <!-- Payment strings -->
+    <string name="payment_title">Payment Confirmation</string>
+    <string name="payment_amount">%1$s%2$.2f</string>
+    <string name="payment_confirm">Confirm Payment Received</string>
+    <string name="payment_skip">Continue Without Payment</string>
+
+    <!-- Lab Collection strings -->
+    <string name="lab_title">Biological Sample Collection</string>
+    <string name="lab_subject_id">Subject ID</string>
+    <string name="lab_instructions">Instructions</string>
+    <string name="lab_instructions_text">1. Collect biological samples according to protocol\n2. Label each sample with the Subject ID shown above\n3. Store samples as per guidelines\n4. Confirm collection or indicate if subject refused</string>
+    <string name="lab_refused">Subject Refused</string>
+    <string name="lab_collected">Samples Collected &amp; Labeled</string>
+
+    <!-- Survey Completion strings -->
+    <string name="completion_title">Survey Complete</string>
+    <string name="completion_thank_you">Thank You!</string>
+    <string name="completion_message">The survey has been completed successfully.</string>
+    <string name="completion_coupons_title">Referral Coupons</string>
+    <string name="completion_coupons_instruction">Please provide these %1$d coupons to the participant:</string>
+    <string name="completion_coupon_label">Coupon %1$d</string>
+    <string name="completion_coupons_usage">Each coupon can be used once for survey participation</string>
+    <string name="completion_continue_payment">Continue to Payment</string>
+
+    <!-- Server Settings strings -->
+    <string name="server_settings_title">Server Settings</string>
+    <string name="server_settings_config_title">Upload Server Configuration</string>
+    <string name="server_settings_url">Server URL</string>
+    <string name="server_settings_url_hint">https://your-server.com/api/surveys</string>
+    <string name="server_settings_api_key">API Key (Optional)</string>
+    <string name="server_settings_api_key_hint">Bearer token or API key</string>
+    <string name="server_settings_test">Test Connection</string>
+    <string name="server_settings_save">Save Settings</string>
+    <string name="server_settings_help_title">Configuration Help</string>
+    <string name="server_settings_help_text">1. Contact your system administrator for the server URL and API key\n2. The server URL should point to your SALT management server\n3. API key is optional but recommended for security\n4. Test the connection before saving\n5. All survey uploads will use these settings</string>
+
+    <!-- Upload Status strings -->
+    <string name="upload_status_title">Upload Status</string>
+    <string name="upload_details_title">Survey Upload Details</string>
+    <string name="upload_no_surveys">No surveys to upload</string>
+    <string name="upload_statistics_title">Upload Statistics</string>
+    <string name="upload_survey_id">Survey: %1$s…</string>
+    <string name="upload_status">Status: %1$s</string>
+    <string name="upload_last_attempt">Last attempt: %1$s</string>
+    <string name="upload_attempts">Attempts: %1$d</string>
+    <string name="upload_error">Error: %1$s</string>
+    <string name="upload_retry">Retry Upload</string>
+    <string name="upload_retrying">Retrying…</string>
+    <string name="upload_retry_all">Retry All</string>
+    <string name="upload_retry_failed">Retry failed: %1$s</string>
+
+    <!-- Seed Recruitment strings -->
+    <string name="recruitment_title">Seed Recruitment</string>
+    <string name="recruitment_back_menu">Back to Menu</string>
+    <string name="recruitment_contact_info">Contact Information</string>
+    <string name="recruitment_contact_type">Type: %1$s</string>
+    <string name="recruitment_contact_type_phone">Phone Number</string>
+    <string name="recruitment_contact_type_email">Email</string>
+    <string name="recruitment_copy_message">Copy Message</string>
+    <string name="recruitment_message_copied">✓ Message copied to clipboard</string>
+    <string name="recruitment_coupon_code">Coupon Code</string>
+    <string name="recruitment_send_question">Did you send the recruitment message?</string>
+    <string name="recruitment_message_sent">Message Sent</string>
+    <string name="recruitment_confirm_dialog_title">Confirm Message Sent</string>
+    <string name="recruitment_confirm_message">Please confirm that you have sent the recruitment message to %1$s</string>
+    <string name="recruitment_success">✓ Recruitment message has been sent</string>
+    <string name="recruitment_no_participants">No eligible participants found for recruitment at this time.</string>
+    <string name="recruitment_error">Error loading recruitment data: %1$s</string>
+
+    <!-- Content Descriptions (for accessibility) -->
+    <string name="cd_add_user">Add User</string>
+    <string name="cd_delete_user">Delete User</string>
+    <string name="cd_dropdown">Dropdown</string>
+    <string name="cd_biometric">Biometric</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_refresh">Refresh</string>
+    <string name="cd_exit">Exit</string>
+    <string name="cd_warning">Warning</string>
+    <string name="cd_contact">Contact</string>
+    <string name="cd_fingerprint">Fingerprint</string>
+    <string name="cd_payment">Payment</string>
+    <string name="cd_lab">Lab</string>
+    <string name="cd_success">Success</string>
+    <string name="cd_logout">Logout</string>
+    <string name="cd_copy">Copy Message</string>
+    <string name="cd_retry">Retry Upload</string>
+    <string name="cd_replay">Replay</string>
+
+    <!-- Common buttons -->
+    <string name="common_yes">Yes</string>
+    <string name="common_no">No</string>
+
+    <!-- Contact Consent Screen -->
+    <string name="contact_consent_yes">Yes, I\'m interested</string>
+    <string name="contact_consent_no">No, thank you</string>
+
+    <!-- Coupon Screen -->
+    <string name="coupon_required_message">Participation requires a valid coupon code. Please ask for assistance.</string>
+    <string name="coupon_back_to_menu">Back to Menu</string>
+    <string name="coupon_enter_code">Enter Coupon Code</string>
+    <string name="coupon_code_label">Coupon Code</string>
+    <string name="coupon_code_placeholder">Enter 6-character code</string>
+
+    <!-- Coupon Issued Screen -->
+    <string name="coupon_issued_title">Survey Complete</string>
+    <string name="coupon_issued_thank_you">Thank You!</string>
+    <string name="coupon_issued_message">The survey has been completed successfully.</string>
+    <string name="coupon_issued_referral_title">Referral Coupons</string>
+    <string name="coupon_issued_instructions">Please provide these %1$d coupons to the participant:</string>
+    <string name="coupon_issued_number">Coupon %1$d</string>
+    <string name="coupon_issued_usage">Each coupon can be used once for survey participation</string>
+    <string name="coupon_issued_continue_payment">Continue to Payment</string>
+
+    <!-- Fingerprint Screen -->
+    <string name="fingerprint_instructions">Please follow the instructions below to capture the participant\'s fingerprint</string>
+    <string name="fingerprint_step1">Ensure the SecuGen device is connected and the green light is on</string>
+    <string name="fingerprint_step2">Ask the participant to place their right index finger on the scanner</string>
+    <string name="fingerprint_step3">Press gently and hold until the scan completes</string>
+    <string name="fingerprint_step4">The device will beep when the scan is successful</string>
+    <string name="fingerprint_device_init_failed">Failed to initialize fingerprint device</string>
+    <string name="fingerprint_capture_failed">Failed to capture fingerprint. Please try again.</string>
+    <string name="fingerprint_capture_button">Capture Fingerprint</string>
+    <string name="fingerprint_duplicate_title">Duplicate Enrollment Detected</string>
+    <string name="fingerprint_duplicate_message">This participant has already been enrolled in a survey recently.</string>
+    <string name="fingerprint_reenrollment_days">They are not eligible for re-enrollment for another %1$d days.</string>
+    <string name="fingerprint_return_to_menu">Return to Menu</string>
+
+    <!-- Language Selection Screen -->
+    <string name="language_selection_title">Select Language</string>
+    <string name="language_selection_prompt">Please select the participant\'s preferred language</string>
+    <string name="language_selection_prompt_spanish">Por favor seleccione su idioma preferido para la encuesta</string>
+
+    <!-- Subject Payment Screen -->
+    <string name="payment_replay_audio">Replay Audio</string>
+    <string name="payment_uploading">Uploading survey...</string>
+    <string name="payment_upload_success">Survey uploaded successfully</string>
+    <string name="payment_upload_failed">Upload failed - will retry in background</string>
+    <string name="payment_upload_error">Error during upload - will retry in background</string>
+    <string name="payment_confirm_received">Confirm Payment Received</string>
+    <string name="payment_continue_without">Continue Without Payment</string>
+    <string name="payment_amount_label">Payment Amount</string>
+    <string name="payment_confirmation_instruction">Please confirm that you have received the payment using your fingerprint</string>
+
+    <!-- Contact Info Screen -->
+    <string name="contact_info_phone_label">Phone Number</string>
+    <string name="contact_info_email_label">Email Address</string>
+    <string name="contact_info_phone_placeholder">Enter your phone number</string>
+    <string name="contact_info_email_placeholder">Enter your email address</string>
+    <string name="contact_info_skip">Skip</string>
+
+    <!-- Language Settings Screen -->
+    <string name="language_settings_title">Language Settings</string>
+    <string name="language_settings_changed_title">Language Changed</string>
+    <string name="language_settings_restart_message">The app needs to restart to apply the language change. Would you like to restart now?</string>
+    <string name="language_settings_restart_now">Restart Now</string>
+    <string name="language_settings_later">Later</string>
+
+    <!-- Server Settings Screen -->
+    <string name="server_settings_url_label">Server URL</string>
+    <string name="server_settings_api_key_label">API Key (Optional)</string>
+    <string name="server_settings_api_key_placeholder">Bearer token or API key</string>
+
+    <!-- Seed Recruitment Screen -->
+    <string name="seed_recruitment_title">Seed Recruitment</string>
+    <string name="seed_recruitment_back_to_menu">Back to Menu</string>
+    <string name="seed_recruitment_cancel">Cancel</string>
+    <string name="seed_recruitment_message_sent">Message Sent</string>
+    <string name="seed_recruitment_confirm_title">Confirm Message Sent</string>
+    <string name="seed_recruitment_confirm_message">Please confirm that you have sent the recruitment message to %1$s</string>
+    <string name="seed_recruitment_confirm">Confirm</string>
+
+    <!-- User Management Screen -->
+    <string name="user_management_error">Error</string>
+    <string name="user_management_ok">OK</string>
+    <string name="user_management_reenroll">Re-enroll</string>
+    <string name="user_management_disable">Disable</string>
+    <string name="user_management_enable_biometric">Enable Biometric</string>
+    <string name="user_management_add_user_title">Add New User</string>
+    <string name="user_management_username_label">Username</string>
+    <string name="user_management_fullname_label">Full Name</string>
+    <string name="user_management_password_label">Password</string>
+    <string name="user_management_role_label">Role</string>
+    <string name="user_management_add_user">Add User</string>
+    <string name="user_management_cancel">Cancel</string>
+    <string name="user_management_delete_title">Delete User</string>
+    <string name="user_management_delete_message">Are you sure you want to delete user \"%1$s\" (@%2$s)? This action cannot be undone.</string>
+    <string name="user_management_delete">Delete</string>
+    <string name="user_management_enable">Enable</string>
+    <string name="user_management_disable_biometric">Disable Biometric</string>
+
+    <!-- Logout Button -->
+    <string name="logout_button_text">Logout</string>
+    <string name="logout_confirm_button">Logout</string>
+    <string name="logout_cancel_button">Cancel</string>
+
+    <!-- Staff Validation Screen -->
+    <string name="staff_validation_required">Staff Validation Required</string>
+    <string name="staff_validation_authenticate_fingerprint">Authenticate with Fingerprint</string>
+    <string name="staff_validation_use_password">Use Username &amp; Password</string>
+    <string name="staff_validation_cancel">Cancel</string>
+    <string name="staff_validation_login">Staff Login</string>
+    <string name="staff_validation_username">Username</string>
+    <string name="staff_validation_password">Password</string>
+    <string name="staff_validation_test_hint">Test credentials: admin/123 or staff/123</string>
+    <string name="staff_validation_invalid_credentials">Invalid username or password</string>
+    <string name="staff_validation_max_attempts">Maximum attempts exceeded. Please restart the application.</string>
+    <string name="staff_validation_no_staff">No staff users configured. Please use username and password.</string>
+    <string name="staff_validation_auth_failed">Authentication failed: %1$s</string>
+    <string name="staff_validation_auth_cancelled">Authentication cancelled</string>
+    <string name="staff_validation_replay_audio">Replay Audio</string>
+    <string name="staff_validation_title_auth">Staff Authentication</string>
+    <string name="staff_validation_subtitle_auth">Verify your identity</string>
+    <string name="staff_validation_login_button">Login</string>
+
+    <!-- Staff Instructions Screen -->
+    <string name="staff_instructions_give_tablet">Give the Tablet</string>
+    <string name="staff_instructions_give_tablet_desc">Hand the tablet to the participant along with headphones</string>
+    <string name="staff_instructions_provide_privacy">Provide Privacy</string>
+    <string name="staff_instructions_provide_privacy_desc">Take the participant to a private room where they can complete the survey comfortably and confidentially</string>
 </resources>

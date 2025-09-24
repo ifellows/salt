@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel // For viewModel() composable function
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -61,7 +62,9 @@ import com.dev.salt.ui.ActivityDetector
 import com.dev.salt.ui.LogoutButton
 import com.dev.salt.ui.ServerSettingsScreen
 import com.dev.salt.ui.UploadStatusScreen
+import com.dev.salt.ui.LanguageSettingsScreen
 import com.dev.salt.upload.SurveyUploadWorkManager
+import com.dev.salt.i18n.LanguageManager
 import android.util.Log
 // Import your screen Composables if they are in separate files
 // e.g., import com.dev.salt.ui.WelcomeScreen
@@ -89,6 +92,7 @@ object AppDestinations {
     const val LAB_COLLECTION = "lab_collection" // For lab sample collection
     const val STAFF_INSTRUCTION = "staff_instruction" // For staff instructions before giving tablet to participant
     const val SUBJECT_PAYMENT = "subject_payment" // For subject payment confirmation
+    const val LANGUAGE_SETTINGS = "language_settings" // For app language settings
 
     // Compatibility aliases for existing code
     const val WELCOME_SCREEN = WELCOME
@@ -112,6 +116,11 @@ val coroutineScope = rememberCoroutineScope()
 SurveyScreen(viewModel, coroutineScope)*/
 
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        // Apply the saved language preference
+        super.attachBaseContext(LanguageManager.wrapContext(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Get DAO instance once here to pass to the factory
@@ -120,7 +129,7 @@ class MainActivity : ComponentActivity() {
         val biometricAuthManager = BiometricAuthManagerFactory.create(applicationContext, userDao)
         val sessionManager = SessionManagerInstance.instance
         val surveyStateManager = SurveyStateManagerInstance.instance
-        val loginViewModelFactory = LoginViewModelFactory(userDao, biometricAuthManager, sessionManager)
+        val loginViewModelFactory = LoginViewModelFactory(applicationContext, userDao, biometricAuthManager, sessionManager)
         
         // Initialize upload work manager and schedule periodic retries
         val uploadWorkManager = SurveyUploadWorkManager(applicationContext)
@@ -453,6 +462,10 @@ class MainActivity : ComponentActivity() {
                             onBack = { navController.popBackStack() }
                         )
                     }
+
+                    composable(AppDestinations.LANGUAGE_SETTINGS) {
+                        LanguageSettingsScreen(navController = navController)
+                    }
                     
                     composable(AppDestinations.UPLOAD_STATUS_SCREEN) {
                         UploadStatusScreen(
@@ -509,7 +522,7 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.fillMaxSize(),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("Error: Survey not found", color = androidx.compose.ui.graphics.Color.Red)
+                                    Text(stringResource(R.string.survey_error_not_found), color = androidx.compose.ui.graphics.Color.Red)
                                 }
                             }
                             else -> {
@@ -649,7 +662,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun WelcomeScreen(navController: NavHostController) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Welcome to SALT") }) }
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.app_title_welcome)) }) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -659,10 +672,10 @@ fun WelcomeScreen(navController: NavHostController) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Welcome!", style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.menu_welcome), style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(32.dp))
             Button(onClick = { navController.navigate(AppDestinations.LOGIN_SCREEN) }) {
-                Text("Login")
+                Text(stringResource(R.string.login_button_login))
             }
             // You can add other buttons like "Register" or "Continue as Guest" if needed
         }
@@ -692,7 +705,7 @@ fun MenuScreen(
     Scaffold(
         topBar = { 
             TopAppBar(
-                title = { Text("Survey Staff Menu") },
+                title = { Text(stringResource(R.string.menu_staff_title)) },
                 actions = {
                     LogoutButton(
                         onLogout = onLogout,
@@ -710,7 +723,7 @@ fun MenuScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text("Survey Staff Area", style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.menu_staff_area), style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = {
@@ -718,7 +731,7 @@ fun MenuScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Start New Survey")
+                Text(stringResource(R.string.menu_start_survey))
             }
             
             // Show seed recruitment button if allowed
@@ -730,7 +743,7 @@ fun MenuScreen(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Recruit Previous Participant")
+                    Text(stringResource(R.string.menu_recruit_participant))
                 }
             }
             // Add other menu items
@@ -748,7 +761,7 @@ fun AdminDashboardScreen(
     Scaffold(
         topBar = { 
             TopAppBar(
-                title = { Text("Administrator Dashboard") },
+                title = { Text(stringResource(R.string.menu_admin_title)) },
                 actions = {
                     LogoutButton(
                         onLogout = onLogout,
@@ -766,27 +779,34 @@ fun AdminDashboardScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text("Admin Dashboard", style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.menu_admin_area), style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = { navController.navigate(AppDestinations.USER_MANAGEMENT_SCREEN) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Manage Users")
+                Text(stringResource(R.string.menu_manage_users))
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = { navController.navigate(AppDestinations.SERVER_SETTINGS_SCREEN) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Server Settings")
+                Text(stringResource(R.string.menu_server_settings))
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = { navController.navigate(AppDestinations.UPLOAD_STATUS_SCREEN) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Upload Status")
+                Text(stringResource(R.string.menu_upload_status))
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { navController.navigate(AppDestinations.LANGUAGE_SETTINGS) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Language Settings")
             }
             // Add other admin functions
         }

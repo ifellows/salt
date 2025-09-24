@@ -18,7 +18,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
+import com.dev.salt.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,7 +32,7 @@ fun StaffInstructionScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Staff Instructions") },
+                title = { Text(stringResource(R.string.staff_instructions_title)) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -47,7 +49,7 @@ fun StaffInstructionScreen(
         ) {
             // Header
             Text(
-                text = "Before Starting the Survey",
+                text = stringResource(R.string.staff_instructions_before),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -72,8 +74,8 @@ fun StaffInstructionScreen(
                     InstructionItem(
                         icon = Icons.Default.Tablet,
                         number = "1",
-                        title = "Give the Tablet",
-                        description = "Hand the tablet to the participant along with headphones"
+                        title = stringResource(R.string.staff_instructions_give_tablet),
+                        description = stringResource(R.string.staff_instructions_give_tablet_desc)
                     )
 
                     HorizontalDivider(
@@ -84,8 +86,8 @@ fun StaffInstructionScreen(
                     InstructionItem(
                         icon = Icons.Default.MeetingRoom,
                         number = "2",
-                        title = "Provide Privacy",
-                        description = "Take the participant to a private room where they can complete the survey comfortably and confidentially"
+                        title = stringResource(R.string.staff_instructions_provide_privacy),
+                        description = stringResource(R.string.staff_instructions_provide_privacy_desc)
                     )
                 }
             }
@@ -110,14 +112,13 @@ fun StaffInstructionScreen(
                     )
                     Column {
                         Text(
-                            text = "Important",
+                            text = stringResource(R.string.staff_instructions_important),
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF856404),
                             fontSize = 14.sp
                         )
                         Text(
-                            text = "The participant will complete the survey independently. " +
-                                  "They will be instructed to return the tablet to you when finished.",
+                            text = stringResource(R.string.staff_instructions_message),
                             color = Color(0xFF856404),
                             fontSize = 14.sp
                         )
@@ -138,7 +139,7 @@ fun StaffInstructionScreen(
                 )
             ) {
                 Text(
-                    text = "Continue",
+                    text = stringResource(R.string.common_continue),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )

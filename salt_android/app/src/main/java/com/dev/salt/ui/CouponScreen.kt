@@ -25,6 +25,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.GlobalScope
 import java.util.UUID
 import android.util.Log
+import androidx.compose.ui.res.stringResource
+import com.dev.salt.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +61,7 @@ fun CouponScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Survey Registration") },
+                title = { Text(stringResource(R.string.coupon_title)) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -80,14 +82,14 @@ fun CouponScreen(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
                 Text(
-                    text = "Syncing facility settings...",
+                    text = stringResource(R.string.coupon_syncing),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
             } else {
                 // Coupon question
                 Text(
-                    text = "Does this person have a coupon?",
+                    text = stringResource(R.string.coupon_question),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -105,7 +107,7 @@ fun CouponScreen(
                     )
                 ) {
                     Text(
-                        text = "Participation requires a valid coupon code. Please ask for assistance.",
+                        text = stringResource(R.string.coupon_required_message),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier.padding(16.dp)
@@ -125,7 +127,7 @@ fun CouponScreen(
                         containerColor = MaterialTheme.colorScheme.secondary
                     )
                 ) {
-                    Text("Back to Menu", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.coupon_back_to_menu), style = MaterialTheme.typography.titleMedium)
                 }
             }
             
@@ -142,7 +144,7 @@ fun CouponScreen(
                             .padding(end = 8.dp)
                             .height(56.dp)
                     ) {
-                        Text("Yes", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.common_yes), style = MaterialTheme.typography.titleMedium)
                     }
                     
                     Button(
@@ -196,7 +198,7 @@ fun CouponScreen(
                             containerColor = if (allowNonCoupon) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Text("No", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.common_no), style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }
@@ -206,7 +208,7 @@ fun CouponScreen(
                 Spacer(modifier = Modifier.height(32.dp))
                 
                 Text(
-                    text = "Enter Coupon Code",
+                    text = stringResource(R.string.coupon_enter_code),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
@@ -217,8 +219,8 @@ fun CouponScreen(
                         viewModel.setCouponCode(it.uppercase())
                         viewModel.clearError()
                     },
-                    label = { Text("Coupon Code") },
-                    placeholder = { Text("Enter 6-character code") },
+                    label = { Text(stringResource(R.string.coupon_code_label)) },
+                    placeholder = { Text(stringResource(R.string.coupon_code_placeholder)) },
                     isError = validationError != null,
                     supportingText = {
                         if (validationError != null) {
@@ -297,7 +299,7 @@ fun CouponScreen(
                             .padding(end = 8.dp)
                             .height(48.dp)
                     ) {
-                        Text("Back")
+                        Text(stringResource(R.string.common_back))
                     }
                     
                     Button(
@@ -354,7 +356,7 @@ fun CouponScreen(
                                 color = MaterialTheme.colorScheme.onPrimary
                             )
                         } else {
-                            Text("Continue")
+                            Text(stringResource(R.string.common_continue))
                         }
                     }
                 }

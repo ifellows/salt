@@ -12,6 +12,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.dev.salt.AppDestinations
+import androidx.compose.ui.res.stringResource
+import com.dev.salt.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,7 +25,7 @@ fun ContactConsentScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Future Participation") },
+                title = { Text(stringResource(R.string.contact_consent_title)) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -40,7 +42,7 @@ fun ContactConsentScreen(
         ) {
             Icon(
                 imageVector = Icons.Default.ContactPhone,
-                contentDescription = "Contact",
+                contentDescription = stringResource(R.string.cd_contact),
                 modifier = Modifier
                     .size(64.dp)
                     .padding(bottom = 24.dp),
@@ -48,7 +50,7 @@ fun ContactConsentScreen(
             )
             
             Text(
-                text = "Would you be willing to be contacted to participate in this survey in the future?",
+                text = stringResource(R.string.contact_consent_question),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -56,7 +58,7 @@ fun ContactConsentScreen(
             )
             
             Text(
-                text = "Your contact information will be kept confidential and used only for survey invitations.",
+                text = stringResource(R.string.contact_consent_privacy),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -74,7 +76,7 @@ fun ContactConsentScreen(
                     .padding(bottom = 16.dp)
             ) {
                 Text(
-                    "Yes, I'm interested",
+                    stringResource(R.string.contact_consent_yes),
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -91,7 +93,7 @@ fun ContactConsentScreen(
                     .height(56.dp)
             ) {
                 Text(
-                    "No, thank you",
+                    stringResource(R.string.contact_consent_no),
                     style = MaterialTheme.typography.titleMedium
                 )
             }

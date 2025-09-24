@@ -1,6 +1,7 @@
 package com.dev.salt.viewmodel
 
-import android.app.Application // Only needed if you don't inject UserDao and use AndroidViewModel as fallback
+import android.app.Application
+import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +38,7 @@ data class LoginResult(
 )
 
 class LoginViewModel(
+    private val context: Context,
     private val userDao: UserDao,
     private val biometricAuthManager: BiometricAuthManager,
     private val sessionManager: SessionManager = SessionManagerInstance.instance
@@ -55,7 +57,7 @@ class LoginViewModel(
 
     fun login(onLoginComplete: (LoginResult) -> Unit) {
         if (username.isBlank() || password.isBlank()) {
-            val result = LoginResult(success = false, errorMessage = "Username and password cannot be empty.")
+            val result = LoginResult(success = false, errorMessage = context.getString(com.dev.salt.R.string.login_error_empty))
             loginError = result.errorMessage // Update UI state
             onLoginComplete(result)
             return
@@ -92,16 +94,16 @@ class LoginViewModel(
                             LoginResult(success = true, role = role)
                         } else {
                             // Password does not match
-                            LoginResult(success = false, errorMessage = "Invalid password.")
+                            LoginResult(success = false, errorMessage = context.getString(com.dev.salt.R.string.login_error_invalid_password))
                         }
                     } else {
                         // User not found
-                        LoginResult(success = false, errorMessage = "Invalid username.")
+                        LoginResult(success = false, errorMessage = context.getString(com.dev.salt.R.string.login_error_invalid_username))
                     }
                 } catch (e: Exception) {
                     // Catch any other exceptions during the process (e.g., DB issues)
                     Log.e("LoginViewModel", "Exception during login process for user: $username", e)
-                    LoginResult(success = false, errorMessage = "An unexpected error occurred. Please try again.")
+                    LoginResult(success = false, errorMessage = context.getString(com.dev.salt.R.string.login_error_unexpected))
                 }
             }
 
@@ -140,7 +142,7 @@ class LoginViewModel(
      */
     fun authenticateWithBiometric(onLoginComplete: (LoginResult) -> Unit) {
         if (username.isBlank()) {
-            loginError = "Please enter username first"
+            loginError = context.getString(com.dev.salt.R.string.login_error_invalid_username)
             return
         }
 
@@ -187,8 +189,8 @@ class LoginViewModel(
                                                     val loginResult = LoginResult(success = true, role = role)
                                                     onLoginComplete(loginResult)
                                                 } else {
-                                                    loginError = "User not found"
-                                                    onLoginComplete(LoginResult(success = false, errorMessage = "User not found"))
+                                                    loginError = context.getString(com.dev.salt.R.string.login_error_user_not_found)
+                                                    onLoginComplete(LoginResult(success = false, errorMessage = context.getString(com.dev.salt.R.string.login_error_user_not_found)))
                                                 }
                                             }
                                         }
@@ -197,8 +199,8 @@ class LoginViewModel(
                                             onLoginComplete(LoginResult(success = false, errorMessage = authResult.message))
                                         }
                                         else -> {
-                                            loginError = "Biometric authentication failed"
-                                            onLoginComplete(LoginResult(success = false, errorMessage = "Biometric authentication failed"))
+                                            loginError = context.getString(com.dev.salt.R.string.login_error_biometric_failed)
+                                            onLoginComplete(LoginResult(success = false, errorMessage = context.getString(com.dev.salt.R.string.login_error_biometric_failed)))
                                         }
                                     }
                                 }
@@ -215,15 +217,15 @@ class LoginViewModel(
                         }
                         else -> {
                             isBiometricLoading = false
-                            loginError = "Biometric authentication not available"
-                            onLoginComplete(LoginResult(success = false, errorMessage = "Biometric authentication not available"))
+                            loginError = context.getString(com.dev.salt.R.string.login_error_biometric_unavailable)
+                            onLoginComplete(LoginResult(success = false, errorMessage = context.getString(com.dev.salt.R.string.login_error_biometric_unavailable)))
                         }
                     }
                 }
             } catch (e: Exception) {
                 isBiometricLoading = false
                 loginError = "Biometric authentication error: ${e.message}"
-                onLoginComplete(LoginResult(success = false, errorMessage = "Authentication error"))
+                onLoginComplete(LoginResult(success = false, errorMessage = context.getString(com.dev.salt.R.string.login_error_authentication)))
                 Log.e("LoginViewModel", "Biometric authentication error", e)
             }
         }
@@ -234,6 +236,7 @@ class LoginViewModel(
 // --- ViewModel Factory ---
 // This factory is needed to create LoginViewModel instances with the UserDao and BiometricAuthManager dependencies.
 class LoginViewModelFactory(
+    private val context: Context,
     private val userDao: UserDao,
     private val biometricAuthManager: BiometricAuthManager,
     private val sessionManager: SessionManager = SessionManagerInstance.instance
@@ -241,7 +244,7 @@ class LoginViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return LoginViewModel(userDao, biometricAuthManager, sessionManager) as T
+            return LoginViewModel(context, userDao, biometricAuthManager, sessionManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

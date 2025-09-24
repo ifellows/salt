@@ -17,6 +17,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import com.dev.salt.sync.SurveySyncManager
 import com.dev.salt.viewmodel.LoginViewModel
 import com.dev.salt.viewmodel.UserRole
@@ -74,14 +75,14 @@ fun LoginScreen(
                 showErrorDialog = false
                 loginViewModel.clearError() // Clear error in ViewModel
             },
-            title = { Text("Login Failed") },
-            text = { Text(loginError ?: "An unknown error occurred.") },
+            title = { Text(stringResource(R.string.login_failed_title)) },
+            text = { Text(loginError ?: stringResource(R.string.login_error_unexpected)) },
             confirmButton = {
                 TextButton(onClick = {
                     showErrorDialog = false
                     loginViewModel.clearError()
                 }) {
-                    Text("OK")
+                    Text(stringResource(R.string.common_ok))
                 }
             }
         )
@@ -89,7 +90,7 @@ fun LoginScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Login") })
+            TopAppBar(title = { Text(stringResource(R.string.login_title)) })
         }
     ) { paddingValues ->
         Column(
@@ -100,7 +101,7 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Please Log In", style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.login_subtitle), style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(24.dp))
 
             OutlinedTextField(
@@ -109,7 +110,7 @@ fun LoginScreen(
                     loginViewModel.username = it
                     loginViewModel.checkBiometricAvailability() // Check if biometric is available for this user
                 },
-                label = { Text("Username") },
+                label = { Text(stringResource(R.string.login_username)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -118,7 +119,7 @@ fun LoginScreen(
             OutlinedTextField(
                 value = loginViewModel.password,
                 onValueChange = { loginViewModel.password = it },
-                label = { Text("Password") },
+                label = { Text(stringResource(R.string.login_password)) },
                 singleLine = true,
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -153,7 +154,7 @@ fun LoginScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text("Login")
+                    Text(stringResource(R.string.login_button_login))
                 }
             }
             
@@ -185,7 +186,7 @@ fun LoginScreen(
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Login with Biometric")
+                        Text(stringResource(R.string.login_button_biometric))
                     }
                 }
             }

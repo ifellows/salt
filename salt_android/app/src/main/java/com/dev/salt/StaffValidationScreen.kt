@@ -29,6 +29,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.LaunchedEffect
 import android.media.MediaPlayer
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun StaffValidationScreen(
@@ -130,7 +131,7 @@ fun StaffValidationScreen(
             ) {
                 // Title
                 Text(
-                    text = "Staff Validation Required",
+                    text = stringResource(R.string.staff_validation_required),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF1976D2),
@@ -170,7 +171,7 @@ fun StaffValidationScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Replay Audio", fontSize = 14.sp)
+                        Text(stringResource(R.string.staff_validation_replay_audio), fontSize = 14.sp)
                     }
                 }
 
@@ -193,7 +194,7 @@ fun StaffValidationScreen(
                 // Attempts remaining
                 if (attemptsRemaining < 10) {
                     Text(
-                        text = "Attempts remaining: $attemptsRemaining",
+                        text = stringResource(R.string.staff_validation_attempts_remaining, attemptsRemaining),
                         fontSize = 14.sp,
                         color = if (attemptsRemaining <= 3) Color.Red else Color.Gray
                     )
@@ -214,13 +215,13 @@ fun StaffValidationScreen(
                                     .filter { it.role == "SURVEY_STAFF" || it.role == "ADMINISTRATOR" }
 
                                 if (staffUsers.isEmpty()) {
-                                    errorMessage = "No staff users configured. Please use username and password."
+                                    errorMessage = context.getString(R.string.staff_validation_no_staff)
                                     showPasswordDialog = true
                                 } else {
                                     // Use mock biometric prompt which auto-succeeds for testing
                                     biometricAuthManager.showBiometricPrompt(
-                                        title = "Staff Authentication",
-                                        subtitle = "Verify your identity"
+                                        title = context.getString(R.string.staff_validation_title_auth),
+                                        subtitle = context.getString(R.string.staff_validation_subtitle_auth)
                                     ) { result ->
                                         when (result) {
                                             is BiometricResult.Success -> {
@@ -231,13 +232,13 @@ fun StaffValidationScreen(
                                             is BiometricResult.Error -> {
                                                 attemptsRemaining--
                                                 errorMessage = if (attemptsRemaining <= 0) {
-                                                    "Maximum attempts exceeded. Please restart the application."
+                                                    context.getString(R.string.staff_validation_max_attempts)
                                                 } else {
-                                                    "Authentication failed: ${result.message}"
+                                                    context.getString(R.string.staff_validation_auth_failed, result.message)
                                                 }
                                             }
                                             else -> {
-                                                errorMessage = "Authentication cancelled"
+                                                errorMessage = context.getString(R.string.staff_validation_auth_cancelled)
                                             }
                                         }
                                     }
@@ -256,7 +257,7 @@ fun StaffValidationScreen(
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Authenticate with Fingerprint", fontSize = 16.sp)
+                        Text(stringResource(R.string.staff_validation_authenticate_fingerprint), fontSize = 16.sp)
                     }
 
                     // Password button
@@ -274,7 +275,7 @@ fun StaffValidationScreen(
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Use Username & Password", fontSize = 16.sp)
+                        Text(stringResource(R.string.staff_validation_use_password), fontSize = 16.sp)
                     }
 
                     // Cancel button
@@ -282,7 +283,7 @@ fun StaffValidationScreen(
                         onClick = onCancel,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Cancel", fontSize = 16.sp)
+                        Text(stringResource(R.string.staff_validation_cancel), fontSize = 16.sp)
                     }
                 }
             }
@@ -293,7 +294,7 @@ fun StaffValidationScreen(
     if (showPasswordDialog) {
         AlertDialog(
             onDismissRequest = { showPasswordDialog = false },
-            title = { Text("Staff Login") },
+            title = { Text(stringResource(R.string.staff_validation_login)) },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -301,7 +302,7 @@ fun StaffValidationScreen(
                     OutlinedTextField(
                         value = username,
                         onValueChange = { username = it },
-                        label = { Text("Username") },
+                        label = { Text(stringResource(R.string.staff_validation_username)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -309,7 +310,7 @@ fun StaffValidationScreen(
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("Password") },
+                        label = { Text(stringResource(R.string.staff_validation_password)) },
                         modifier = Modifier.fillMaxWidth(),
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -318,7 +319,7 @@ fun StaffValidationScreen(
 
                     // Show hint for testing
                     Text(
-                        text = "Test credentials: admin/123 or staff/123",
+                        text = stringResource(R.string.staff_validation_test_hint),
                         fontSize = 12.sp,
                         color = Color.Gray
                     )
@@ -348,10 +349,10 @@ fun StaffValidationScreen(
                             } else {
                                 attemptsRemaining--
                                 if (attemptsRemaining <= 0) {
-                                    errorMessage = "Maximum attempts exceeded. Please restart the application."
+                                    errorMessage = context.getString(R.string.staff_validation_max_attempts)
                                     showPasswordDialog = false
                                 } else {
-                                    errorMessage = "Invalid username or password"
+                                    errorMessage = context.getString(R.string.staff_validation_invalid_credentials)
                                 }
                                 password = ""
                             }
@@ -359,12 +360,12 @@ fun StaffValidationScreen(
                     },
                     enabled = username.isNotBlank() && password.isNotBlank() && attemptsRemaining > 0
                 ) {
-                    Text("Login")
+                    Text(stringResource(R.string.staff_validation_login_button))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showPasswordDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.staff_validation_cancel))
                 }
             }
         )

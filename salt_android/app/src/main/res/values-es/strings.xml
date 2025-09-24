@@ -1,0 +1,384 @@
+<resources>
+    <!-- App-level strings -->
+    <string name="app_name">SALT</string>
+    <string name="app_title_welcome">Bienvenido a SALT</string>
+
+    <!-- Template/Unused strings (required for build) -->
+    <string name="action_settings">Configuración</string>
+    <string name="first_fragment_label">Primer Fragmento</string>
+    <string name="second_fragment_label">Segundo Fragmento</string>
+    <string name="next">Siguiente</string>
+    <string name="previous">Anterior</string>
+    <string name="lorem_ipsum">Lorem ipsum dolor sit amet</string>
+
+    <!-- Common UI elements -->
+    <string name="common_ok">Aceptar</string>
+    <string name="common_cancel">Cancelar</string>
+    <string name="common_continue">Continuar</string>
+    <string name="common_back">Atrás</string>
+    <string name="common_next">Siguiente</string>
+    <string name="common_previous">Anterior</string>
+    <string name="common_save">Guardar</string>
+    <string name="common_delete">Eliminar</string>
+    <string name="common_add">Agregar</string>
+    <string name="common_edit">Editar</string>
+    <string name="common_refresh">Actualizar</string>
+    <string name="common_retry">Reintentar</string>
+    <string name="common_skip">Omitir</string>
+    <string name="common_confirm">Confirmar</string>
+    <string name="common_error">Error</string>
+    <string name="common_warning">Advertencia</string>
+    <string name="common_success">Éxito</string>
+    <string name="common_loading">Cargando…</string>
+    <string name="common_logout">Cerrar sesión</string>
+    <string name="common_exit">Salir</string>
+    <string name="common_replay">Reproducir</string>
+
+    <!-- Login/Authentication strings -->
+    <string name="login_title">Iniciar sesión</string>
+    <string name="login_subtitle">Por favor, inicie sesión</string>
+    <string name="login_username">Nombre de usuario</string>
+    <string name="login_password">Contraseña</string>
+    <string name="login_button_login">Iniciar sesión</string>
+    <string name="login_button_biometric">Iniciar sesión con biometría</string>
+    <string name="login_failed_title">Error de inicio de sesión</string>
+    <string name="login_error_empty">El nombre de usuario y la contraseña no pueden estar vacíos.</string>
+    <string name="login_error_invalid_password">Contraseña inválida.</string>
+    <string name="login_error_invalid_username">Nombre de usuario inválido.</string>
+    <string name="login_error_user_not_found">Usuario no encontrado</string>
+    <string name="login_error_invalid_credentials">Nombre de usuario o contraseña inválidos.</string>
+    <string name="login_error_unexpected">Ocurrió un error inesperado. Por favor, intente de nuevo.</string>
+    <string name="login_error_biometric_failed">Autenticación biométrica falló</string>
+    <string name="login_error_biometric_unavailable">Autenticación biométrica no disponible</string>
+    <string name="login_error_authentication">Error de autenticación</string>
+
+    <!-- Staff Validation strings -->
+    <string name="staff_validation_title">Validación del personal requerida</string>
+    <string name="staff_validation_dialog_title">Inicio de sesión del personal</string>
+    <string name="staff_validation_attempts_remaining">Intentos restantes: %1$d</string>
+    <string name="staff_validation_test_credentials">Credenciales de prueba: admin/123 o staff/123</string>
+    <string name="staff_validation_cancelled">Autenticación cancelada</string>
+    <string name="staff_validation_invalid">Nombre de usuario o contraseña inválidos</string>
+
+    <!-- Session Management strings -->
+    <string name="session_expiring_title">Sesión por expirar</string>
+    <string name="session_expiring_message">Su sesión expirará en:</string>
+    <string name="session_expiring_prompt">¿Desea extender su sesión?</string>
+    <string name="session_extend_button">Extender sesión</string>
+    <string name="session_expired_title">Sesión expirada</string>
+    <string name="session_expired_message">Su sesión ha expirado por razones de seguridad. Por favor, inicie sesión nuevamente para continuar.</string>
+    <string name="session_login_again">Iniciar sesión nuevamente</string>
+
+    <!-- Main Menu strings -->
+    <string name="menu_welcome">¡Bienvenido!</string>
+    <string name="menu_staff_title">Menú del personal de encuestas</string>
+    <string name="menu_staff_area">Área del personal de encuestas</string>
+    <string name="menu_admin_title">Panel de administración</string>
+    <string name="menu_admin_area">Panel de administración</string>
+    <string name="menu_start_survey">Iniciar nueva encuesta</string>
+    <string name="menu_recruit_participant">Reclutar participante anterior</string>
+    <string name="menu_manage_users">Administrar usuarios</string>
+    <string name="menu_server_settings">Configuración del servidor</string>
+    <string name="menu_upload_status">Estado de carga</string>
+
+    <!-- Logout strings -->
+    <string name="logout_confirm_title">Confirmar cierre de sesión</string>
+    <string name="logout_confirm_message">¿Está seguro de que desea cerrar sesión? Su sesión finalizará y deberá iniciar sesión nuevamente.</string>
+    <string name="logout_button">Cerrar sesión</string>
+
+    <!-- User Management strings -->
+    <string name="user_management_title">Administración de usuarios</string>
+    <string name="user_add_button">Agregar usuario</string>
+    <string name="user_delete_button">Eliminar usuario</string>
+    <string name="user_role_label">Rol:</string>
+    <string name="user_username_display">@%1$s</string>
+    <string name="user_biometric_enrolled">Inscrito: %1$s</string>
+    <string name="user_biometric_not_supported">Biometría no compatible</string>
+    <string name="user_biometric_enable">Habilitar</string>
+    <string name="user_biometric_disable">Deshabilitar</string>
+    <string name="user_biometric_disable_title">Deshabilitar biometría</string>
+
+    <!-- Add User Dialog -->
+    <string name="user_add_dialog_title">Agregar nuevo usuario</string>
+    <string name="user_add_username">Nombre de usuario</string>
+    <string name="user_add_fullname">Nombre completo</string>
+    <string name="user_add_password">Contraseña</string>
+    <string name="user_add_role">Rol</string>
+    <string name="user_add_button_add">Agregar usuario</string>
+
+    <!-- Delete User Dialog -->
+    <string name="user_delete_dialog_title">Eliminar usuario</string>
+    <string name="user_delete_button_delete">Eliminar</string>
+
+    <!-- Coupon/Survey Registration strings -->
+    <string name="coupon_title">Registro de encuesta</string>
+    <string name="coupon_syncing">Sincronizando configuración de la instalación…</string>
+    <string name="coupon_question">¿Esta persona tiene un cupón?</string>
+    <string name="coupon_no_coupon_message">La participación requiere un código de cupón válido. Por favor, solicite ayuda.</string>
+    <string name="coupon_enter_section">Ingresar código de cupón</string>
+    <string name="coupon_field_label">Código de cupón</string>
+    <string name="coupon_field_hint">Ingrese el código de 6 caracteres</string>
+    <string name="coupon_error_required">Se requiere cupón para participar</string>
+    <string name="coupon_error_length">El código del cupón debe tener %1$d caracteres</string>
+    <string name="coupon_error_invalid">Código de cupón inválido</string>
+    <string name="coupon_error_already_used">Este cupón ya ha sido utilizado</string>
+    <string name="coupon_error_not_issued">Este cupón aún no ha sido emitido</string>
+    <string name="coupon_error_validation">Error al validar el cupón. Por favor, intente de nuevo.</string>
+
+    <!-- Language Selection strings -->
+    <string name="language_title">Seleccionar idioma</string>
+    <string name="language_instruction_english">Por favor seleccione el idioma preferido del participante</string>
+    <string name="language_instruction_spanish">Por favor seleccione su idioma preferido para la encuesta</string>
+
+    <!-- Staff Instructions strings -->
+    <string name="staff_instructions_title">Instrucciones para el personal</string>
+    <string name="staff_instructions_before">Antes de comenzar la encuesta</string>
+    <string name="staff_instructions_important">Importante</string>
+    <string name="staff_instructions_message">El participante completará la encuesta de forma independiente. Por favor, asegure la privacidad y entregue el dispositivo al participante después de esta pantalla.</string>
+
+    <!-- Survey Screen strings -->
+    <string name="survey_title">Encuesta SALT</string>
+    <string name="survey_error_not_found">Error: Encuesta no encontrada</string>
+    <string name="survey_validation_error_default">Respuesta inválida</string>
+
+    <!-- Contact Information strings -->
+    <string name="contact_consent_title">Participación futura</string>
+    <string name="contact_consent_question">¿Estaría dispuesto a ser contactado para participar en esta encuesta en el futuro?</string>
+    <string name="contact_consent_privacy">Su información de contacto se mantendrá confidencial y se utilizará solo para invitaciones a encuestas.</string>
+    <string name="contact_info_title">Información de contacto</string>
+    <string name="contact_info_instruction">Por favor, proporcione su información de contacto</string>
+    <string name="contact_info_optional">Puede proporcionar un número de teléfono o una dirección de correo electrónico</string>
+    <string name="contact_info_phone">Número de teléfono</string>
+    <string name="contact_info_email">Dirección de correo electrónico</string>
+    <string name="contact_info_phone_hint">Ingrese su número de teléfono</string>
+    <string name="contact_info_email_hint">Ingrese su dirección de correo electrónico</string>
+
+    <!-- Fingerprint Screening strings -->
+    <string name="fingerprint_title">Detección de huellas dactilares</string>
+    <string name="fingerprint_verification_required">Verificación de huella dactilar requerida</string>
+    <string name="fingerprint_instruction">Por favor, siga las instrucciones a continuación para capturar la huella dactilar del participante</string>
+    <string name="fingerprint_skip_testing">Omitir (solo pruebas)</string>
+    <string name="fingerprint_return_menu">Regresar al menú</string>
+    <string name="fingerprint_error_init">Error al inicializar el dispositivo de huellas dactilares</string>
+    <string name="fingerprint_error_capture">Error al capturar la huella dactilar. Por favor, intente de nuevo.</string>
+
+    <!-- Payment strings -->
+    <string name="payment_title">Confirmación de pago</string>
+    <string name="payment_amount">%1$s%2$.2f</string>
+    <string name="payment_confirm">Confirmar pago recibido</string>
+    <string name="payment_skip">Continuar sin pago</string>
+
+    <!-- Lab Collection strings -->
+    <string name="lab_title">Recolección de muestras biológicas</string>
+    <string name="lab_subject_id">ID del sujeto</string>
+    <string name="lab_instructions">Instrucciones</string>
+    <string name="lab_instructions_text">1. Recolecte muestras biológicas según el protocolo\n2. Etiquete cada muestra con el ID del sujeto mostrado arriba\n3. Almacene las muestras según las pautas\n4. Confirme la recolección o indique si el sujeto se negó</string>
+    <string name="lab_refused">El sujeto se negó</string>
+    <string name="lab_collected">Muestras recolectadas y etiquetadas</string>
+
+    <!-- Survey Completion strings -->
+    <string name="completion_title">Encuesta completada</string>
+    <string name="completion_thank_you">¡Gracias!</string>
+    <string name="completion_message">La encuesta se ha completado exitosamente.</string>
+    <string name="completion_coupons_title">Cupones de referencia</string>
+    <string name="completion_coupons_instruction">Por favor, proporcione estos %1$d cupones al participante:</string>
+    <string name="completion_coupon_label">Cupón %1$d</string>
+    <string name="completion_coupons_usage">Cada cupón se puede usar una vez para participar en la encuesta</string>
+    <string name="completion_continue_payment">Continuar al pago</string>
+
+    <!-- Server Settings strings -->
+    <string name="server_settings_title">Configuración del servidor</string>
+    <string name="server_settings_config_title">Configuración del servidor de carga</string>
+    <string name="server_settings_url">URL del servidor</string>
+    <string name="server_settings_url_hint">https://su-servidor.com/api/surveys</string>
+    <string name="server_settings_api_key">Clave API (Opcional)</string>
+    <string name="server_settings_api_key_hint">Token de portador o clave API</string>
+    <string name="server_settings_test">Probar conexión</string>
+    <string name="server_settings_save">Guardar configuración</string>
+    <string name="server_settings_help_title">Ayuda de configuración</string>
+    <string name="server_settings_help_text">1. Contacte a su administrador del sistema para obtener la URL del servidor y la clave API\n2. La URL del servidor debe apuntar a su servidor de administración SALT\n3. La clave API es opcional pero recomendada para la seguridad\n4. Pruebe la conexión antes de guardar\n5. Todas las cargas de encuestas utilizarán esta configuración</string>
+
+    <!-- Upload Status strings -->
+    <string name="upload_status_title">Estado de carga</string>
+    <string name="upload_details_title">Detalles de carga de encuesta</string>
+    <string name="upload_no_surveys">No hay encuestas para cargar</string>
+    <string name="upload_statistics_title">Estadísticas de carga</string>
+    <string name="upload_survey_id">Encuesta: %1$s…</string>
+    <string name="upload_status">Estado: %1$s</string>
+    <string name="upload_last_attempt">Último intento: %1$s</string>
+    <string name="upload_attempts">Intentos: %1$d</string>
+    <string name="upload_error">Error: %1$s</string>
+    <string name="upload_retry">Reintentar carga</string>
+    <string name="upload_retrying">Reintentando…</string>
+    <string name="upload_retry_all">Reintentar todo</string>
+    <string name="upload_retry_failed">Reintento falló: %1$s</string>
+
+    <!-- Seed Recruitment strings -->
+    <string name="recruitment_title">Reclutamiento inicial</string>
+    <string name="recruitment_back_menu">Volver al menú</string>
+    <string name="recruitment_contact_info">Información de contacto</string>
+    <string name="recruitment_contact_type">Tipo: %1$s</string>
+    <string name="recruitment_contact_type_phone">Número de teléfono</string>
+    <string name="recruitment_contact_type_email">Correo electrónico</string>
+    <string name="recruitment_copy_message">Copiar mensaje</string>
+    <string name="recruitment_message_copied">✓ Mensaje copiado al portapapeles</string>
+    <string name="recruitment_coupon_code">Código de cupón</string>
+    <string name="recruitment_send_question">¿Envió el mensaje de reclutamiento?</string>
+    <string name="recruitment_message_sent">Mensaje enviado</string>
+    <string name="recruitment_confirm_dialog_title">Confirmar mensaje enviado</string>
+    <string name="recruitment_confirm_message">Por favor, confirme que ha enviado el mensaje de reclutamiento a %1$s</string>
+    <string name="recruitment_success">✓ Se ha enviado el mensaje de reclutamiento</string>
+    <string name="recruitment_no_participants">No se encontraron participantes elegibles para reclutamiento en este momento.</string>
+    <string name="recruitment_error">Error al cargar datos de reclutamiento: %1$s</string>
+
+    <!-- Content Descriptions (for accessibility) -->
+    <string name="cd_add_user">Agregar usuario</string>
+    <string name="cd_delete_user">Eliminar usuario</string>
+    <string name="cd_dropdown">Desplegable</string>
+    <string name="cd_biometric">Biométrico</string>
+    <string name="cd_back">Atrás</string>
+    <string name="cd_refresh">Actualizar</string>
+    <string name="cd_exit">Salir</string>
+    <string name="cd_replay">Reproducir</string>
+    <string name="cd_warning">Advertencia</string>
+    <string name="cd_contact">Contacto</string>
+    <string name="cd_fingerprint">Huella dactilar</string>
+    <string name="cd_payment">Pago</string>
+    <string name="cd_lab">Laboratorio</string>
+    <string name="cd_success">Éxito</string>
+    <string name="cd_logout">Cerrar sesión</string>
+    <string name="cd_copy">Copiar mensaje</string>
+    <string name="cd_retry">Reintentar carga</string>
+
+    <!-- Common buttons -->
+    <string name="common_yes">Sí</string>
+    <string name="common_no">No</string>
+
+    <!-- Contact Consent Screen -->
+    <string name="contact_consent_yes">Sí, estoy interesado</string>
+    <string name="contact_consent_no">No, gracias</string>
+
+    <!-- Coupon Screen -->
+    <string name="coupon_required_message">La participación requiere un código de cupón válido. Por favor, solicite ayuda.</string>
+    <string name="coupon_back_to_menu">Volver al menú</string>
+    <string name="coupon_enter_code">Ingrese el código de cupón</string>
+    <string name="coupon_code_label">Código de cupón</string>
+    <string name="coupon_code_placeholder">Ingrese código de 6 caracteres</string>
+
+    <!-- Coupon Issued Screen -->
+    <string name="coupon_issued_title">Encuesta completada</string>
+    <string name="coupon_issued_thank_you">¡Gracias!</string>
+    <string name="coupon_issued_message">La encuesta se ha completado exitosamente.</string>
+    <string name="coupon_issued_referral_title">Cupones de referencia</string>
+    <string name="coupon_issued_instructions">Por favor, proporcione estos %1$d cupones al participante:</string>
+    <string name="coupon_issued_number">Cupón %1$d</string>
+    <string name="coupon_issued_usage">Cada cupón se puede usar una vez para participar en la encuesta</string>
+    <string name="coupon_issued_continue_payment">Continuar al pago</string>
+
+    <!-- Fingerprint Screen -->
+    <string name="fingerprint_instructions">Por favor, siga las instrucciones a continuación para capturar la huella dactilar del participante</string>
+    <string name="fingerprint_step1">Asegúrese de que el dispositivo SecuGen esté conectado y la luz verde esté encendida</string>
+    <string name="fingerprint_step2">Pídale al participante que coloque su dedo índice derecho en el escáner</string>
+    <string name="fingerprint_step3">Presione suavemente y mantenga presionado hasta que se complete el escaneo</string>
+    <string name="fingerprint_step4">El dispositivo emitirá un pitido cuando el escaneo sea exitoso</string>
+    <string name="fingerprint_device_init_failed">Error al inicializar el dispositivo de huella dactilar</string>
+    <string name="fingerprint_capture_failed">Error al capturar la huella dactilar. Por favor, inténtelo de nuevo.</string>
+    <string name="fingerprint_capture_button">Capturar huella dactilar</string>
+    <string name="fingerprint_duplicate_title">Inscripción duplicada detectada</string>
+    <string name="fingerprint_duplicate_message">Este participante ya ha sido inscrito en una encuesta recientemente.</string>
+    <string name="fingerprint_reenrollment_days">No son elegibles para reinscripción por otros %1$d días.</string>
+    <string name="fingerprint_return_to_menu">Volver al menú</string>
+
+    <!-- Language Selection Screen -->
+    <string name="language_selection_title">Seleccionar idioma</string>
+    <string name="language_selection_prompt">Por favor seleccione el idioma preferido del participante</string>
+    <string name="language_selection_prompt_spanish">Por favor seleccione su idioma preferido para la encuesta</string>
+
+    <!-- Subject Payment Screen -->
+    <string name="payment_replay_audio">Reproducir audio</string>
+    <string name="payment_uploading">Cargando encuesta...</string>
+    <string name="payment_upload_success">Encuesta cargada exitosamente</string>
+    <string name="payment_upload_failed">Carga fallida - se reintentará en segundo plano</string>
+    <string name="payment_upload_error">Error durante la carga - se reintentará en segundo plano</string>
+    <string name="payment_confirm_received">Confirmar pago recibido</string>
+    <string name="payment_continue_without">Continuar sin pago</string>
+    <string name="payment_amount_label">Monto del pago</string>
+    <string name="payment_confirmation_instruction">Por favor confirme que ha recibido el pago usando su huella dactilar</string>
+
+    <!-- Contact Info Screen -->
+    <string name="contact_info_phone_label">Número de teléfono</string>
+    <string name="contact_info_email_label">Dirección de correo electrónico</string>
+    <string name="contact_info_phone_placeholder">Ingrese su número de teléfono</string>
+    <string name="contact_info_email_placeholder">Ingrese su dirección de correo electrónico</string>
+    <string name="contact_info_skip">Omitir</string>
+
+    <!-- Language Settings Screen -->
+    <string name="language_settings_title">Configuración de idioma</string>
+    <string name="language_settings_changed_title">Idioma cambiado</string>
+    <string name="language_settings_restart_message">La aplicación necesita reiniciarse para aplicar el cambio de idioma. ¿Desea reiniciar ahora?</string>
+    <string name="language_settings_restart_now">Reiniciar ahora</string>
+    <string name="language_settings_later">Más tarde</string>
+
+    <!-- Server Settings Screen -->
+    <string name="server_settings_url_label">URL del servidor</string>
+    <string name="server_settings_api_key_label">Clave API (Opcional)</string>
+    <string name="server_settings_api_key_placeholder">Token Bearer o clave API</string>
+
+    <!-- Seed Recruitment Screen -->
+    <string name="seed_recruitment_title">Reclutamiento semilla</string>
+    <string name="seed_recruitment_back_to_menu">Volver al menú</string>
+    <string name="seed_recruitment_cancel">Cancelar</string>
+    <string name="seed_recruitment_message_sent">Mensaje enviado</string>
+    <string name="seed_recruitment_confirm_title">Confirmar mensaje enviado</string>
+    <string name="seed_recruitment_confirm_message">Por favor confirme que ha enviado el mensaje de reclutamiento a %1$s</string>
+    <string name="seed_recruitment_confirm">Confirmar</string>
+
+    <!-- User Management Screen -->
+    <string name="user_management_error">Error</string>
+    <string name="user_management_ok">OK</string>
+    <string name="user_management_reenroll">Reinscribir</string>
+    <string name="user_management_disable">Desactivar</string>
+    <string name="user_management_enable_biometric">Habilitar biométrico</string>
+    <string name="user_management_add_user_title">Agregar nuevo usuario</string>
+    <string name="user_management_username_label">Nombre de usuario</string>
+    <string name="user_management_fullname_label">Nombre completo</string>
+    <string name="user_management_password_label">Contraseña</string>
+    <string name="user_management_role_label">Rol</string>
+    <string name="user_management_add_user">Agregar usuario</string>
+    <string name="user_management_cancel">Cancelar</string>
+    <string name="user_management_delete_title">Eliminar usuario</string>
+    <string name="user_management_delete_message">¿Está seguro de que desea eliminar al usuario \"%1$s\" (@%2$s)? Esta acción no se puede deshacer.</string>
+    <string name="user_management_delete">Eliminar</string>
+    <string name="user_management_enable">Habilitar</string>
+    <string name="user_management_disable_biometric">Desactivar biométrico</string>
+
+    <!-- Logout Button -->
+    <string name="logout_button_text">Cerrar sesión</string>
+    <string name="logout_confirm_button">Cerrar sesión</string>
+    <string name="logout_cancel_button">Cancelar</string>
+
+    <!-- Staff Validation Screen -->
+    <string name="staff_validation_required">Se Requiere Validación del Personal</string>
+    <string name="staff_validation_authenticate_fingerprint">Autenticar con Huella Digital</string>
+    <string name="staff_validation_use_password">Usar Nombre de Usuario y Contraseña</string>
+    <string name="staff_validation_cancel">Cancelar</string>
+    <string name="staff_validation_login">Inicio de Sesión del Personal</string>
+    <string name="staff_validation_username">Nombre de usuario</string>
+    <string name="staff_validation_password">Contraseña</string>
+    <string name="staff_validation_test_hint">Credenciales de prueba: admin/123 o staff/123</string>
+    <string name="staff_validation_invalid_credentials">Nombre de usuario o contraseña inválidos</string>
+    <string name="staff_validation_max_attempts">Se excedió el número máximo de intentos. Por favor reinicie la aplicación.</string>
+    <string name="staff_validation_no_staff">No hay usuarios del personal configurados. Por favor use nombre de usuario y contraseña.</string>
+    <string name="staff_validation_auth_failed">Autenticación fallida: %1$s</string>
+    <string name="staff_validation_auth_cancelled">Autenticación cancelada</string>
+    <string name="staff_validation_replay_audio">Reproducir Audio</string>
+    <string name="staff_validation_title_auth">Autenticación del Personal</string>
+    <string name="staff_validation_subtitle_auth">Verifique su identidad</string>
+    <string name="staff_validation_login_button">Iniciar sesión</string>
+
+    <!-- Staff Instructions Screen -->
+    <string name="staff_instructions_give_tablet">Entregar la Tableta</string>
+    <string name="staff_instructions_give_tablet_desc">Entregue la tableta al participante junto con los audífonos</string>
+    <string name="staff_instructions_provide_privacy">Proporcionar Privacidad</string>
+    <string name="staff_instructions_provide_privacy_desc">Lleve al participante a una habitación privada donde pueda completar la encuesta cómodamente y confidencialmente</string>
+</resources>

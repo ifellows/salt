@@ -29,6 +29,8 @@ import com.dev.salt.upload.UploadResult
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.ui.res.stringResource
+import com.dev.salt.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,7 +136,7 @@ fun SubjectPaymentScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Payment Confirmation") },
+                title = { Text(stringResource(R.string.payment_title)) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -152,7 +154,7 @@ fun SubjectPaymentScreen(
             // Payment icon
             Icon(
                 imageVector = Icons.Default.AttachMoney,
-                contentDescription = "Payment",
+                contentDescription = stringResource(R.string.cd_payment),
                 modifier = Modifier.size(80.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
@@ -186,11 +188,11 @@ fun SubjectPaymentScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Replay",
+                        contentDescription = stringResource(R.string.cd_replay),
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Replay Audio", fontSize = 14.sp)
+                    Text(stringResource(R.string.payment_replay_audio), fontSize = 14.sp)
                 }
             }
 
@@ -300,6 +302,14 @@ fun SubjectPaymentScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             // Confirm payment button
+            // Get error and upload messages outside onClick lambda
+            val deviceInitError = stringResource(R.string.fingerprint_device_init_failed)
+            val captureFailedError = stringResource(R.string.fingerprint_capture_failed)
+            val uploadingMsg = stringResource(R.string.payment_uploading)
+            val uploadSuccessMsg = stringResource(R.string.payment_upload_success)
+            val uploadFailedMsg = stringResource(R.string.payment_upload_failed)
+            val uploadErrorMsg = stringResource(R.string.payment_upload_error)
+
             Button(
                 onClick = {
                     scope.launch {
@@ -308,7 +318,7 @@ fun SubjectPaymentScreen(
 
                         // Initialize fingerprint device
                         if (!fingerprintManager.initializeDevice()) {
-                            errorMessage = "Failed to initialize fingerprint device"
+                            errorMessage = deviceInitError
                             isCapturingFingerprint = false
                             return@launch
                         }
@@ -317,7 +327,7 @@ fun SubjectPaymentScreen(
                         val fingerprintHash = fingerprintManager.captureFingerprint()
 
                         if (fingerprintHash == null) {
-                            errorMessage = "Failed to capture fingerprint. Please try again."
+                            errorMessage = captureFailedError
                             isCapturingFingerprint = false
                             fingerprintManager.closeDevice()
                             return@launch
@@ -340,7 +350,7 @@ fun SubjectPaymentScreen(
 
                         // Upload survey after payment confirmation
                         isUploading = true
-                        uploadMessage = "Uploading survey..."
+                        uploadMessage = uploadingMsg
                         try {
                             Log.i("SubjectPaymentScreen", "Starting upload for survey: $surveyId")
                             val uploadManager = SurveyUploadManager(context, database)
@@ -349,11 +359,11 @@ fun SubjectPaymentScreen(
                             when (uploadResult) {
                                 is UploadResult.Success -> {
                                     Log.i("SubjectPaymentScreen", "Survey uploaded successfully: $surveyId")
-                                    uploadMessage = "Survey uploaded successfully"
+                                    uploadMessage = uploadSuccessMsg
                                 }
                                 else -> {
                                     Log.e("SubjectPaymentScreen", "Upload failed: $uploadResult")
-                                    uploadMessage = "Upload failed - will retry in background"
+                                    uploadMessage = uploadFailedMsg
                                     // Schedule retry if failed
                                     val uploadWorkManager = SurveyUploadWorkManager(context)
                                     uploadWorkManager.scheduleImmediateRetry(surveyId)
@@ -361,7 +371,7 @@ fun SubjectPaymentScreen(
                             }
                         } catch (e: Exception) {
                             Log.e("SubjectPaymentScreen", "Error uploading survey", e)
-                            uploadMessage = "Error during upload - will retry in background"
+                            uploadMessage = uploadErrorMsg
                         } finally {
                             isUploading = false
                             // Navigate to menu after a short delay to show the message
@@ -396,7 +406,7 @@ fun SubjectPaymentScreen(
                             contentDescription = null
                         )
                         Text(
-                            text = "Confirm Payment Received",
+                            text = stringResource(R.string.payment_confirm_received),
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
@@ -405,12 +415,18 @@ fun SubjectPaymentScreen(
 
             // Skip button if payment is None
             if (facilityConfig?.subjectPaymentType == "None") {
+                // Get upload messages outside onClick lambda
+                val skipUploadingMsg = stringResource(R.string.payment_uploading)
+                val skipUploadSuccessMsg = stringResource(R.string.payment_upload_success)
+                val skipUploadFailedMsg = stringResource(R.string.payment_upload_failed)
+                val skipUploadErrorMsg = stringResource(R.string.payment_upload_error)
+
                 OutlinedButton(
                     onClick = {
                         scope.launch {
                             // Upload survey without payment confirmation
                             isUploading = true
-                            uploadMessage = "Uploading survey..."
+                            uploadMessage = skipUploadingMsg
                             try {
                                 Log.i("SubjectPaymentScreen", "Starting upload for survey: $surveyId")
                                 val uploadManager = SurveyUploadManager(context, database)
@@ -419,11 +435,11 @@ fun SubjectPaymentScreen(
                                 when (uploadResult) {
                                     is UploadResult.Success -> {
                                         Log.i("SubjectPaymentScreen", "Survey uploaded successfully: $surveyId")
-                                        uploadMessage = "Survey uploaded successfully"
+                                        uploadMessage = skipUploadSuccessMsg
                                     }
                                     else -> {
                                         Log.e("SubjectPaymentScreen", "Upload failed: $uploadResult")
-                                        uploadMessage = "Upload failed - will retry in background"
+                                        uploadMessage = skipUploadFailedMsg
                                         // Schedule retry if failed
                                         val uploadWorkManager = SurveyUploadWorkManager(context)
                                         uploadWorkManager.scheduleImmediateRetry(surveyId)
@@ -431,7 +447,7 @@ fun SubjectPaymentScreen(
                                 }
                             } catch (e: Exception) {
                                 Log.e("SubjectPaymentScreen", "Error uploading survey", e)
-                                uploadMessage = "Error during upload - will retry in background"
+                                uploadMessage = skipUploadErrorMsg
                             } finally {
                                 isUploading = false
                                 // Navigate to menu after a short delay to show the message
@@ -448,7 +464,7 @@ fun SubjectPaymentScreen(
                         .height(56.dp)
                 ) {
                     Text(
-                        text = "Continue Without Payment",
+                        text = stringResource(R.string.payment_continue_without),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -457,7 +473,6 @@ fun SubjectPaymentScreen(
     }
 }
 
-// Helper functions for multilingual support
 private fun getPaymentAmountLabel(language: String): String {
     return when (language) {
         "es" -> "Monto del Pago"

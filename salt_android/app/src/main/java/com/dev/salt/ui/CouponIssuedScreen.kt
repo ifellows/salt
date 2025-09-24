@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.dev.salt.AppDestinations
 import android.util.Log
+import androidx.compose.ui.res.stringResource
+import com.dev.salt.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +37,7 @@ fun CouponIssuedScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Survey Complete") },
+                title = { Text(stringResource(R.string.coupon_issued_title)) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -56,21 +58,21 @@ fun CouponIssuedScreen(
             // Success icon
             Icon(
                 imageVector = Icons.Default.CheckCircle,
-                contentDescription = "Success",
+                contentDescription = stringResource(R.string.cd_success),
                 modifier = Modifier.size(80.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
             
             // Thank you message
             Text(
-                text = "Thank You!",
+                text = stringResource(R.string.coupon_issued_thank_you),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
             
             Text(
-                text = "The survey has been completed successfully.",
+                text = stringResource(R.string.coupon_issued_message),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
             )
@@ -91,13 +93,13 @@ fun CouponIssuedScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
-                            text = "Referral Coupons",
+                            text = stringResource(R.string.coupon_issued_referral_title),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold
                         )
                         
                         Text(
-                            text = "Please provide these ${generatedCoupons.size} coupons to the participant:",
+                            text = stringResource(R.string.coupon_issued_instructions, generatedCoupons.size),
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center
                         )
@@ -109,7 +111,7 @@ fun CouponIssuedScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    text = "Coupon ${index + 1}",
+                                    text = stringResource(R.string.coupon_issued_number, index + 1),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
                                     modifier = Modifier.padding(bottom = 4.dp)
@@ -143,7 +145,7 @@ fun CouponIssuedScreen(
                         }
                         
                         Text(
-                            text = "Each coupon can be used once for survey participation",
+                            text = stringResource(R.string.coupon_issued_usage),
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
@@ -171,7 +173,7 @@ fun CouponIssuedScreen(
                     .height(56.dp)
             ) {
                 Text(
-                    text = "Continue to Payment",
+                    text = stringResource(R.string.coupon_issued_continue_payment),
                     style = MaterialTheme.typography.titleMedium
                 )
             }

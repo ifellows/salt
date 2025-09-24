@@ -14,6 +14,8 @@ import androidx.navigation.NavController
 import com.dev.salt.AppDestinations
 import com.dev.salt.data.SurveyDatabase
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.dev.salt.R
 
 data class LanguageOption(
     val code: String
@@ -65,7 +67,7 @@ fun LanguageSelectionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Select Language") }
+                title = { Text(stringResource(R.string.language_selection_title)) }
             )
         }
     ) { paddingValues ->
@@ -77,14 +79,14 @@ fun LanguageSelectionScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Please select the participant's preferred language",
+                text = stringResource(R.string.language_selection_prompt),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             
             Text(
-                text = "Por favor seleccione su idioma preferido para la encuesta",
+                text = stringResource(R.string.language_selection_prompt_spanish),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -177,7 +179,7 @@ fun LanguageSelectionScreen(
                         .height(56.dp)
                 ) {
                     Text(
-                        text = "Continue",
+                        text = stringResource(R.string.common_continue),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
