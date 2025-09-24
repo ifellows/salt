@@ -20,6 +20,7 @@ import com.dev.salt.PasswordUtils.hashPasswordWithNewSalt
 import com.dev.salt.data.Coupon
 import com.dev.salt.data.CouponStatus
 import net.sqlcipher.database.SQLiteDatabase
+import com.dev.salt.util.EmulatorDetector
 
 class SurveyApplication : Application() {
     private val applicationScope = CoroutineScope(Dispatchers.Default)
@@ -44,6 +45,14 @@ class SurveyApplication : Application() {
         val dao = database.surveyDao()
         val userDao = database.userDao() // <-- Get the UserDao
 
+        // Determine the default server URL based on whether we're on emulator or real device
+        val defaultServerUrl = if (EmulatorDetector.isEmulator()) {
+            "http://10.0.2.2:3000"
+        } else {
+            "http://192.168.1.137:3000"
+        }
+        Log.d("SurveyApplication", "Using default server URL: $defaultServerUrl (Emulator: ${EmulatorDetector.isEmulator()})")
+
         // --- Populate Users ---
         // Check if users are already populated (optional, but good practice)
         if (userDao.getAllUsers().isEmpty()) {
@@ -59,7 +68,7 @@ class SurveyApplication : Application() {
                 fullName = "Administrator User",
                 role = "ADMINISTRATOR", // Consistent with your UserRole enum or string constants
                 // Default server configuration for testing
-                uploadServerUrl = "http://10.0.2.2:3000",
+                uploadServerUrl = defaultServerUrl,
                 uploadApiKey = "fac_b83d45ae08113b380154e6134fa733a7fa945097983a24adee35d1350818ddbd"
             )
             val staffUser = User(
@@ -79,7 +88,7 @@ class SurveyApplication : Application() {
                 if (admin.uploadServerUrl.isNullOrBlank() || admin.uploadApiKey.isNullOrBlank()) {
                     userDao.updateUserServerConfig(
                         admin.userName,
-                        "http://10.0.2.2:3000",
+                        defaultServerUrl,
                         "fac_b83d45ae08113b380154e6134fa733a7fa945097983a24adee35d1350818ddbd"
                     )
                     Log.d("SurveyApplication", "Updated admin user '${admin.userName}' with default server config")

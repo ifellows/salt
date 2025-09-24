@@ -233,10 +233,34 @@ data class SubjectFingerprint(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     @ColumnInfo(name = "survey_id") val surveyId: String,
-    @ColumnInfo(name = "fingerprint_hash") val fingerprintHash: String,
+    @ColumnInfo(name = "fingerprint_template", typeAffinity = ColumnInfo.BLOB) val fingerprintTemplate: ByteArray,
     @ColumnInfo(name = "enrollment_date") val enrollmentDate: Long,
     @ColumnInfo(name = "facility_id") val facilityId: Int? = null
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as SubjectFingerprint
+
+        if (id != other.id) return false
+        if (surveyId != other.surveyId) return false
+        if (!fingerprintTemplate.contentEquals(other.fingerprintTemplate)) return false
+        if (enrollmentDate != other.enrollmentDate) return false
+        if (facilityId != other.facilityId) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = id
+        result = 31 * result + surveyId.hashCode()
+        result = 31 * result + fingerprintTemplate.contentHashCode()
+        result = 31 * result + enrollmentDate.hashCode()
+        result = 31 * result + (facilityId ?: 0)
+        return result
+    }
+}
 
 enum class CouponStatus {
     UNUSED,
@@ -534,16 +558,16 @@ interface SeedRecruitmentDao {
 interface SubjectFingerprintDao {
     @Insert
     fun insertFingerprint(fingerprint: SubjectFingerprint): Long
-    
-    @Query("SELECT * FROM subject_fingerprints WHERE fingerprint_hash = :hash AND enrollment_date > :minDate ORDER BY enrollment_date DESC LIMIT 1")
-    fun findRecentFingerprint(hash: String, minDate: Long): SubjectFingerprint?
-    
+
+    @Query("SELECT * FROM subject_fingerprints WHERE enrollment_date > :minDate ORDER BY enrollment_date DESC")
+    fun getRecentFingerprints(minDate: Long): List<SubjectFingerprint>
+
     @Query("SELECT * FROM subject_fingerprints WHERE survey_id = :surveyId LIMIT 1")
     fun getFingerprintBySurveyId(surveyId: String): SubjectFingerprint?
-    
-    @Query("SELECT COUNT(*) FROM subject_fingerprints WHERE fingerprint_hash = :hash AND enrollment_date > :minDate")
-    fun countRecentFingerprints(hash: String, minDate: Long): Int
-    
+
+    @Query("SELECT COUNT(*) FROM subject_fingerprints WHERE enrollment_date > :minDate")
+    fun countRecentFingerprints(minDate: Long): Int
+
     @Query("DELETE FROM subject_fingerprints WHERE enrollment_date < :beforeDate")
     fun deleteOldFingerprints(beforeDate: Long)
 }
@@ -569,7 +593,7 @@ interface SystemMessageDao {
     fun deleteAllSystemMessages()
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class], version = 40)
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class], version = 41)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao

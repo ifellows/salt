@@ -1,99 +1,134 @@
 package com.dev.salt.fingerprint
 
+import android.content.Context
 import android.util.Log
 import com.dev.salt.data.SubjectFingerprint
 import com.dev.salt.data.SubjectFingerprintDao
+import com.dev.salt.util.EmulatorDetector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.security.MessageDigest
 
 /**
  * Manager for fingerprint operations using SecuGen Hamster Pro 20
- * This class provides placeholder methods for fingerprint capture and matching
- * until the actual SecuGen SDK is integrated
+ * Automatically selects between real SecuGen implementation and mock based on environment
  */
 class FingerprintManager(
-    private val fingerprintDao: SubjectFingerprintDao
+    private val fingerprintDao: SubjectFingerprintDao,
+    private val context: Context? = null
 ) {
     companion object {
         private const val TAG = "FingerprintManager"
-        
-        // Placeholder for testing - in production this would be replaced with actual SDK
-        private const val MOCK_FINGERPRINT_PREFIX = "MOCK_FP_"
     }
-    
-    /**
-     * Captures a fingerprint from the SecuGen device
-     * PLACEHOLDER: Returns a mock fingerprint hash for testing
-     * 
-     * @return The captured fingerprint data as a hash string, or null if capture failed
-     */
-    suspend fun captureFingerprint(): String? {
-        return withContext(Dispatchers.IO) {
-            try {
-                // TODO: Replace with actual SecuGen SDK implementation
-                // Example SDK code would be:
-                // val device = SecuGenDevice.getInstance()
-                // val imageData = device.captureImage()
-                // val template = device.createTemplate(imageData)
-                // return hashFingerprint(template)
-                
-                // For now, return a mock fingerprint hash
-                val mockId = System.currentTimeMillis()
-                val mockFingerprint = "$MOCK_FINGERPRINT_PREFIX$mockId"
-                Log.d(TAG, "Mock fingerprint captured: $mockFingerprint")
-                
-                // In testing, you can return the same fingerprint to test duplicate detection
-                // return "$MOCK_FINGERPRINT_PREFIX-DUPLICATE"
-                
-                hashFingerprint(mockFingerprint)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to capture fingerprint", e)
-                null
+
+    private val implementation: IFingerprintCapture by lazy {
+        val useEmulator = EmulatorDetector.isEmulator()
+        val implType = when {
+            useEmulator -> {
+                Log.i(TAG, "Running in emulator - using MOCK fingerprint implementation")
+                MockFingerprintImpl()
+            }
+            context == null -> {
+                Log.w(TAG, "No context provided - using MOCK fingerprint implementation")
+                MockFingerprintImpl()
+            }
+            else -> {
+                try {
+                    Log.i(TAG, "Running on real device - attempting to use SecuGen implementation")
+                    SecuGenFingerprintImpl(context)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to initialize SecuGen, falling back to MOCK", e)
+                    MockFingerprintImpl()
+                } catch (e: NoClassDefFoundError) {
+                    Log.e(TAG, "SecuGen SDK not available, falling back to MOCK", e)
+                    MockFingerprintImpl()
+                }
             }
         }
+
+        Log.i(TAG, "===========================================")
+        Log.i(TAG, "Fingerprint Implementation: ${implType.getImplementationType()}")
+        Log.i(TAG, "Environment: ${EmulatorDetector.getEnvironmentDescription()}")
+        Log.i(TAG, "===========================================")
+
+        implType
+    }
+
+    /**
+     * Captures a fingerprint from the device
+     * @return The captured fingerprint template as ByteArray, or null if capture failed
+     */
+    suspend fun captureFingerprint(): ByteArray? {
+        Log.d(TAG, "Starting fingerprint capture with ${implementation.getImplementationType()} implementation")
+        return implementation.captureFingerprint()
     }
     
     /**
-     * Checks if a fingerprint has been enrolled recently
-     * 
-     * @param fingerprintHash The hash of the fingerprint to check
+     * Checks if a fingerprint has been enrolled recently using template matching
+     *
+     * @param fingerprintTemplate The template of the fingerprint to check
      * @param reEnrollmentDays Number of days before re-enrollment is allowed
      * @return The matching fingerprint record if found within the window, null otherwise
      */
     suspend fun checkDuplicateEnrollment(
-        fingerprintHash: String,
+        fingerprintTemplate: ByteArray,
         reEnrollmentDays: Int
     ): SubjectFingerprint? {
         return withContext(Dispatchers.IO) {
             val minDate = System.currentTimeMillis() - (reEnrollmentDays * 24 * 60 * 60 * 1000L)
-            val duplicate = fingerprintDao.findRecentFingerprint(fingerprintHash, minDate)
-            
-            if (duplicate != null) {
-                Log.i(TAG, "Duplicate enrollment found for fingerprint, enrolled on: ${duplicate.enrollmentDate}")
+            val recentFingerprints = fingerprintDao.getRecentFingerprints(minDate)
+
+            Log.i(TAG, "Checking against ${recentFingerprints.size} recent fingerprints")
+
+            // For SecuGen implementation, perform template matching
+            val impl = implementation
+            if (impl is SecuGenFingerprintImpl) {
+                for (storedFingerprint in recentFingerprints) {
+                    val matchScore = impl.matchTemplates(
+                        fingerprintTemplate,
+                        storedFingerprint.fingerprintTemplate
+                    )
+
+                    Log.d(TAG, "Match score: $matchScore")
+
+                    // Threshold for positive match (adjust based on security requirements)
+                    // Typical values: 30-50 for normal security, 50-80 for high security
+                    if (matchScore != null && matchScore >= 50) {
+                        Log.i(TAG, "Duplicate enrollment found (score: $matchScore), enrolled on: ${storedFingerprint.enrollmentDate}")
+                        return@withContext storedFingerprint
+                    }
+                }
+            } else {
+                // For mock implementation, just do byte array comparison
+                for (storedFingerprint in recentFingerprints) {
+                    if (fingerprintTemplate.contentEquals(storedFingerprint.fingerprintTemplate)) {
+                        Log.i(TAG, "Duplicate enrollment found (mock), enrolled on: ${storedFingerprint.enrollmentDate}")
+                        return@withContext storedFingerprint
+                    }
+                }
             }
-            
-            duplicate
+
+            Log.i(TAG, "No duplicate enrollment found")
+            null
         }
     }
     
     /**
      * Stores a fingerprint for a survey
-     * 
+     *
      * @param surveyId The ID of the survey
-     * @param fingerprintHash The hash of the fingerprint
+     * @param fingerprintTemplate The template of the fingerprint
      * @param facilityId The ID of the facility (optional)
      * @return The ID of the inserted record
      */
     suspend fun storeFingerprint(
         surveyId: String,
-        fingerprintHash: String,
+        fingerprintTemplate: ByteArray,
         facilityId: Int? = null
     ): Long {
         return withContext(Dispatchers.IO) {
             val fingerprint = SubjectFingerprint(
                 surveyId = surveyId,
-                fingerprintHash = fingerprintHash,
+                fingerprintTemplate = fingerprintTemplate,
                 enrollmentDate = System.currentTimeMillis(),
                 facilityId = facilityId
             )
@@ -102,18 +137,6 @@ class FingerprintManager(
             Log.i(TAG, "Fingerprint stored for survey $surveyId")
             id
         }
-    }
-    
-    /**
-     * Hashes fingerprint data using SHA-256
-     * 
-     * @param fingerprintData The raw fingerprint data
-     * @return The hashed fingerprint
-     */
-    private fun hashFingerprint(fingerprintData: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        val hashBytes = digest.digest(fingerprintData.toByteArray())
-        return hashBytes.joinToString("") { "%02x".format(it) }
     }
     
     /**
@@ -130,45 +153,19 @@ class FingerprintManager(
     }
     
     /**
-     * Initializes the SecuGen device
-     * PLACEHOLDER: This would initialize the actual hardware
-     * 
+     * Initializes the fingerprint device
      * @return true if initialization successful, false otherwise
      */
     suspend fun initializeDevice(): Boolean {
-        return withContext(Dispatchers.IO) {
-            try {
-                // TODO: Replace with actual SecuGen SDK initialization
-                // Example:
-                // val device = SecuGenDevice.getInstance()
-                // device.initialize()
-                // device.openDevice()
-                
-                Log.d(TAG, "Mock device initialized")
-                true
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to initialize fingerprint device", e)
-                false
-            }
-        }
+        Log.d(TAG, "Initializing device with ${implementation.getImplementationType()} implementation")
+        return implementation.initializeDevice()
     }
-    
+
     /**
-     * Closes the SecuGen device connection
-     * PLACEHOLDER: This would close the actual hardware connection
+     * Closes the fingerprint device connection
      */
     suspend fun closeDevice() {
-        withContext(Dispatchers.IO) {
-            try {
-                // TODO: Replace with actual SecuGen SDK cleanup
-                // Example:
-                // val device = SecuGenDevice.getInstance()
-                // device.closeDevice()
-                
-                Log.d(TAG, "Mock device closed")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to close fingerprint device", e)
-            }
-        }
+        Log.d(TAG, "Closing device with ${implementation.getImplementationType()} implementation")
+        implementation.closeDevice()
     }
 }

@@ -22,6 +22,8 @@ import com.dev.salt.sync.SurveySyncManager
 import com.dev.salt.viewmodel.LoginViewModel
 import com.dev.salt.viewmodel.UserRole
 import kotlinx.coroutines.launch
+import com.dev.salt.data.SurveyDatabase
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +34,7 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+
 
     // Observe error state from ViewModel for Dialog
     val loginError = loginViewModel.loginError
@@ -190,6 +193,7 @@ fun LoginScreen(
                     }
                 }
             }
+
         }
     }
 }
