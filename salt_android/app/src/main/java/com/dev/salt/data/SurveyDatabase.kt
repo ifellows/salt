@@ -26,9 +26,9 @@ data class SurveyConfig(
     @ColumnInfo(name = "last_sync_time") val lastSyncTime: Long? = null
 )
 
-@Entity(tableName = "system_messages")
+@Entity(tableName = "system_messages", primaryKeys = ["messageKey", "language"])
 data class SystemMessage(
-    @PrimaryKey val messageKey: String,
+    val messageKey: String,
     @ColumnInfo(name = "message_text") val messageText: String,
     @ColumnInfo(name = "audio_file_name") val audioFileName: String? = null,
     @ColumnInfo(name = "language") val language: String = "en",
@@ -49,7 +49,9 @@ data class Question(
     @ColumnInfo(name = "validation_script") var validationScript: String? = null, // a script to determine if an answer value is valid
     @ColumnInfo(name = "validation_error_text") var validationErrorText: String? = "Invalid Answer", // a script to determine if an answer value is valid
     @ColumnInfo(name = "min_selections") var minSelections: Int? = null, // minimum number of selections for multi_select
-    @ColumnInfo(name = "max_selections") var maxSelections: Int? = null // maximum number of selections for multi_select
+    @ColumnInfo(name = "max_selections") var maxSelections: Int? = null, // maximum number of selections for multi_select
+    @ColumnInfo(name = "skip_to_script") var skipToScript: String? = null, // JEXL expression - if true after validation, jump to target
+    @ColumnInfo(name = "skip_to_target") var skipToTarget: String? = null // short name of target question to jump to
 )
 
 @Entity(tableName = "options")
@@ -307,7 +309,16 @@ interface SurveyDao {
     
     @Query("SELECT * FROM surveys ORDER BY start_datetime DESC LIMIT 1")
     fun getMostRecentSurvey(): Survey?
-    
+
+    @Query("SELECT COUNT(*) FROM surveys WHERE subject_id = :subjectId")
+    fun countSurveysWithSubjectId(subjectId: String): Int
+
+    @Query("SELECT EXISTS(SELECT 1 FROM coupons WHERE couponCode = :couponCode LIMIT 1)")
+    fun isCouponCodeExists(couponCode: String): Boolean
+
+    @Query("SELECT EXISTS(SELECT 1 FROM surveys WHERE subject_id = :subjectId LIMIT 1)")
+    fun isSubjectIdExists(subjectId: String): Boolean
+
     @Delete
     fun deleteQuestion(question: Question)
     
@@ -551,11 +562,14 @@ interface SystemMessageDao {
     @Query("SELECT * FROM system_messages WHERE messageKey = :key LIMIT 1")
     fun getSystemMessageAnyLanguage(key: String): SystemMessage?
 
+    @Query("SELECT * FROM system_messages WHERE messageKey = :key")
+    fun getAllMessagesForKey(key: String): List<SystemMessage>
+
     @Query("DELETE FROM system_messages")
     fun deleteAllSystemMessages()
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class], version = 38)
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class], version = 40)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao

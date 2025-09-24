@@ -196,11 +196,13 @@ router.put('/:id', [
                 const newSectionId = sectionMapping[question.section_id];
                 const questionResult = await runAsync(
                     `INSERT INTO questions (survey_id, question_index, short_name, question_text_json,
-                     audio_files_json, question_type, validation_script, validation_error_json, pre_script, section_id)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                     audio_files_json, question_type, validation_script, validation_error_json, pre_script, section_id,
+                     min_selections, max_selections, skip_to_script, skip_to_target)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [newSurveyId, question.question_index, question.short_name, question.question_text_json,
                      question.audio_files_json, question.question_type, question.validation_script,
-                     question.validation_error_json, question.pre_script, newSectionId]
+                     question.validation_error_json, question.pre_script, newSectionId,
+                     question.min_selections, question.max_selections, question.skip_to_script, question.skip_to_target]
                 );
                 
                 const options = await allAsync('SELECT * FROM options WHERE question_id = ?', [question.id]);
@@ -310,7 +312,9 @@ router.post('/:surveyId/questions', [
     body('section_id').optional().isInt(),
     body('options').optional().isArray(),
     body('min_selections').optional().isInt({ min: 1 }),
-    body('max_selections').optional().isInt({ min: 1 })
+    body('max_selections').optional().isInt({ min: 1 }),
+    body('skip_to_script').optional().trim(),
+    body('skip_to_target').optional().trim().matches(/^[a-zA-Z0-9_]*$/)
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -319,10 +323,11 @@ router.post('/:surveyId/questions', [
     }
 
     const surveyId = req.params.surveyId;
-    const { 
+    const {
         question_index, short_name, question_text_json, audio_files_json,
-        question_type, validation_script, validation_error_json, pre_script, 
-        section_id, options = [], min_selections, max_selections
+        question_type, validation_script, validation_error_json, pre_script,
+        section_id, options = [], min_selections, max_selections,
+        skip_to_script, skip_to_target
     } = req.body;
     
     try {
@@ -349,12 +354,13 @@ router.post('/:surveyId/questions', [
         // Insert question
         const questionResult = await runAsync(
             `INSERT INTO questions (survey_id, question_index, short_name, question_text_json,
-             audio_files_json, question_type, validation_script, validation_error_json, pre_script, section_id, min_selections, max_selections)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             audio_files_json, question_type, validation_script, validation_error_json, pre_script, section_id,
+             min_selections, max_selections, skip_to_script, skip_to_target)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [surveyId, question_index, short_name, JSON.stringify(question_text_json),
              JSON.stringify(audio_files_json || {}), question_type, validation_script,
              JSON.stringify(validation_error_json || {"English": "Invalid answer"}), pre_script, finalSectionId,
-             min_selections || null, max_selections || null]
+             min_selections || null, max_selections || null, skip_to_script || null, skip_to_target || null]
         );
         
         const questionId = questionResult.id;
@@ -403,7 +409,9 @@ router.put('/:surveyId/questions/:questionId', [
     body('section_id').optional().isInt(),
     body('options').optional().isArray(),
     body('min_selections').optional().isInt({ min: 1 }),
-    body('max_selections').optional().isInt({ min: 1 })
+    body('max_selections').optional().isInt({ min: 1 }),
+    body('skip_to_script').optional().trim(),
+    body('skip_to_target').optional().trim().matches(/^[a-zA-Z0-9_]*$/)
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -412,10 +420,10 @@ router.put('/:surveyId/questions/:questionId', [
     }
 
     const { surveyId, questionId } = req.params;
-    const { 
+    const {
         question_index, short_name, question_text_json, audio_files_json,
         question_type, validation_script, validation_error_json, pre_script, section_id, options,
-        min_selections, max_selections
+        min_selections, max_selections, skip_to_script, skip_to_target
     } = req.body;
     
     try {
@@ -477,7 +485,15 @@ router.put('/:surveyId/questions/:questionId', [
             updates.push('max_selections = ?');
             params.push(max_selections);
         }
-        
+        if (skip_to_script !== undefined) {
+            updates.push('skip_to_script = ?');
+            params.push(skip_to_script);
+        }
+        if (skip_to_target !== undefined) {
+            updates.push('skip_to_target = ?');
+            params.push(skip_to_target);
+        }
+
         if (updates.length > 0) {
             params.push(questionId);
             await runAsync(

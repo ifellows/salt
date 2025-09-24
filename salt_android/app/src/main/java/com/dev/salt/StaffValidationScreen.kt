@@ -32,6 +32,7 @@ import androidx.compose.runtime.DisposableEffect
 
 @Composable
 fun StaffValidationScreen(
+    surveyId: String,
     onValidationSuccess: () -> Unit,
     onCancel: () -> Unit
 ) {
@@ -54,14 +55,28 @@ fun StaffValidationScreen(
 
     LaunchedEffect(Unit) {
         scope.launch {
-            // Try to get the message in the current language or fallback to any language
-            val systemMessage = database.systemMessageDao().getSystemMessage("staff_validation", "en")
+            // Get the survey's actual language
+            val survey = database.surveyDao().getSurveyById(surveyId)
+            val surveyLanguage = survey?.language ?: "en"
+
+            Log.d("StaffValidation", "Survey ID: $surveyId, Language: $surveyLanguage")
+
+            // Debug: Show all available staff_validation messages in the database
+            val allStaffMessages = database.systemMessageDao().getAllMessagesForKey("staff_validation")
+            Log.d("StaffValidation", "All staff_validation messages in DB: ${allStaffMessages.size} messages")
+            allStaffMessages.forEach { msg ->
+                Log.d("StaffValidation", "  - Language: '${msg.language}', Text: '${msg.messageText.take(50)}...'")
+            }
+
+            // Try to get the message in the survey's language, then fallback to English, then any language
+            val systemMessage = database.systemMessageDao().getSystemMessage("staff_validation", surveyLanguage)
+                ?: database.systemMessageDao().getSystemMessage("staff_validation", "en")
                 ?: database.systemMessageDao().getSystemMessage("staff_validation", "English")
                 ?: database.systemMessageDao().getSystemMessageAnyLanguage("staff_validation")
 
             if (systemMessage != null) {
                 validationMessage = systemMessage.messageText
-                Log.d("StaffValidation", "Loaded message: ${systemMessage.messageText}")
+                Log.d("StaffValidation", "Loaded message in language '${systemMessage.language}': ${systemMessage.messageText}")
 
                 // Play audio if available
                 if (!systemMessage.audioFileName.isNullOrEmpty()) {

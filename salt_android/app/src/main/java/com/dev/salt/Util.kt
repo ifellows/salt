@@ -23,20 +23,35 @@ import javax.crypto.spec.PBEKeySpec
 
 fun randomHash(): String {
     // Legacy function - kept for compatibility
-    // New surveys should use generateSubjectId()
-    return generateSubjectId()
+    // New surveys should use generateWalkInSubjectId()
+    return generateWalkInSubjectId()
 }
 
 /**
  * Generates a 6-character alphanumeric subject ID
  * Format: [A-Z0-9]{6}
  * Example: "AB3K7P"
+ * @deprecated Use generateWalkInSubjectId() for walk-in participants
  */
 fun generateSubjectId(): String {
     val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     return (1..6)
         .map { chars.random() }
         .joinToString("")
+}
+
+/**
+ * Generates a subject ID for walk-in participants (without coupon)
+ * Format: W[A-Z0-9]{5}
+ * Example: "WAB3K7"
+ * The "W" prefix ensures no collision with coupon codes
+ */
+fun generateWalkInSubjectId(): String {
+    val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    val randomPart = (1..5)
+        .map { chars.random() }
+        .joinToString("")
+    return "W$randomPart"
 }
 
 

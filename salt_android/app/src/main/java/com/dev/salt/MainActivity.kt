@@ -393,6 +393,7 @@ class MainActivity : ComponentActivity() {
                         val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
                         val coupons = backStackEntry.arguments?.getString("coupons") ?: ""
                         com.dev.salt.StaffValidationScreen(
+                            surveyId = surveyId,
                             onValidationSuccess = {
                                 // Navigate to contact consent after successful validation
                                 navController.navigate("${AppDestinations.CONTACT_CONSENT}/$surveyId?coupons=$coupons") {

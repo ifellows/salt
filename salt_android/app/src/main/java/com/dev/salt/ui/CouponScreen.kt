@@ -152,7 +152,7 @@ fun CouponScreen(
                                 // Create a new survey and navigate to appropriate screen
                                 GlobalScope.launch(Dispatchers.IO) {
                                     val surveyId = UUID.randomUUID().toString()
-                                    val subjectId = com.dev.salt.generateSubjectId() // Use new 6-char format
+                                    val subjectId = com.dev.salt.generateWalkInSubjectId() // Walk-in participant - use W prefix
                                     val survey = com.dev.salt.data.Survey(
                                         id = surveyId,
                                         subjectId = subjectId,
@@ -241,7 +241,7 @@ fun CouponScreen(
                                     // Create a new survey and navigate to appropriate screen
                                     GlobalScope.launch(Dispatchers.IO) {
                                         val surveyId = UUID.randomUUID().toString()
-                                        val subjectId = com.dev.salt.generateSubjectId() // Use new 6-char format
+                                        val subjectId = couponCode // Use coupon code as subject ID for recruited participants
                                         val survey = com.dev.salt.data.Survey(
                                             id = surveyId,
                                             subjectId = subjectId,
@@ -308,7 +308,7 @@ fun CouponScreen(
                                     // Create a new survey and navigate to appropriate screen
                                     GlobalScope.launch(Dispatchers.IO) {
                                         val surveyId = UUID.randomUUID().toString()
-                                        val subjectId = com.dev.salt.generateSubjectId() // Use new 6-char format
+                                        val subjectId = couponCode // Use coupon code as subject ID for recruited participants
                                         val survey = com.dev.salt.data.Survey(
                                             id = surveyId,
                                             subjectId = subjectId,

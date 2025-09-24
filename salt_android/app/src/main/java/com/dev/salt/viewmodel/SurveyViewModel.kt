@@ -13,6 +13,7 @@ import com.dev.salt.data.Survey
 import com.dev.salt.data.Answer
 import com.dev.salt.data.saveSurvey
 import com.dev.salt.randomHash
+import com.dev.salt.generateWalkInSubjectId
 import com.dev.salt.evaluateJexlScript
 import com.dev.salt.upload.SurveyUploadManager
 import com.dev.salt.upload.SurveyUploadWorkManager
@@ -82,12 +83,23 @@ class SurveyViewModel(
     }
 
     private fun makeNewSurvey(language: String): Survey {
+        // Use coupon code as subject ID if participant has one, otherwise generate walk-in ID
+        val subjectId = if (!referralCouponCode.isNullOrEmpty()) {
+            // Participant has a coupon - use it as their subject ID
+            referralCouponCode
+        } else {
+            // Walk-in participant - generate ID with "W" prefix to avoid collisions
+            generateWalkInSubjectId()
+        }
+
         val survey: Survey = Survey(
-            language = language, 
-            subjectId = randomHash(), 
+            language = language,
+            subjectId = subjectId,
             startDatetime = System.currentTimeMillis(),
             referralCouponCode = referralCouponCode
         )
+
+        Log.d("SurveyViewModel", "Created survey with subjectId=$subjectId, referralCoupon=$referralCouponCode")
         return survey
     }
 
@@ -225,6 +237,58 @@ class SurveyViewModel(
         return result
     }
 
+    // Evaluate skip-to logic for current question
+    private fun evaluateSkipToLogic(): String? {
+        val currentQ = _currentQuestion?.value?.first ?: return null
+        val skipToScript = currentQ.skipToScript
+        val skipToTarget = currentQ.skipToTarget
+
+        // Both script and target must be present
+        if (skipToScript.isNullOrBlank() || skipToTarget.isNullOrBlank()) {
+            return null
+        }
+
+        val context = buildJexlContext()
+        return try {
+            val result = evaluateJexlScript(skipToScript, context)
+            Log.d("SurveyViewModel", "Skip-to script evaluation: $result")
+
+            if (result == true) {
+                skipToTarget // Return the target question short name
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("SurveyViewModel", "Error evaluating skip-to script: ${e.message}")
+            null // Don't skip on error
+        }
+    }
+
+    // Jump to a specific question by short name
+    private fun jumpToQuestion(targetShortName: String) {
+        val questions = survey?.questions ?: return
+
+        // Find the target question index
+        val targetIndex = questions.indexOfFirst { it.questionShortName == targetShortName }
+
+        if (targetIndex >= 0) {
+            Log.d("SurveyViewModel", "Jumping from index $currentQuestionIndex to $targetIndex (question: $targetShortName)")
+            currentQuestionIndex = targetIndex
+            updateCurrentQuestion()
+
+            // Check if the target question should be skipped
+            val action = evaluateCurrentQuestionPreScript()
+            if (action == "skip") {
+                loadNextQuestion()
+            }
+        } else {
+            Log.w("SurveyViewModel", "Skip-to target not found: $targetShortName")
+            // If target not found, just proceed normally
+            currentQuestionIndex++
+            updateCurrentQuestion()
+        }
+    }
+
     // NEW: Helper function to build the JEXL context
     private fun buildJexlContext(): Map<String, Any> {
         val context = mutableMapOf<String, Any>()
@@ -252,13 +316,22 @@ class SurveyViewModel(
             Log.d("SurveyViewModel", "Multi-select validation failed: $multiSelectError")
             return multiSelectError
         }
-        
+
         val valid = evaluateCurrentQuestionValidationScript()
         if(!valid){
             Log.d("SurveyViewModel", "Validation failed for question at index $currentQuestionIndex")
             val errorText = _currentQuestion?.value?.first?.validationErrorText ?: "Invalid Answer"
             return errorText
         }
+
+        // Check for skip-to logic after validation passes
+        val skipToTarget = evaluateSkipToLogic()
+        if (skipToTarget != null) {
+            Log.d("SurveyViewModel", "Skip-to logic triggered, jumping to: $skipToTarget")
+            jumpToQuestion(skipToTarget)
+            return null
+        }
+
         currentQuestionIndex++
         updateCurrentQuestion()
         val action = evaluateCurrentQuestionPreScript()

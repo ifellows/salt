@@ -17,6 +17,8 @@ const questionsData = questions.map(q => {
         validation_error: validationError,
         min_selections: q.min_selections,
         max_selections: q.max_selections,
+        skip_to_script: q.skip_to_script,
+        skip_to_target: q.skip_to_target,
         options: q.options || []
     };
 });
@@ -213,6 +215,9 @@ function addQuestionHtml(q) {
     if (q.pre_script) {
         bodyHtml += '                    <span class="skip-logic-tag">Skip Logic: ' + q.pre_script + '</span>\n';
     }
+    if (q.skip_to_script && q.skip_to_target) {
+        bodyHtml += '                    <span class="skip-logic-tag" style="background: #e8f5e9; color: #2e7d32;">Skip-To: ' + q.skip_to_script + ' → ' + q.skip_to_target + '</span>\n';
+    }
     if (q.validation_script) {
         bodyHtml += '                    <span class="validation-tag">Validation: ' + q.validation_script + '</span>\n';
     }
@@ -298,6 +303,18 @@ bodyHtml += '                \n';
 bodyHtml += '                <div class="form-group">\n';
 bodyHtml += '                    <label>Skip Logic (JEXL expression)</label>\n';
 bodyHtml += '                    <input type="text" id="preScript" class="form-control" placeholder="e.g., age >= 18">\n';
+bodyHtml += '                </div>\n';
+bodyHtml += '                \n';
+bodyHtml += '                <div class="form-group">\n';
+bodyHtml += '                    <label>Skip-To Expression (JEXL)</label>\n';
+bodyHtml += '                    <input type="text" id="skipToScript" class="form-control" placeholder="e.g., q3 == 0">\n';
+bodyHtml += '                    <small class="form-text text-muted">If this expression evaluates to true after validation passes, jump to target question</small>\n';
+bodyHtml += '                </div>\n';
+bodyHtml += '                \n';
+bodyHtml += '                <div class="form-group">\n';
+bodyHtml += '                    <label>Skip-To Target</label>\n';
+bodyHtml += '                    <input type="text" id="skipToTarget" class="form-control" placeholder="e.g., q10">\n';
+bodyHtml += '                    <small class="form-text text-muted">Short name of the question to jump to</small>\n';
 bodyHtml += '                </div>\n';
 bodyHtml += '                \n';
 bodyHtml += '                <div class="form-group">\n';
@@ -849,6 +866,8 @@ bodyHtml += '    document.getElementById("shortName").value = "";\n';
 bodyHtml += '    document.getElementById("questionType").value = "multiple_choice";\n';
 bodyHtml += '    document.getElementById("preScript").value = "";\n';
 bodyHtml += '    document.getElementById("validationScript").value = "";\n';
+bodyHtml += '    document.getElementById("skipToScript").value = "";\n';
+bodyHtml += '    document.getElementById("skipToTarget").value = "";\n';
 bodyHtml += '    \n';
 bodyHtml += '    // Set default section (main survey section)\n';
 bodyHtml += '    const mainSection = sectionsData.find(s => s.section_type === "main");\n';
@@ -888,6 +907,8 @@ bodyHtml += '    document.getElementById("shortName").value = question.short_nam
 bodyHtml += '    document.getElementById("questionType").value = question.question_type;\n';
 bodyHtml += '    document.getElementById("preScript").value = question.pre_script || "";\n';
 bodyHtml += '    document.getElementById("validationScript").value = question.validation_script || "";\n';
+bodyHtml += '    document.getElementById("skipToScript").value = question.skip_to_script || "";\n';
+bodyHtml += '    document.getElementById("skipToTarget").value = question.skip_to_target || "";\n';
 bodyHtml += '    document.getElementById("sectionId").value = question.section_id || "";\n';
 bodyHtml += '    \n';
 bodyHtml += '    // Load min/max selections for multi_select questions\n';
@@ -1043,6 +1064,8 @@ bodyHtml += '        question_text_json: texts,\n';
 bodyHtml += '        question_type: questionType,\n';
 bodyHtml += '        pre_script: document.getElementById("preScript").value || null,\n';
 bodyHtml += '        validation_script: document.getElementById("validationScript").value || null,\n';
+bodyHtml += '        skip_to_script: document.getElementById("skipToScript").value || null,\n';
+bodyHtml += '        skip_to_target: document.getElementById("skipToTarget").value || null,\n';
 bodyHtml += '        audio_files_json: audioFiles,\n';
 bodyHtml += '        validation_error_json: {},\n';
 bodyHtml += '        section_id: parseInt(document.getElementById("sectionId").value),\n';

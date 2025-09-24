@@ -132,17 +132,21 @@ The SALT application is part of a larger three-tier architecture as illustrated 
 
 ### ✅ Completed in Recent Sessions
 
-**System Messages Support** (v36 → v37)
-- **Database Changes**: Added `SystemMessage` entity for storing multilingual system messages with audio support
+**System Messages Support** (v36 → v39)
+- **Database Changes**:
+  - Added `SystemMessage` entity for storing multilingual system messages with audio support
+  - **v39 Update**: Fixed composite primary key issue - now uses (messageKey, language) as primary key to allow multiple languages per message
 - **SystemMessageDao**: Full CRUD operations for system messages with language fallback support
 - **Survey Sync Integration**: Downloads and stores system messages during survey synchronization
 - **Staff Validation Screen**:
   - Displays custom staff validation messages from database
   - Automatic audio playback when screen loads
   - Replay button for re-listening to audio messages
-  - Language fallback (en → English → any available)
+  - Language detection from survey's actual language setting
+  - Language fallback chain: survey language → "en" → "English" → any available
   - Proper MediaPlayer resource management with DisposableEffect
 - **Server Integration**: Messages downloaded as part of survey sync with text and audio in multiple languages
+- **Key Fix**: Resolved issue where only one language was stored due to single primary key constraint
 
 **Multi-Select Question Support** (v27 → v34)
 - **Database Changes**: Added `minSelections` and `maxSelections` to Question entity for validation constraints
