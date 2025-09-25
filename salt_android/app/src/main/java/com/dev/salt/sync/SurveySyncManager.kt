@@ -17,17 +17,15 @@ class SurveySyncManager(private val context: Context) {
     private val database = SurveyDatabase.getInstance(context)
     private val surveyDao = database.surveyDao()
     private val syncMetadataDao = database.syncMetadataDao()
-    private val userDao = database.userDao()
-    
-    // Get server configuration from database
+    private val appServerConfigDao = database.appServerConfigDao()
+
+    // Get server configuration from global settings
     private fun getServerConfig(): Pair<String, String>? {
-        val config = userDao.getAnyServerConfig()
-        val serverUrl = config?.uploadServerUrl?.takeIf { it.isNotBlank() }
-        val apiKey = config?.uploadApiKey?.takeIf { it.isNotBlank() }
-        
-        return if (serverUrl != null && apiKey != null) {
-            Log.d("SurveySyncManager", "Using server config: URL=$serverUrl, API Key=${apiKey.take(10)}...")
-            Pair(serverUrl, apiKey)
+        val config = appServerConfigDao.getServerConfig()
+
+        return if (config != null) {
+            Log.d("SurveySyncManager", "Using server config: URL=${config.serverUrl}, API Key=${config.apiKey.take(10)}...")
+            Pair(config.serverUrl, config.apiKey)
         } else {
             Log.e("SurveySyncManager", "No server configuration found. Please configure server settings.")
             null

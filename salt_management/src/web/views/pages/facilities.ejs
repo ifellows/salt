@@ -12,7 +12,7 @@
             <tr>
                 <th>Name</th>
                 <th>Location</th>
-                <th>API Key</th>
+                <th>Tablet Setup</th>
                 <th>Non-Coupon Allowed</th>
                 <th>Coupons to Issue</th>
                 <th>Seed Recruitment</th>
@@ -26,8 +26,9 @@
                     <td>${facility.name}</td>
                     <td>${facility.location || '-'}</td>
                     <td>
-                        <code style="background: #f5f5f5; padding: 0.25rem;">${facility.api_key.substring(0, 20)}...</code>
-                        <button onclick="copyApiKey('${facility.api_key}')" class="btn" style="padding: 0.25rem 0.5rem; margin-left: 0.5rem;">Copy</button>
+                        <span style="color: ${facility.has_active_tablet ? 'green' : 'gray'}; font-weight: bold;">
+                            ${facility.has_active_tablet ? '✓ Connected' : '— Not Setup'}
+                        </span>
                     </td>
                     <td>
                         <span style="color: ${facility.allow_non_coupon_participants ? 'green' : 'red'}; font-weight: bold;">
@@ -45,7 +46,7 @@
                     <td>${facility.upload_count}</td>
                     <td>
                         <button onclick="editFacility(${facility.id}, '${facility.name}', '${facility.location || ''}', ${facility.allow_non_coupon_participants ? 'true' : 'false'}, ${facility.coupons_to_issue || 3}, ${facility.seed_recruitment_active ? 'true' : 'false'}, ${facility.seed_contact_rate_days || 7}, ${facility.seed_recruitment_window_min_days || 0}, ${facility.seed_recruitment_window_max_days || 730}, '${facility.subject_payment_type || 'None'}', ${facility.participation_payment_amount || 0}, ${facility.recruitment_payment_amount || 0}, '${facility.payment_currency || 'USD'}', '${facility.payment_currency_symbol || '$'}')" class="btn" style="padding: 0.25rem 0.5rem;">Edit</button>
-                        <button onclick="regenerateKey(${facility.id})" class="btn" style="padding: 0.25rem 0.5rem;">New Key</button>
+                        <button onclick="confirmGenerateSetupCode(${facility.id}, '${facility.name}', ${facility.has_active_tablet ? 'true' : 'false'})" class="btn" style="padding: 0.25rem 0.5rem; background: #4CAF50; color: white;">Setup Code</button>
                     </td>
                 </tr>
             `).join('')}
@@ -132,6 +133,19 @@
                 <button type="button" onclick="hideAddFacilityForm()" class="btn btn-danger">Cancel</button>
             </div>
         </form>
+    </div>
+</div>
+
+<div id="setupCodeModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="background: white; max-width: 400px; margin: 8rem auto; padding: 2rem; border-radius: 8px; text-align: center;">
+        <h3 id="setupCodeTitle">Setup Code Generated</h3>
+        <p style="margin: 1rem 0; color: #666;">Provide this code to set up the tablet:</p>
+        <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 4px; margin: 1.5rem 0;">
+            <code id="setupCodeDisplay" style="font-size: 2rem; letter-spacing: 0.2rem; font-weight: bold;"></code>
+        </div>
+        <p style="color: #888; font-size: 0.9rem; margin: 1rem 0;">This code will expire in <span id="setupCodeExpiry"></span> hours</p>
+        <button onclick="copySetupCode()" class="btn" style="margin-right: 1rem;">Copy Code</button>
+        <button onclick="hideSetupCodeModal()" class="btn">Close</button>
     </div>
 </div>
 
@@ -249,34 +263,55 @@ function hideEditFacilityForm() {
     document.getElementById('editFacilityModal').style.display = 'none';
 }
 
-function copyApiKey(key) {
-    navigator.clipboard.writeText(key);
-    alert('API key copied to clipboard');
+let currentSetupCode = '';
+
+function confirmGenerateSetupCode(facilityId, facilityName, hasActiveTablet) {
+    if (hasActiveTablet) {
+        const message = "⚠️ WARNING: This facility currently has a tablet connected.\\n\\nGenerating a new setup code will:\\n• Invalidate the current connection\\n• Require the tablet to be reconfigured\\n• Generate a new API key\\n\\nAre you sure you want to continue?";
+        if (!confirm(message)) {
+            return;
+        }
+    }
+    generateSetupCode(facilityId, facilityName);
 }
 
-async function regenerateKey(facilityId) {
-    if (!confirm('Are you sure you want to regenerate the API key? The old key will stop working.')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch('/api/admin/facilities/' + facilityId + '/regenerate-key', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            alert('New API key: ' + result.api_key);
-            location.reload();
+function generateSetupCode(facilityId, facilityName) {
+    fetch('/api/admin/facilities/' + facilityId + '/generate-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expirationHours: 24 })
+    })
+    .then(response => response.json().then(result => ({ ok: response.ok, result })))
+    .then(({ ok, result }) => {
+        if (ok) {
+            currentSetupCode = result.code;
+            document.getElementById('setupCodeTitle').textContent = 'Setup Code for ' + facilityName;
+            document.getElementById('setupCodeDisplay').textContent = result.code;
+            document.getElementById('setupCodeExpiry').textContent = result.expiration_hours;
+            document.getElementById('setupCodeModal').style.display = 'block';
         } else {
-            alert('Failed to regenerate key: ' + result.error);
+            alert('Failed to generate setup code: ' + (result.error || 'Unknown error'));
         }
-    } catch (error) {
+    })
+    .catch(error => {
         alert('Error: ' + error.message);
-    }
+    });
 }
+
+function hideSetupCodeModal() {
+    document.getElementById('setupCodeModal').style.display = 'none';
+    location.reload(); // Refresh to update tablet status
+}
+
+function copySetupCode() {
+    navigator.clipboard.writeText(currentSetupCode).then(function() {
+        alert('Setup code copied to clipboard!');
+    }).catch(function(err) {
+        alert('Failed to copy code: ' + err);
+    });
+}
+
+
 
 document.getElementById('addFacilityForm').addEventListener('submit', async (e) => {
     e.preventDefault();

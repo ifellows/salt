@@ -18,6 +18,7 @@ import java.io.File
 import java.io.FileOutputStream
 import com.dev.salt.PasswordUtils.hashPasswordWithNewSalt
 import com.dev.salt.data.Coupon
+import com.dev.salt.data.AppServerConfig
 import com.dev.salt.data.CouponStatus
 import net.sqlcipher.database.SQLiteDatabase
 import com.dev.salt.util.EmulatorDetector
@@ -66,10 +67,7 @@ class SurveyApplication : Application() {
                 // e.g., PasswordHasher.hash("adminpass")
                 hashedPassword = hashPasswordWithNewSalt("123")!!,
                 fullName = "Administrator User",
-                role = "ADMINISTRATOR", // Consistent with your UserRole enum or string constants
-                // Default server configuration for testing
-                uploadServerUrl = defaultServerUrl,
-                uploadApiKey = "fac_b83d45ae08113b380154e6134fa733a7fa945097983a24adee35d1350818ddbd"
+                role = "ADMINISTRATOR" // Consistent with your UserRole enum or string constants
             )
             val staffUser = User(
                 userName = "staff",
@@ -80,19 +78,25 @@ class SurveyApplication : Application() {
             userDao.insertUser(adminUser)
             userDao.insertUser(staffUser)
             Log.d("SurveyApplication", "Sample users populated.")
+
+            // Set up default global server configuration
+            val defaultServerConfig = AppServerConfig(
+                serverUrl = defaultServerUrl,
+                apiKey = "fac_b83d45ae08113b380154e6134fa733a7fa945097983a24adee35d1350818ddbd"
+            )
+            database.appServerConfigDao().insertOrUpdate(defaultServerConfig)
+            Log.d("SurveyApplication", "Default server configuration set.")
         } else {
-            Log.d("SurveyApplication", "Users already exist, checking for server config...")
-            // Update existing admin users with default server config if they don't have any
-            val existingAdmins = userDao.getAllUsers().filter { it.role == "ADMINISTRATOR" }
-            for (admin in existingAdmins) {
-                if (admin.uploadServerUrl.isNullOrBlank() || admin.uploadApiKey.isNullOrBlank()) {
-                    userDao.updateUserServerConfig(
-                        admin.userName,
-                        defaultServerUrl,
-                        "fac_b83d45ae08113b380154e6134fa733a7fa945097983a24adee35d1350818ddbd"
-                    )
-                    Log.d("SurveyApplication", "Updated admin user '${admin.userName}' with default server config")
-                }
+            Log.d("SurveyApplication", "Users already exist, checking for global server config...")
+            // Ensure global server config exists
+            val serverConfig = database.appServerConfigDao().getServerConfig()
+            if (serverConfig == null) {
+                val defaultServerConfig = AppServerConfig(
+                    serverUrl = defaultServerUrl,
+                    apiKey = "fac_b83d45ae08113b380154e6134fa733a7fa945097983a24adee35d1350818ddbd"
+                )
+                database.appServerConfigDao().insertOrUpdate(defaultServerConfig)
+                Log.d("SurveyApplication", "Created default global server configuration")
             }
         }
         

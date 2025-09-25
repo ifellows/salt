@@ -1,5 +1,6 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const { getAsync, runAsync, allAsync } = require('../../models/database');
 const { requireAdmin } = require('../middleware/auth');
@@ -364,6 +365,121 @@ router.delete('/:id', async (req, res) => {
     } catch (error) {
         console.error('Error deleting facility:', error);
         res.status(500).json({ error: 'Failed to delete facility' });
+    }
+});
+
+// Generate setup short code for facility
+router.post('/:id/generate-code', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { expirationHours = 24 } = req.body;
+
+        // Get facility details
+        const facility = await getAsync(
+            'SELECT id, name, api_key FROM facilities WHERE id = ?',
+            [id]
+        );
+
+        if (!facility) {
+            return res.status(404).json({ error: 'Facility not found' });
+        }
+
+        // Generate unique short code
+        const generateShortCode = () => {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        };
+
+        let shortCode;
+        let attempts = 0;
+        const maxAttempts = 10;
+
+        // Try to generate unique code
+        while (attempts < maxAttempts) {
+            shortCode = generateShortCode();
+            const existing = await getAsync(
+                'SELECT id FROM facility_short_codes WHERE short_code = ?',
+                [shortCode]
+            );
+            if (!existing) break;
+            attempts++;
+        }
+
+        if (attempts >= maxAttempts) {
+            return res.status(500).json({ error: 'Failed to generate unique code' });
+        }
+
+        // Calculate expiration time
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + expirationHours);
+
+        // Generate new API key for security
+        const newApiKey = `salt_${uuidv4()}`;
+
+        // Update facility with new API key
+        await runAsync(
+            'UPDATE facilities SET api_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [newApiKey, facility.id]
+        );
+
+        // Insert short code record with new API key
+        await runAsync(
+            `INSERT INTO facility_short_codes
+             (short_code, facility_id, api_key, expires_at)
+             VALUES (?, ?, ?, datetime(?))`,
+            [shortCode, facility.id, newApiKey, expiresAt.toISOString()]
+        );
+
+        // Log audit
+        await logAudit(
+            req.session?.userId || 'system',
+            'GENERATE_SETUP_CODE',
+            'facility',
+            facility.id,
+            null,
+            {
+                facility_name: facility.name,
+                short_code: shortCode,
+                expires_at: expiresAt.toISOString()
+            }
+        );
+
+        res.json({
+            success: true,
+            code: shortCode,
+            facility_name: facility.name,
+            expires_at: expiresAt.toISOString(),
+            expiration_hours: expirationHours
+        });
+
+    } catch (error) {
+        console.error('Error generating setup code:', error);
+        res.status(500).json({ error: 'Failed to generate setup code' });
+    }
+});
+
+// Get active setup codes for a facility
+router.get('/:id/setup-codes', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const codes = await allAsync(
+            `SELECT short_code, created_at, expires_at, used_at, used_by_ip
+             FROM facility_short_codes
+             WHERE facility_id = ? AND datetime('now') <= expires_at
+             ORDER BY created_at DESC`,
+            [id]
+        );
+
+        res.json(codes);
+
+    } catch (error) {
+        console.error('Error fetching setup codes:', error);
+        res.status(500).json({ error: 'Failed to fetch setup codes' });
     }
 });
 

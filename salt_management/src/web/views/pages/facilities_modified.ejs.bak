@@ -1,0 +1,439 @@
+<% var body = `
+<h2>Facilities Management</h2>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3>Registered Facilities</h3>
+        <button class="btn" onclick="showAddFacilityForm()">Add New Facility</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Location</th>
+                <th>Tablet Setup</th>
+                <th>Non-Coupon Allowed</th>
+                <th>Coupons to Issue</th>
+                <th>Seed Recruitment</th>
+                <th>Uploads</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${facilities.map(facility => `
+                <tr>
+                    <td>${facility.name}</td>
+                    <td>${facility.location || '-'}</td>
+                    <td>
+                        <span style="color: ${facility.has_active_tablet ? 'green' : 'gray'}; font-weight: bold;">
+                            ${facility.has_active_tablet ? '✓ Connected' : '— Not Setup'}
+                        </span>
+                    </td>
+                    <td>
+                        <span style="color: ${facility.allow_non_coupon_participants ? 'green' : 'red'}; font-weight: bold;">
+                            ${facility.allow_non_coupon_participants ? 'Yes' : 'No'}
+                        </span>
+                    </td>
+                    <td style="text-align: center;">
+                        <strong>${facility.coupons_to_issue || 3}</strong>
+                    </td>
+                    <td>
+                        <span style="color: ${facility.seed_recruitment_active ? 'green' : 'gray'}; font-weight: bold;">
+                            ${facility.seed_recruitment_active ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                    <td>${facility.upload_count}</td>
+                    <td>
+                        <button onclick="editFacility(${facility.id}, '${facility.name}', '${facility.location || ''}', ${facility.allow_non_coupon_participants ? 'true' : 'false'}, ${facility.coupons_to_issue || 3}, ${facility.seed_recruitment_active ? 'true' : 'false'}, ${facility.seed_contact_rate_days || 7}, ${facility.seed_recruitment_window_min_days || 0}, ${facility.seed_recruitment_window_max_days || 730}, '${facility.subject_payment_type || 'None'}', ${facility.participation_payment_amount || 0}, ${facility.recruitment_payment_amount || 0}, '${facility.payment_currency || 'USD'}', '${facility.payment_currency_symbol || '$'}')" class="btn" style="padding: 0.25rem 0.5rem;">Edit</button>
+                        <button onclick="confirmGenerateSetupCode(${facility.id}, '${facility.name}', ${facility.has_active_tablet ? 'true' : 'false'})" class="btn" style="padding: 0.25rem 0.5rem; background: #4CAF50; color: white;">Setup Code</button>
+                    </td>
+                </tr>
+            `).join('')}
+            ${facilities.length === 0 ? '<tr><td colspan="8" style="text-align: center;">No facilities registered</td></tr>' : ''}
+        </tbody>
+    </table>
+</div>
+
+<div id="addFacilityModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+    <div style="background: white; max-width: 500px; margin: 2rem auto; padding: 2rem; border-radius: 8px; max-height: 90vh; overflow-y: auto;">
+        <h3>Add New Facility</h3>
+        <form id="addFacilityForm">
+            <input type="text" name="name" placeholder="Facility Name" required style="width: 100%; padding: 0.5rem; margin: 1rem 0;">
+            <input type="text" name="location" placeholder="Location (optional)" style="width: 100%; padding: 0.5rem; margin: 1rem 0;">
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">
+                    <input type="checkbox" name="allow_non_coupon_participants" checked style="margin-right: 0.5rem;">
+                    Allow participants without coupons
+                </label>
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Number of coupons to issue:</label>
+                <input type="number" name="coupons_to_issue" value="3" min="0" max="10" required style="width: 100%; padding: 0.5rem;">
+            </div>
+            
+            <hr style="margin: 1.5rem 0;">
+            <h4>Seed Recruitment Settings</h4>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">
+                    <input type="checkbox" name="seed_recruitment_active" style="margin-right: 0.5rem;">
+                    Enable seed recruitment
+                </label>
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Contact rate (days between contacts):</label>
+                <input type="number" name="seed_contact_rate_days" value="7" min="1" max="365" style="width: 100%; padding: 0.5rem;">
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Recruitment window minimum (days):</label>
+                <input type="number" name="seed_recruitment_window_min_days" value="0" min="0" style="width: 100%; padding: 0.5rem;">
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Recruitment window maximum (days):</label>
+                <input type="number" name="seed_recruitment_window_max_days" value="730" min="1" max="1095" style="width: 100%; padding: 0.5rem;">
+            </div>
+
+            <hr style="margin: 1.5rem 0;">
+            <h4>Payment Configuration</h4>
+
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Payment Type:</label>
+                <select name="subject_payment_type" style="width: 100%; padding: 0.5rem;">
+                    <option value="None">None</option>
+                    <option value="Cash">Cash</option>
+                </select>
+            </div>
+
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Currency:</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" name="payment_currency" value="USD" placeholder="USD" style="width: 30%; padding: 0.5rem;">
+                    <input type="text" name="payment_currency_symbol" value="$" placeholder="$" style="width: 20%; padding: 0.5rem;">
+                </div>
+            </div>
+
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Participation Payment Amount:</label>
+                <input type="number" name="participation_payment_amount" value="0" min="0" step="0.01" style="width: 100%; padding: 0.5rem;">
+            </div>
+
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Recruitment Payment Amount (per recruit):</label>
+                <input type="number" name="recruitment_payment_amount" value="0" min="0" step="0.01" style="width: 100%; padding: 0.5rem;">
+            </div>
+
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn">Add Facility</button>
+                <button type="button" onclick="hideAddFacilityForm()" class="btn btn-danger">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="editFacilityModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+    <div style="background: white; max-width: 500px; margin: 2rem auto; padding: 2rem; border-radius: 8px; max-height: 90vh; overflow-y: auto;">
+        <h3>Edit Facility</h3>
+        <form id="editFacilityForm">
+            <input type="hidden" name="id">
+            <input type="text" name="name" placeholder="Facility Name" required style="width: 100%; padding: 0.5rem; margin: 1rem 0;">
+            <input type="text" name="location" placeholder="Location (optional)" style="width: 100%; padding: 0.5rem; margin: 1rem 0;">
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">
+                    <input type="checkbox" name="allow_non_coupon_participants" style="margin-right: 0.5rem;">
+                    Allow participants without coupons
+                </label>
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Number of coupons to issue:</label>
+                <input type="number" name="coupons_to_issue" value="3" min="0" max="10" required style="width: 100%; padding: 0.5rem;">
+            </div>
+            
+            <hr style="margin: 1.5rem 0;">
+            <h4>Seed Recruitment Settings</h4>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">
+                    <input type="checkbox" name="seed_recruitment_active" style="margin-right: 0.5rem;">
+                    Enable seed recruitment
+                </label>
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Contact rate (days between contacts):</label>
+                <input type="number" name="seed_contact_rate_days" value="7" min="1" max="365" style="width: 100%; padding: 0.5rem;">
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Recruitment window minimum (days):</label>
+                <input type="number" name="seed_recruitment_window_min_days" value="0" min="0" style="width: 100%; padding: 0.5rem;">
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Recruitment window maximum (days):</label>
+                <input type="number" name="seed_recruitment_window_max_days" value="730" min="1" max="1095" style="width: 100%; padding: 0.5rem;">
+            </div>
+
+            <hr style="margin: 1.5rem 0;">
+            <h4>Payment Configuration</h4>
+
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Payment Type:</label>
+                <select name="subject_payment_type" style="width: 100%; padding: 0.5rem;">
+                    <option value="None">None</option>
+                    <option value="Cash">Cash</option>
+                </select>
+            </div>
+
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Currency:</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" name="payment_currency" placeholder="USD" style="width: 30%; padding: 0.5rem;">
+                    <input type="text" name="payment_currency_symbol" placeholder="$" style="width: 20%; padding: 0.5rem;">
+                </div>
+            </div>
+
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Participation Payment Amount:</label>
+                <input type="number" name="participation_payment_amount" min="0" step="0.01" style="width: 100%; padding: 0.5rem;">
+            </div>
+
+            <div style="margin: 1rem 0;">
+                <label style="display: block; margin-bottom: 0.5rem;">Recruitment Payment Amount (per recruit):</label>
+                <input type="number" name="recruitment_payment_amount" min="0" step="0.01" style="width: 100%; padding: 0.5rem;">
+            </div>
+
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn">Update Facility</button>
+                <button type="button" onclick="hideEditFacilityForm()" class="btn btn-danger">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Setup Code Modal -->
+<div id="setupCodeModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="background: white; max-width: 500px; margin: 5rem auto; padding: 2rem; border-radius: 8px;">
+        <h3>Facility Setup Code</h3>
+        <p id="setupCodeFacilityName" style="margin-bottom: 2rem;">Generating setup code for: <strong></strong></p>
+
+        <div id="setupCodeContent" style="text-align: center; padding: 2rem;">
+            <div id="setupCodeLoading" style="display: none;">
+                <p>Generating setup code...</p>
+            </div>
+
+            <div id="setupCodeDisplay" style="display: none;">
+                <p style="margin-bottom: 1rem;">Share this code with the tablet user:</p>
+                <div style="background: #f0f8ff; border: 2px solid #4CAF50; padding: 1.5rem; border-radius: 8px; margin: 1rem 0;">
+                    <code id="setupCodeValue" style="font-size: 2rem; font-weight: bold; letter-spacing: 2px; color: #2c5aa0;"></code>
+                </div>
+                <p style="font-size: 0.9rem; color: #666; margin-top: 1rem;">
+                    This code expires in <span id="setupCodeExpiration"></span> hours
+                </p>
+                <button onclick="copySetupCode()" class="btn" style="margin-top: 1rem;">Copy Code</button>
+            </div>
+
+            <div id="setupCodeError" style="display: none; color: red;">
+                <p>Failed to generate setup code. Please try again.</p>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 2rem;">
+            <button onclick="hideSetupCodeModal()" class="btn">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function showAddFacilityForm() {
+    document.getElementById('addFacilityModal').style.display = 'block';
+}
+
+function hideAddFacilityForm() {
+    document.getElementById('addFacilityModal').style.display = 'none';
+}
+
+function editFacility(id, name, location, allowNonCoupon, couponsToIssue, seedRecruitmentActive, seedContactRateDays, seedRecruitmentWindowMinDays, seedRecruitmentWindowMaxDays, subjectPaymentType, participationPaymentAmount, recruitmentPaymentAmount, paymentCurrency, paymentCurrencySymbol) {
+    const form = document.getElementById('editFacilityForm');
+    form.id.value = id;
+    form.name.value = name;
+    form.location.value = location;
+    form.allow_non_coupon_participants.checked = allowNonCoupon;
+    form.coupons_to_issue.value = couponsToIssue;
+    form.seed_recruitment_active.checked = seedRecruitmentActive;
+    form.seed_contact_rate_days.value = seedContactRateDays || 7;
+    form.seed_recruitment_window_min_days.value = seedRecruitmentWindowMinDays || 0;
+    form.seed_recruitment_window_max_days.value = seedRecruitmentWindowMaxDays || 730;
+    form.subject_payment_type.value = subjectPaymentType || 'None';
+    form.participation_payment_amount.value = participationPaymentAmount || 0;
+    form.recruitment_payment_amount.value = recruitmentPaymentAmount || 0;
+    form.payment_currency.value = paymentCurrency || 'USD';
+    form.payment_currency_symbol.value = paymentCurrencySymbol || '$';
+    document.getElementById('editFacilityModal').style.display = 'block';
+}
+
+function hideEditFacilityForm() {
+    document.getElementById('editFacilityModal').style.display = 'none';
+}
+
+let currentSetupCode = '';
+
+function confirmGenerateSetupCode(facilityId, facilityName, hasActiveTablet) {
+    if (hasActiveTablet) {
+        const message = `⚠️ WARNING: This facility currently has a tablet connected.\n\nGenerating a new setup code will:\n• Invalidate the current connection\n• Require the tablet to be reconfigured\n• Generate a new API key\n\nAre you sure you want to continue?`;
+        if (!confirm(message)) {
+            return;
+        }
+    }
+    generateSetupCode(facilityId, facilityName);
+}
+
+async function generateSetupCode(facilityId, facilityName) {
+    // Show modal
+    document.getElementById('setupCodeModal').style.display = 'block';
+    document.querySelector('#setupCodeFacilityName strong').textContent = facilityName;
+
+    // Show loading state
+    document.getElementById('setupCodeLoading').style.display = 'block';
+    document.getElementById('setupCodeDisplay').style.display = 'none';
+    document.getElementById('setupCodeError').style.display = 'none';
+
+    try {
+        const response = await fetch('/api/admin/facilities/' + facilityId + '/generate-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ expirationHours: 24 })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            currentSetupCode = result.code;
+            document.getElementById('setupCodeValue').textContent = result.code;
+            document.getElementById('setupCodeExpiration').textContent = result.expiration_hours || 24;
+
+            // Show the code
+            document.getElementById('setupCodeLoading').style.display = 'none';
+            document.getElementById('setupCodeDisplay').style.display = 'block';
+        } else {
+            // Show error
+            document.getElementById('setupCodeLoading').style.display = 'none';
+            document.getElementById('setupCodeError').style.display = 'block';
+            console.error('Failed to generate setup code:', result);
+        }
+    } catch (error) {
+        // Show error
+        document.getElementById('setupCodeLoading').style.display = 'none';
+        document.getElementById('setupCodeError').style.display = 'block';
+        console.error('Error generating setup code:', error);
+    }
+}
+
+function hideSetupCodeModal() {
+    document.getElementById('setupCodeModal').style.display = 'none';
+    currentSetupCode = '';
+}
+
+function copySetupCode() {
+    if (currentSetupCode) {
+        navigator.clipboard.writeText(currentSetupCode);
+        alert('Setup code copied to clipboard');
+    }
+}
+
+document.getElementById('addFacilityForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    // Convert checkbox value to boolean
+    data.allow_non_coupon_participants = formData.has('allow_non_coupon_participants');
+    data.seed_recruitment_active = formData.has('seed_recruitment_active');
+    // Convert numeric fields
+    data.seed_contact_rate_days = parseInt(data.seed_contact_rate_days, 10) || 7;
+    data.seed_recruitment_window_min_days = parseInt(data.seed_recruitment_window_min_days, 10) || 0;
+    data.seed_recruitment_window_max_days = parseInt(data.seed_recruitment_window_max_days, 10) || 730;
+    
+    // Remove NaN values
+    Object.keys(data).forEach(key => {
+        if (typeof data[key] === 'number' && isNaN(data[key])) {
+            delete data[key];
+        }
+    });
+    
+    try {
+        const response = await fetch('/api/admin/facilities', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Facility added successfully. API Key: ' + result.api_key);
+            location.reload();
+        } else {
+            alert('Failed to add facility: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
+
+document.getElementById('editFacilityForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    const facilityId = data.id;
+    delete data.id;
+    
+    // Convert checkbox value to boolean
+    data.allow_non_coupon_participants = formData.has('allow_non_coupon_participants');
+    data.seed_recruitment_active = formData.has('seed_recruitment_active');
+    // Ensure numeric fields are numbers
+    data.coupons_to_issue = parseInt(data.coupons_to_issue, 10);
+    data.seed_contact_rate_days = parseInt(data.seed_contact_rate_days, 10) || 7;
+    data.seed_recruitment_window_min_days = parseInt(data.seed_recruitment_window_min_days, 10) || 0;
+    data.seed_recruitment_window_max_days = parseInt(data.seed_recruitment_window_max_days, 10) || 730;
+    
+    // Remove NaN values
+    Object.keys(data).forEach(key => {
+        if (typeof data[key] === 'number' && isNaN(data[key])) {
+            delete data[key];
+        }
+    });
+    
+    console.log('Sending update:', data);  // Debug log
+    
+    try {
+        const response = await fetch('/api/admin/facilities/' + facilityId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Facility updated successfully');
+            location.reload();
+        } else {
+            alert('Failed to update facility: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
+</script>
+` %>
+<%- include('../layouts/main', { body: body }) %>

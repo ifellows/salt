@@ -26,7 +26,7 @@ class SurveyUploadManager(
 ) {
     private val serializer = SurveySerializer()
     private val uploadStateDao = database.uploadStateDao()
-    private val userDao = database.userDao()
+    private val appServerConfigDao = database.appServerConfigDao()
     private val surveyDao = database.surveyDao()
     private val sessionManager = SessionManagerInstance.instance
     
@@ -53,9 +53,9 @@ class SurveyUploadManager(
                     uploadStateDao.insertUploadState(uploadState)
                 }
                 
-                // Get server configuration from any admin user (same as sync)
-                val serverConfig = userDao.getAnyServerConfig()
-                if (serverConfig == null || serverConfig.uploadServerUrl.isNullOrBlank() || serverConfig.uploadApiKey.isNullOrBlank()) {
+                // Get server configuration from global settings
+                val serverConfig = appServerConfigDao.getServerConfig()
+                if (serverConfig == null || serverConfig.serverUrl.isBlank() || serverConfig.apiKey.isBlank()) {
                     Log.e(TAG, "No server configuration found for upload")
                     updateUploadState(surveyId, UploadStatus.FAILED, "Server not configured")
                     return@withContext UploadResult.ConfigurationError("Server not configured. Please configure server settings.")
@@ -100,10 +100,10 @@ class SurveyUploadManager(
                 val jsonData = serializer.serializeSurvey(survey, survey.questions, survey.answers, options, deviceInfo, issuedCoupons)
                 
                 // Build the upload URL (append endpoint to base URL)
-                val uploadUrl = "${serverConfig.uploadServerUrl}/api/sync/survey/upload"
-                
+                val uploadUrl = "${serverConfig.serverUrl}/api/sync/survey/upload"
+
                 // Perform HTTP upload
-                val uploadResult = performHttpUpload(uploadUrl, jsonData, serverConfig.uploadApiKey)
+                val uploadResult = performHttpUpload(uploadUrl, jsonData, serverConfig.apiKey)
                 
                 when (uploadResult) {
                     is UploadResult.Success -> {

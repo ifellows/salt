@@ -271,11 +271,21 @@ enum class CouponStatus {
 
 enum class UploadStatus {
     PENDING,
-    UPLOADING, 
+    UPLOADING,
     COMPLETED,
     FAILED
 }
 
+// Global app server configuration
+@Entity(tableName = "app_server_config")
+data class AppServerConfig(
+    @PrimaryKey val id: Int = 1, // Single row table
+    @ColumnInfo(name = "server_url") val serverUrl: String,
+    @ColumnInfo(name = "api_key") val apiKey: String,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long = System.currentTimeMillis()
+)
+
+// This is for backward compatibility with getAnyServerConfig query
 data class ServerConfig(
     @ColumnInfo(name = "upload_server_url") val uploadServerUrl: String?,
     @ColumnInfo(name = "upload_api_key") val uploadApiKey: String?
@@ -523,16 +533,19 @@ interface SurveyConfigDao {
 interface FacilityConfigDao {
     @Query("SELECT * FROM facility_config WHERE id = 1 LIMIT 1")
     fun getFacilityConfig(): FacilityConfig?
-    
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertFacilityConfig(config: FacilityConfig)
-    
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertOrUpdate(config: FacilityConfig)
+
     @Query("UPDATE facility_config SET allow_non_coupon_participants = :allow, coupons_to_issue = :count WHERE id = 1")
     fun updateFacilitySettings(allow: Boolean, count: Int)
-    
+
     @Query("UPDATE facility_config SET facility_id = :facilityId, facility_name = :facilityName WHERE id = 1")
     fun updateFacilityInfo(facilityId: Int, facilityName: String)
-    
+
     @Query("UPDATE facility_config SET last_sync_time = :time, sync_status = 'SUCCESS' WHERE id = 1")
     fun updateLastSyncSuccess(time: Long)
 }
@@ -597,7 +610,25 @@ interface SystemMessageDao {
     fun deleteAllSystemMessages()
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class], version = 42)
+@Dao
+interface AppServerConfigDao {
+    @Query("SELECT * FROM app_server_config WHERE id = 1 LIMIT 1")
+    fun getServerConfig(): AppServerConfig?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun setServerConfig(config: AppServerConfig)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertOrUpdate(config: AppServerConfig)
+
+    @Query("DELETE FROM app_server_config")
+    fun clearServerConfig()
+
+    @Query("SELECT EXISTS(SELECT 1 FROM app_server_config WHERE id = 1)")
+    fun hasServerConfig(): Boolean
+}
+
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class], version = 43)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao
@@ -609,6 +640,7 @@ abstract class SurveyDatabase : RoomDatabase() {
     abstract fun seedRecruitmentDao(): SeedRecruitmentDao
     abstract fun subjectFingerprintDao(): SubjectFingerprintDao
     abstract fun systemMessageDao(): SystemMessageDao
+    abstract fun appServerConfigDao(): AppServerConfigDao
     companion object {
         private var instance: SurveyDatabase? = null
 

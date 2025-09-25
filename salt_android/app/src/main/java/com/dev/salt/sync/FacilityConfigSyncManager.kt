@@ -15,41 +15,95 @@ class FacilityConfigSyncManager(
     companion object {
         private const val TAG = "FacilityConfigSync"
     }
-    
-    private val userDao = database.userDao()
+
+    private val appServerConfigDao = database.appServerConfigDao()
     private val facilityConfigDao = database.facilityConfigDao()
     
+    /**
+     * Validates API key by making a lightweight request to the server.
+     * Returns true if API key is valid, false otherwise.
+     * On 401/403 errors, returns false to trigger re-setup.
+     */
+    suspend fun validateApiKey(): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val serverConfig = getServerConfig()
+                if (serverConfig == null) {
+                    Log.e(TAG, "No server configuration found")
+                    return@withContext false
+                }
+
+                val (serverUrl, apiKey) = serverConfig
+                val url = URL("$serverUrl/api/sync/survey/version")
+                val connection = url.openConnection() as HttpURLConnection
+
+                try {
+                    connection.requestMethod = "GET"
+                    connection.setRequestProperty("X-API-Key", apiKey)
+                    connection.setRequestProperty("Accept", "application/json")
+                    connection.connectTimeout = 10000
+                    connection.readTimeout = 10000
+
+                    val responseCode = connection.responseCode
+                    Log.d(TAG, "API key validation response code: $responseCode")
+
+                    when (responseCode) {
+                        HttpURLConnection.HTTP_OK -> {
+                            Log.d(TAG, "API key is valid")
+                            return@withContext true
+                        }
+                        HttpURLConnection.HTTP_UNAUTHORIZED,
+                        HttpURLConnection.HTTP_FORBIDDEN -> {
+                            Log.w(TAG, "API key is invalid (HTTP $responseCode), need new setup code")
+                            // Don't clear config - just return false to navigate to setup screen
+                            return@withContext false
+                        }
+                        else -> {
+                            Log.e(TAG, "Server returned unexpected code: $responseCode")
+                            return@withContext true // Don't trigger re-setup on other errors
+                        }
+                    }
+                } finally {
+                    connection.disconnect()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error validating API key", e)
+                return@withContext true // Don't trigger re-setup on network errors
+            }
+        }
+    }
+
     suspend fun syncFacilityConfig(): Boolean {
         return withContext(Dispatchers.IO) {
             try {
                 Log.d(TAG, "Starting facility config sync")
-                
+
                 // Get server configuration
                 val serverConfig = getServerConfig()
                 if (serverConfig == null) {
                     Log.e(TAG, "No server configuration found")
                     return@withContext false
                 }
-                
+
                 val (serverUrl, apiKey) = serverConfig
                 val fullUrl = "$serverUrl/api/sync/facility/config"
-                
+
                 Log.d(TAG, "Fetching facility config from: $fullUrl")
-                
+
                 // Make HTTP request
                 val url = URL(fullUrl)
                 val connection = url.openConnection() as HttpURLConnection
-                
+
                 try {
                     connection.requestMethod = "GET"
                     connection.setRequestProperty("X-API-Key", apiKey)
                     connection.setRequestProperty("Accept", "application/json")
                     connection.connectTimeout = 30000
                     connection.readTimeout = 30000
-                    
+
                     val responseCode = connection.responseCode
                     Log.d(TAG, "Response code: $responseCode")
-                    
+
                     if (responseCode == HttpURLConnection.HTTP_OK) {
                         val response = connection.inputStream.bufferedReader().readText()
                         val jsonResponse = JSONObject(response)
@@ -119,10 +173,10 @@ class FacilityConfigSyncManager(
     }
     
     private fun getServerConfig(): Pair<String, String>? {
-        val config = userDao.getAnyServerConfig()
-        val serverUrl = config?.uploadServerUrl?.takeIf { it.isNotBlank() }
-        val apiKey = config?.uploadApiKey?.takeIf { it.isNotBlank() }
-        
+        val config = appServerConfigDao.getServerConfig()
+        val serverUrl = config?.serverUrl?.takeIf { it.isNotBlank() }
+        val apiKey = config?.apiKey?.takeIf { it.isNotBlank() }
+
         return if (serverUrl != null && apiKey != null) {
             Log.d(TAG, "Using server config: URL=$serverUrl")
             Pair(serverUrl, apiKey)

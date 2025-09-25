@@ -95,6 +95,7 @@ object AppDestinations {
     const val SUBJECT_PAYMENT = "subject_payment" // For subject payment confirmation
     const val LANGUAGE_SETTINGS = "language_settings" // For app language settings
     const val STAFF_FINGERPRINT_ENROLLMENT = "staff_fingerprint_enrollment" // For staff fingerprint enrollment
+    const val FACILITY_SETUP = "facility_setup" // For facility setup with short code
 
     // Compatibility aliases for existing code
     const val WELCOME_SCREEN = WELCOME
@@ -221,12 +222,59 @@ class MainActivity : ComponentActivity() {
                         // delete the database
                         //database.clearAllTables()
                         val context: Context = LocalContext.current
+                        val database = SurveyDatabase.getInstance(context)
                         val surveyApplication = SurveyApplication()
                         surveyApplication.populateSampleData()
                         surveyApplication.copyRawFilesToLocalStorage(context)
 
-                        WelcomeScreen(navController = navController)
+                        // Check if facility is configured
+                        var facilityConfigured by remember { mutableStateOf(false) }
+                        var isCheckingConfig by remember { mutableStateOf(true) }
+
+                        LaunchedEffect(Unit) {
+                            val facilityConfig = database.facilityConfigDao().getFacilityConfig()
+                            val serverConfig = database.appServerConfigDao().getServerConfig()
+                            facilityConfigured = facilityConfig?.facilityId != null && serverConfig?.apiKey != null
+                            isCheckingConfig = false
+
+                            // Auto-navigate to facility setup if not configured
+                            if (!isCheckingConfig && !facilityConfigured) {
+                                navController.navigate("${AppDestinations.FACILITY_SETUP}?showCancel=false") {
+                                    popUpTo(AppDestinations.WELCOME_SCREEN) { inclusive = true }
+                                }
+                            }
+                        }
+
+                        if (!isCheckingConfig && facilityConfigured) {
+                            WelcomeScreen(navController = navController)
+                        } else {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
                     }
+                    composable(
+                        route = "${AppDestinations.FACILITY_SETUP}?showCancel={showCancel}",
+                        arguments = listOf(
+                            navArgument("showCancel") {
+                                type = NavType.BoolType
+                                defaultValue = false
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val showCancel = backStackEntry.arguments?.getBoolean("showCancel") ?: false
+                        val context = LocalContext.current
+                        val database = SurveyDatabase.getInstance(context)
+                        com.dev.salt.ui.FacilitySetupScreen(
+                            navController = navController,
+                            database = database,
+                            showCancel = showCancel
+                        )
+                    }
+
                     composable(AppDestinations.LOGIN_SCREEN) {
                         // Pass the LoginViewModel and the navigation callback
                         val loginViewModel: LoginViewModel = viewModel(
@@ -462,7 +510,10 @@ class MainActivity : ComponentActivity() {
                     
                     composable(AppDestinations.SERVER_SETTINGS_SCREEN) {
                         ServerSettingsScreen(
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            onNavigateToSetup = {
+                                navController.navigate("${AppDestinations.FACILITY_SETUP}?showCancel=true")
+                            }
                         )
                     }
 
@@ -677,6 +728,11 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WelcomeScreen(navController: NavHostController) {
+    val context = LocalContext.current
+    val database = remember { SurveyDatabase.getInstance(context) }
+    val scope = rememberCoroutineScope()
+    var isValidating by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.app_title_welcome)) }) }
     ) { paddingValues ->
@@ -690,8 +746,34 @@ fun WelcomeScreen(navController: NavHostController) {
         ) {
             Text(stringResource(R.string.menu_welcome), style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(32.dp))
-            Button(onClick = { navController.navigate(AppDestinations.LOGIN_SCREEN) }) {
-                Text(stringResource(R.string.login_button_login))
+
+            if (isValidating) {
+                CircularProgressIndicator()
+                Text("Validating connection...", modifier = Modifier.padding(top = 8.dp))
+            } else {
+                Button(onClick = {
+                    // Validate API key before navigating
+                    isValidating = true
+                    scope.launch {
+                        val configSyncManager = com.dev.salt.sync.FacilityConfigSyncManager(database)
+                        val isValid = configSyncManager.validateApiKey()
+
+                        isValidating = false
+
+                        if (!isValid) {
+                            // API key is invalid, navigate to setup
+                            Log.d("WelcomeScreen", "API key validation failed, navigating to facility setup")
+                            navController.navigate("${AppDestinations.FACILITY_SETUP}?showCancel=false") {
+                                popUpTo(AppDestinations.WELCOME_SCREEN) { inclusive = true }
+                            }
+                        } else {
+                            // API key is valid or couldn't be verified (network error), proceed to login
+                            navController.navigate(AppDestinations.LOGIN_SCREEN)
+                        }
+                    }
+                }) {
+                    Text(stringResource(R.string.login_button_login))
+                }
             }
             // You can add other buttons like "Register" or "Continue as Guest" if needed
         }
