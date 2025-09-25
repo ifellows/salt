@@ -22,6 +22,14 @@ interface IFingerprintCapture {
     suspend fun closeDevice()
 
     /**
+     * Match two fingerprint templates
+     * @param template1 First template to match
+     * @param template2 Second template to match
+     * @return true if templates match, false otherwise
+     */
+    suspend fun matchTemplates(template1: ByteArray, template2: ByteArray): Boolean
+
+    /**
      * Get the implementation type for logging/debugging
      * @return String describing the implementation (e.g., "MOCK", "SECUGEN")
      */

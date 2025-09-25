@@ -26,11 +26,14 @@ import androidx.compose.ui.unit.dp
 import com.dev.salt.data.User
 import com.dev.salt.viewmodel.UserManagementViewModel
 import com.dev.salt.ui.LogoutButton
+import androidx.navigation.NavController
+import com.dev.salt.AppDestinations
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserManagementScreen(
     viewModel: UserManagementViewModel,
+    navController: NavController? = null,
     onLogout: (() -> Unit)? = null,
     showLogout: Boolean = true
 ) {
@@ -54,7 +57,11 @@ fun UserManagementScreen(
     if (viewModel.showAddUserDialog) {
         AddUserDialog(
             viewModel = viewModel,
-            onDismiss = { viewModel.hideAddUserDialog() }
+            onDismiss = { viewModel.hideAddUserDialog() },
+            onUserAdded = { userName ->
+                // Navigate to fingerprint enrollment after user is added
+                navController?.navigate("${AppDestinations.STAFF_FINGERPRINT_ENROLLMENT}/$userName")
+            }
         )
     }
 
@@ -71,7 +78,11 @@ fun UserManagementScreen(
     if (viewModel.showBiometricEnrollDialog && viewModel.userForBiometricAction != null) {
         BiometricEnrollConfirmDialog(
             user = viewModel.userForBiometricAction!!,
-            onConfirm = { viewModel.enrollUserBiometric(viewModel.userForBiometricAction!!) },
+            onConfirm = {
+                val userName = viewModel.userForBiometricAction!!.userName
+                viewModel.hideBiometricEnrollDialog()
+                navController?.navigate("${AppDestinations.STAFF_FINGERPRINT_ENROLLMENT}/$userName")
+            },
             onDismiss = { viewModel.hideBiometricEnrollDialog() }
         )
     }
@@ -253,15 +264,15 @@ fun UserCard(
                     Icon(
                         Icons.Default.Fingerprint,
                         contentDescription = "Biometric",
-                        tint = if (user.biometricEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (user.fingerprintTemplate != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
-                            text = if (user.biometricEnabled) "Biometric Enabled" else "Biometric Disabled",
+                            text = if (user.fingerprintTemplate != null) "Fingerprint Enrolled" else "No Fingerprint",
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        if (user.biometricEnabled) {
+                        if (user.fingerprintTemplate != null) {
                             user.biometricEnrolledDate?.let { enrolledDate ->
                                 val date = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault())
                                     .format(java.util.Date(enrolledDate))
@@ -280,7 +291,7 @@ fun UserCard(
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        if (user.biometricEnabled) {
+                        if (user.fingerprintTemplate != null) {
                             // Re-enroll button
                             OutlinedButton(
                                 onClick = onBiometricEnroll,
@@ -324,7 +335,8 @@ fun UserCard(
 @Composable
 fun AddUserDialog(
     viewModel: UserManagementViewModel,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onUserAdded: (String) -> Unit = {}
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
     
@@ -411,7 +423,13 @@ fun AddUserDialog(
         },
         confirmButton = {
             Button(
-                onClick = { viewModel.addUser() },
+                onClick = {
+                    viewModel.addUser(
+                        onSuccess = { userName ->
+                            onUserAdded(userName)
+                        }
+                    )
+                },
                 enabled = !viewModel.state.isAddingUser
             ) {
                 if (viewModel.state.isAddingUser) {
@@ -468,11 +486,11 @@ fun BiometricEnrollConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val title = if (user.biometricEnabled) "Re-enroll Biometric" else "Enable Biometric"
-    val message = if (user.biometricEnabled) {
-        "Are you sure you want to re-enroll biometric authentication for \"${user.fullName}\"? This will replace the current biometric data."
+    val title = if (user.fingerprintTemplate != null) "Re-enroll Fingerprint" else "Enroll Fingerprint"
+    val message = if (user.fingerprintTemplate != null) {
+        "Do you want to re-enroll the fingerprint for \"${user.fullName}\"? This will replace the current fingerprint data."
     } else {
-        "Are you sure you want to enable biometric authentication for \"${user.fullName}\"? This will allow them to login using biometric authentication."
+        "Do you want to enroll a fingerprint for \"${user.fullName}\"? This will allow them to login using their fingerprint."
     }
     
     AlertDialog(
@@ -498,7 +516,7 @@ fun BiometricEnrollConfirmDialog(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
-                Text("Enable")
+                Text("Proceed")
             }
         },
         dismissButton = {

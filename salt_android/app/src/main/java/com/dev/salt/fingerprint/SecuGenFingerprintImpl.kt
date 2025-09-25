@@ -253,12 +253,25 @@ class SecuGenFingerprintImpl(private val context: Context) : IFingerprintCapture
     }
 
     /**
+     * Interface implementation for template matching
+     * @param template1 First template to match
+     * @param template2 Second template to match
+     * @return true if templates match, false otherwise
+     */
+    override suspend fun matchTemplates(template1: ByteArray, template2: ByteArray): Boolean {
+        val score = matchTemplatesWithScore(template1, template2)
+        // SecuGen recommends a threshold of 50-100 for a match
+        // Using 50 as the threshold for now
+        return (score ?: 0) >= 50
+    }
+
+    /**
      * Matches a captured template against a stored template
      * @param capturedTemplate The newly captured template
      * @param storedTemplate The stored template to compare against
      * @return Match score (0-200+), or null if matching failed
      */
-    suspend fun matchTemplates(capturedTemplate: ByteArray, storedTemplate: ByteArray): Int? {
+    suspend fun matchTemplatesWithScore(capturedTemplate: ByteArray, storedTemplate: ByteArray): Int? {
         return withContext(Dispatchers.IO) {
             try {
                 if (!isInitialized || sgfplib == null) {

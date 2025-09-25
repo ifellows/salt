@@ -107,6 +107,14 @@ class UsbTestImpl(private val context: Context) : IFingerprintCapture {
         }
     }
 
+    override suspend fun matchTemplates(template1: ByteArray, template2: ByteArray): Boolean {
+        return withContext(Dispatchers.IO) {
+            Log.i(TAG, "USB Test: Mock template matching")
+            // Simple mock implementation for testing
+            template1.contentEquals(template2)
+        }
+    }
+
     override fun getImplementationType(): String {
         return "USB_TEST_ONLY"
     }

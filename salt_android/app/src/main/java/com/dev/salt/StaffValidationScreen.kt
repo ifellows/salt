@@ -30,6 +30,17 @@ import androidx.compose.runtime.LaunchedEffect
 import android.media.MediaPlayer
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.res.stringResource
+import com.dev.salt.fingerprint.IFingerprintCapture
+import com.dev.salt.fingerprint.SecuGenFingerprintImpl
+import com.dev.salt.fingerprint.MockFingerprintImpl
+import com.dev.salt.util.EmulatorDetector
+import android.hardware.usb.UsbDevice
+import android.hardware.usb.UsbManager
+import android.app.PendingIntent
+import android.content.Intent
+import android.os.Build
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun StaffValidationScreen(
@@ -49,6 +60,8 @@ fun StaffValidationScreen(
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var attemptsRemaining by remember { mutableIntStateOf(10) }
+    var isAuthenticating by remember { mutableStateOf(false) }
+    var authenticatedUser by remember { mutableStateOf<String?>(null) }
 
     // Load staff validation message from database
     var validationMessage by remember { mutableStateOf("Please hand the tablet back to the staff member who gave it to you") }
@@ -209,55 +222,150 @@ fun StaffValidationScreen(
                     Button(
                         onClick = {
                             scope.launch {
+                                isAuthenticating = true
                                 errorMessage = null
-                                // Try biometric auth for any staff user
-                                val staffUsers = database.userDao().getAllUsers()
-                                    .filter { it.role == "SURVEY_STAFF" || it.role == "ADMINISTRATOR" }
+
+                                // Get all staff and admin users with fingerprint templates
+                                val staffUsers = withContext(Dispatchers.IO) {
+                                    database.userDao().getAllUsers()
+                                        .filter { (it.role == "SURVEY_STAFF" || it.role == "ADMINISTRATOR") &&
+                                                 it.fingerprintTemplate != null }
+                                }
 
                                 if (staffUsers.isEmpty()) {
-                                    errorMessage = context.getString(R.string.staff_validation_no_staff)
+                                    errorMessage = "No staff members have enrolled fingerprints"
                                     showPasswordDialog = true
+                                    isAuthenticating = false
                                 } else {
-                                    // Use mock biometric prompt which auto-succeeds for testing
-                                    biometricAuthManager.showBiometricPrompt(
-                                        title = context.getString(R.string.staff_validation_title_auth),
-                                        subtitle = context.getString(R.string.staff_validation_subtitle_auth)
-                                    ) { result ->
-                                        when (result) {
-                                            is BiometricResult.Success -> {
-                                                // In production, verify against specific staff fingerprint
-                                                // For now, accept any successful biometric auth
-                                                onValidationSuccess()
+                                    Log.i("StaffValidation", "Starting fingerprint authentication")
+
+                                    // Check for USB device and permission
+                                    val usbManager = context.getSystemService(android.content.Context.USB_SERVICE) as UsbManager
+                                    val deviceList = usbManager.deviceList
+                                    var secugenDevice: UsbDevice? = null
+
+                                    for ((_, device) in deviceList) {
+                                        if (device.vendorId == 0x1162) { // SecuGen vendor ID
+                                            secugenDevice = device
+                                            break
+                                        }
+                                    }
+
+                                    if (secugenDevice == null) {
+                                        errorMessage = "Fingerprint scanner not connected"
+                                        isAuthenticating = false
+                                        return@launch
+                                    }
+
+                                    if (!usbManager.hasPermission(secugenDevice)) {
+                                        Log.i("StaffValidation", "Requesting USB permission")
+                                        val permissionIntent = PendingIntent.getBroadcast(
+                                            context,
+                                            0,
+                                            Intent("com.dev.salt.USB_PERMISSION").apply {
+                                                setPackage(context.packageName)
+                                            },
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                                PendingIntent.FLAG_IMMUTABLE
+                                            } else {
+                                                0
                                             }
-                                            is BiometricResult.Error -> {
-                                                attemptsRemaining--
-                                                errorMessage = if (attemptsRemaining <= 0) {
-                                                    context.getString(R.string.staff_validation_max_attempts)
-                                                } else {
-                                                    context.getString(R.string.staff_validation_auth_failed, result.message)
-                                                }
+                                        )
+                                        usbManager.requestPermission(secugenDevice, permissionIntent)
+                                        errorMessage = "Please grant USB permission and try again"
+                                        isAuthenticating = false
+                                        return@launch
+                                    }
+
+                                    // Create fingerprint implementation
+                                    val fingerprintImpl: IFingerprintCapture = if (EmulatorDetector.isEmulator()) {
+                                        Log.i("StaffValidation", "Using mock fingerprint implementation for emulator")
+                                        MockFingerprintImpl()
+                                    } else {
+                                        try {
+                                            Log.i("StaffValidation", "Using SecuGen fingerprint implementation")
+                                            SecuGenFingerprintImpl(context)
+                                        } catch (e: Exception) {
+                                            Log.e("StaffValidation", "Failed to create SecuGen implementation, using mock", e)
+                                            MockFingerprintImpl()
+                                        }
+                                    }
+
+                                    // Initialize device
+                                    if (!fingerprintImpl.initializeDevice()) {
+                                        errorMessage = "Failed to initialize fingerprint scanner"
+                                        isAuthenticating = false
+                                        return@launch
+                                    }
+
+                                    // Capture fingerprint
+                                    val capturedTemplate = fingerprintImpl.captureFingerprint()
+
+                                    if (capturedTemplate == null) {
+                                        fingerprintImpl.closeDevice()
+                                        errorMessage = "Failed to capture fingerprint"
+                                        isAuthenticating = false
+                                        attemptsRemaining--
+                                        return@launch
+                                    }
+
+                                    // Try to match against all staff fingerprints
+                                    var matchedUser: String? = null
+                                    for (user in staffUsers) {
+                                        if (user.fingerprintTemplate != null) {
+                                            val matchResult = fingerprintImpl.matchTemplates(
+                                                capturedTemplate,
+                                                user.fingerprintTemplate
+                                            )
+                                            if (matchResult) {
+                                                matchedUser = user.userName
+                                                Log.i("StaffValidation", "Fingerprint matched for user: ${user.userName}")
+                                                break
                                             }
-                                            else -> {
-                                                errorMessage = context.getString(R.string.staff_validation_auth_cancelled)
-                                            }
+                                        }
+                                    }
+
+                                    fingerprintImpl.closeDevice()
+                                    isAuthenticating = false
+
+                                    if (matchedUser != null) {
+                                        authenticatedUser = matchedUser
+                                        Log.i("StaffValidation", "Staff member authenticated: $matchedUser")
+                                        onValidationSuccess()
+                                    } else {
+                                        attemptsRemaining--
+                                        errorMessage = if (attemptsRemaining <= 0) {
+                                            "Maximum attempts exceeded"
+                                        } else {
+                                            "Fingerprint not recognized. Please try again."
                                         }
                                     }
                                 }
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = attemptsRemaining > 0,
+                        enabled = attemptsRemaining > 0 && !isAuthenticating,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF1976D2)
                         )
                     ) {
-                        Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.Fingerprint,
-                            contentDescription = "Fingerprint",
-                            modifier = Modifier.size(24.dp)
-                        )
+                        if (isAuthenticating) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White
+                            )
+                        } else {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Default.Fingerprint,
+                                contentDescription = "Fingerprint",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.staff_validation_authenticate_fingerprint), fontSize = 16.sp)
+                        Text(
+                            if (isAuthenticating) "Scanning..." else stringResource(R.string.staff_validation_authenticate_fingerprint),
+                            fontSize = 16.sp
+                        )
                     }
 
                     // Password button

@@ -83,7 +83,7 @@ class FingerprintManager(
             val impl = implementation
             if (impl is SecuGenFingerprintImpl) {
                 for (storedFingerprint in recentFingerprints) {
-                    val matchScore = impl.matchTemplates(
+                    val matchScore = impl.matchTemplatesWithScore(
                         fingerprintTemplate,
                         storedFingerprint.fingerprintTemplate
                     )
@@ -167,5 +167,15 @@ class FingerprintManager(
     suspend fun closeDevice() {
         Log.d(TAG, "Closing device with ${implementation.getImplementationType()} implementation")
         implementation.closeDevice()
+    }
+
+    /**
+     * Matches two fingerprint templates
+     * @param template1 First template to match
+     * @param template2 Second template to match
+     * @return true if templates match, false otherwise
+     */
+    suspend fun matchTemplates(template1: ByteArray, template2: ByteArray): Boolean {
+        return implementation.matchTemplates(template1, template2)
     }
 }

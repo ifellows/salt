@@ -80,6 +80,22 @@ class MockFingerprintImpl : IFingerprintCapture {
         return "MOCK"
     }
 
+    override suspend fun matchTemplates(template1: ByteArray, template2: ByteArray): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "Matching templates in MOCK mode")
+                // In mock mode, just compare the byte arrays
+                // In real implementation, this would use the SecuGen SDK matching function
+                val match = template1.contentEquals(template2)
+                Log.i(TAG, "Template match result: $match")
+                match
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to match templates", e)
+                false
+            }
+        }
+    }
+
     /**
      * Hashes fingerprint data using SHA-256
      */

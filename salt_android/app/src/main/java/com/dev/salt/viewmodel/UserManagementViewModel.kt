@@ -65,7 +65,7 @@ class UserManagementViewModel(
         }
     }
 
-    fun addUser() {
+    fun addUser(onSuccess: (String) -> Unit = {}) {
         if (newUserName.isBlank() || newUserFullName.isBlank() || newUserPassword.isBlank()) {
             state = state.copy(error = "All fields are required")
             return
@@ -111,10 +111,13 @@ class UserManagementViewModel(
                 }
 
                 // Clear form and reload users
+                val savedUserName = newUserName
                 clearAddUserForm()
                 loadUsers()
                 state = state.copy(isAddingUser = false)
                 showAddUserDialog = false
+                // Call the success callback with the username
+                onSuccess(savedUserName)
             } catch (e: Exception) {
                 state = state.copy(
                     error = "Failed to add user: ${e.message}",

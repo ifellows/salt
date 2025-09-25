@@ -16,6 +16,13 @@ import com.dev.salt.data.UserDao // Import your UserDao
 import com.dev.salt.PasswordUtils // Import the best practice utility
 import com.dev.salt.auth.BiometricAuthManager
 import com.dev.salt.auth.BiometricResult
+import com.dev.salt.fingerprint.FingerprintManager
+import com.dev.salt.data.SurveyDatabase
+import android.hardware.usb.UsbDevice
+import android.hardware.usb.UsbManager
+import android.app.PendingIntent
+import android.content.Intent
+import android.os.Build
 import com.dev.salt.session.SessionManager
 import com.dev.salt.session.SessionManagerInstance
 import kotlinx.coroutines.Dispatchers
@@ -120,7 +127,7 @@ class LoginViewModel(
     }
 
     /**
-     * Checks if biometric authentication is available for the entered username.
+     * Checks if fingerprint authentication is available for the entered username.
      */
     fun checkBiometricAvailability() {
         if (username.isBlank()) {
@@ -129,16 +136,18 @@ class LoginViewModel(
         }
 
         viewModelScope.launch {
-            val isSupported = biometricAuthManager.isBiometricSupported()
-            val isEnabledForUser = biometricAuthManager.isBiometricEnabledForUser(username)
-            
-            showBiometricOption = isSupported && isEnabledForUser
-            Log.d("LoginViewModel", "Biometric available for $username: $showBiometricOption")
+            val user = withContext(Dispatchers.IO) {
+                userDao.getUserByUserName(username)
+            }
+
+            // Check if user has a fingerprint template stored
+            showBiometricOption = user?.fingerprintTemplate != null
+            Log.d("LoginViewModel", "Fingerprint available for $username: $showBiometricOption")
         }
     }
 
     /**
-     * Attempts biometric authentication for the entered username.
+     * Attempts fingerprint authentication for the entered username.
      */
     fun authenticateWithBiometric(onLoginComplete: (LoginResult) -> Unit) {
         if (username.isBlank()) {
@@ -151,82 +160,118 @@ class LoginViewModel(
             loginError = null
 
             try {
-                // Show biometric prompt (mock implementation)
-                biometricAuthManager.showBiometricPrompt(
-                    title = "Biometric Authentication",
-                    subtitle = "Use your fingerprint to login as $username"
-                ) { result ->
-                    when (result) {
-                        is BiometricResult.Success -> {
-                            // Biometric prompt succeeded, now verify against stored key
-                            viewModelScope.launch {
-                                biometricAuthManager.authenticateUserBiometric(username) { authResult ->
-                                    isBiometricLoading = false
-                                    
-                                    when (authResult) {
-                                        is BiometricResult.Success -> {
-                                            // Get user role for successful biometric auth
-                                            viewModelScope.launch {
-                                                val user = withContext(Dispatchers.IO) {
-                                                    userDao.getUserByUserName(username)
-                                                }
-                                                
-                                                if (user != null) {
-                                                    val role = try {
-                                                        UserRole.valueOf(user.role.uppercase())
-                                                    } catch (e: IllegalArgumentException) {
-                                                        UserRole.NONE
-                                                    }
-                                                    
-                                                    // Update session times in database
-                                                    val currentTime = System.currentTimeMillis()
-                                                    userDao.updateUserSessionTimes(user.userName, currentTime, currentTime)
-                                                    
-                                                    // Start session with user's custom timeout
-                                                    val sessionTimeoutMs = user.sessionTimeoutMinutes * 60 * 1000L
-                                                    sessionManager.startSession(user.userName, sessionTimeoutMs)
-                                                    
-                                                    val loginResult = LoginResult(success = true, role = role)
-                                                    onLoginComplete(loginResult)
-                                                } else {
-                                                    loginError = context.getString(com.dev.salt.R.string.login_error_user_not_found)
-                                                    onLoginComplete(LoginResult(success = false, errorMessage = context.getString(com.dev.salt.R.string.login_error_user_not_found)))
-                                                }
-                                            }
-                                        }
-                                        is BiometricResult.Error -> {
-                                            loginError = authResult.message
-                                            onLoginComplete(LoginResult(success = false, errorMessage = authResult.message))
-                                        }
-                                        else -> {
-                                            loginError = context.getString(com.dev.salt.R.string.login_error_biometric_failed)
-                                            onLoginComplete(LoginResult(success = false, errorMessage = context.getString(com.dev.salt.R.string.login_error_biometric_failed)))
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        is BiometricResult.Error -> {
-                            isBiometricLoading = false
-                            loginError = result.message
-                            onLoginComplete(LoginResult(success = false, errorMessage = result.message))
-                        }
-                        is BiometricResult.UserCancelled -> {
-                            isBiometricLoading = false
-                            // Don't show error for user cancellation
-                        }
-                        else -> {
-                            isBiometricLoading = false
-                            loginError = context.getString(com.dev.salt.R.string.login_error_biometric_unavailable)
-                            onLoginComplete(LoginResult(success = false, errorMessage = context.getString(com.dev.salt.R.string.login_error_biometric_unavailable)))
-                        }
+                // Get the user and their stored template
+                val user = withContext(Dispatchers.IO) {
+                    userDao.getUserByUserName(username)
+                }
+
+                if (user == null || user.fingerprintTemplate == null) {
+                    isBiometricLoading = false
+                    loginError = "No fingerprint enrolled for this user"
+                    onLoginComplete(LoginResult(success = false, errorMessage = "No fingerprint enrolled"))
+                    return@launch
+                }
+
+                val database = SurveyDatabase.getInstance(context)
+                val fingerprintManager = FingerprintManager(database.subjectFingerprintDao(), context)
+
+                Log.i("LoginViewModel", "Starting fingerprint authentication for $username")
+
+                // Check for USB device and permission
+                val usbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager
+                val deviceList = usbManager.deviceList
+                var secugenDevice: UsbDevice? = null
+
+                for ((_, device) in deviceList) {
+                    if (device.vendorId == 0x1162) { // SecuGen vendor ID
+                        secugenDevice = device
+                        break
                     }
+                }
+
+                if (secugenDevice == null) {
+                    isBiometricLoading = false
+                    loginError = "Fingerprint scanner not connected"
+                    onLoginComplete(LoginResult(success = false, errorMessage = "Scanner not connected"))
+                    return@launch
+                }
+
+                if (!usbManager.hasPermission(secugenDevice)) {
+                    Log.i("LoginViewModel", "Requesting USB permission")
+                    val permissionIntent = PendingIntent.getBroadcast(
+                        context,
+                        0,
+                        Intent("com.dev.salt.USB_PERMISSION").apply {
+                            setPackage(context.packageName)
+                        },
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            PendingIntent.FLAG_IMMUTABLE
+                        } else {
+                            0
+                        }
+                    )
+                    usbManager.requestPermission(secugenDevice, permissionIntent)
+                    isBiometricLoading = false
+                    loginError = "Please grant USB permission and try again"
+                    onLoginComplete(LoginResult(success = false, errorMessage = "USB permission required"))
+                    return@launch
+                }
+
+                // Initialize device
+                if (!fingerprintManager.initializeDevice()) {
+                    isBiometricLoading = false
+                    loginError = "Failed to initialize fingerprint scanner"
+                    onLoginComplete(LoginResult(success = false, errorMessage = "Scanner initialization failed"))
+                    return@launch
+                }
+
+                // Capture fingerprint
+                val capturedTemplate = fingerprintManager.captureFingerprint()
+
+                if (capturedTemplate == null) {
+                    fingerprintManager.closeDevice()
+                    isBiometricLoading = false
+                    loginError = "Failed to capture fingerprint"
+                    onLoginComplete(LoginResult(success = false, errorMessage = "Fingerprint capture failed"))
+                    return@launch
+                }
+
+                // Match templates
+                val matchResult = fingerprintManager.matchTemplates(capturedTemplate, user.fingerprintTemplate)
+                fingerprintManager.closeDevice()
+
+                if (matchResult) {
+                    Log.i("LoginViewModel", "Fingerprint match successful for $username")
+
+                    // Get user role for successful auth
+                    val role = try {
+                        UserRole.valueOf(user.role.uppercase())
+                    } catch (e: IllegalArgumentException) {
+                        UserRole.NONE
+                    }
+
+                    // Update session times in database
+                    val currentTime = System.currentTimeMillis()
+                    userDao.updateUserSessionTimes(user.userName, currentTime, currentTime)
+
+                    // Start session with user's custom timeout
+                    val sessionTimeoutMs = user.sessionTimeoutMinutes * 60 * 1000L
+                    sessionManager.startSession(user.userName, sessionTimeoutMs)
+
+                    isBiometricLoading = false
+                    val loginResult = LoginResult(success = true, role = role)
+                    onLoginComplete(loginResult)
+                } else {
+                    Log.w("LoginViewModel", "Fingerprint match failed for $username")
+                    isBiometricLoading = false
+                    loginError = "Fingerprint does not match"
+                    onLoginComplete(LoginResult(success = false, errorMessage = "Fingerprint authentication failed"))
                 }
             } catch (e: Exception) {
                 isBiometricLoading = false
-                loginError = "Biometric authentication error: ${e.message}"
-                onLoginComplete(LoginResult(success = false, errorMessage = context.getString(com.dev.salt.R.string.login_error_authentication)))
-                Log.e("LoginViewModel", "Biometric authentication error", e)
+                loginError = "Fingerprint authentication error: ${e.message}"
+                onLoginComplete(LoginResult(success = false, errorMessage = "Authentication error"))
+                Log.e("LoginViewModel", "Fingerprint authentication error", e)
             }
         }
     }

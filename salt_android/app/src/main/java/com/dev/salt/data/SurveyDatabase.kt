@@ -167,7 +167,8 @@ data class User(
     @ColumnInfo(name = "last_login_time") val lastLoginTime: Long? = null,
     @ColumnInfo(name = "last_activity_time") val lastActivityTime: Long? = null,
     @ColumnInfo(name = "upload_server_url") val uploadServerUrl: String? = null,
-    @ColumnInfo(name = "upload_api_key") val uploadApiKey: String? = null
+    @ColumnInfo(name = "upload_api_key") val uploadApiKey: String? = null,
+    @ColumnInfo(name = "fingerprint_template", typeAffinity = ColumnInfo.BLOB) val fingerprintTemplate: ByteArray? = null
 )
 
 @Entity(tableName = "survey_upload_state")
@@ -369,6 +370,9 @@ interface UserDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertUser(user: User)
+
+    @Update
+    fun updateUser(user: User)
 
     @Query("SELECT * FROM users WHERE userName = :userName LIMIT 1")
     fun getUserByUserName(userName: String): User?
@@ -593,7 +597,7 @@ interface SystemMessageDao {
     fun deleteAllSystemMessages()
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class], version = 41)
+@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class], version = 42)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao

@@ -63,6 +63,7 @@ import com.dev.salt.ui.LogoutButton
 import com.dev.salt.ui.ServerSettingsScreen
 import com.dev.salt.ui.UploadStatusScreen
 import com.dev.salt.ui.LanguageSettingsScreen
+import com.dev.salt.ui.StaffFingerprintEnrollmentScreen
 import com.dev.salt.upload.SurveyUploadWorkManager
 import com.dev.salt.i18n.LanguageManager
 import android.util.Log
@@ -93,6 +94,7 @@ object AppDestinations {
     const val STAFF_INSTRUCTION = "staff_instruction" // For staff instructions before giving tablet to participant
     const val SUBJECT_PAYMENT = "subject_payment" // For subject payment confirmation
     const val LANGUAGE_SETTINGS = "language_settings" // For app language settings
+    const val STAFF_FINGERPRINT_ENROLLMENT = "staff_fingerprint_enrollment" // For staff fingerprint enrollment
 
     // Compatibility aliases for existing code
     const val WELCOME_SCREEN = WELCOME
@@ -279,6 +281,7 @@ class MainActivity : ComponentActivity() {
                         }
                         UserManagementScreen(
                             viewModel = userManagementViewModel,
+                            navController = navController,
                             onLogout = handleLogout,
                             showLogout = !surveyState.isActive
                         )
@@ -466,7 +469,20 @@ class MainActivity : ComponentActivity() {
                     composable(AppDestinations.LANGUAGE_SETTINGS) {
                         LanguageSettingsScreen(navController = navController)
                     }
-                    
+
+                    composable(
+                        route = "${AppDestinations.STAFF_FINGERPRINT_ENROLLMENT}/{userName}",
+                        arguments = listOf(
+                            navArgument("userName") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val userName = backStackEntry.arguments?.getString("userName") ?: ""
+                        StaffFingerprintEnrollmentScreen(
+                            navController = navController,
+                            userName = userName
+                        )
+                    }
+
                     composable(AppDestinations.UPLOAD_STATUS_SCREEN) {
                         UploadStatusScreen(
                             onBack = { navController.popBackStack() }

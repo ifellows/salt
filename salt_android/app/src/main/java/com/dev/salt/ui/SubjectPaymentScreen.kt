@@ -22,7 +22,17 @@ import androidx.navigation.NavController
 import com.dev.salt.AppDestinations
 import com.dev.salt.data.SurveyDatabase
 import com.dev.salt.playAudio
-import com.dev.salt.fingerprint.FingerprintManager
+import com.dev.salt.fingerprint.IFingerprintCapture
+import com.dev.salt.fingerprint.SecuGenFingerprintImpl
+import com.dev.salt.fingerprint.MockFingerprintImpl
+import com.dev.salt.util.EmulatorDetector
+import android.hardware.usb.UsbDevice
+import android.hardware.usb.UsbManager
+import android.app.PendingIntent
+import android.content.Intent
+import android.os.Build
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.dev.salt.upload.SurveyUploadManager
 import com.dev.salt.upload.SurveyUploadWorkManager
 import com.dev.salt.upload.UploadResult
@@ -42,7 +52,6 @@ fun SubjectPaymentScreen(
     val context = LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
     val scope = rememberCoroutineScope()
-    val fingerprintManager = remember { FingerprintManager(database.subjectFingerprintDao()) }
 
     var facilityConfig by remember { mutableStateOf<com.dev.salt.data.FacilityConfig?>(null) }
     var survey by remember { mutableStateOf<com.dev.salt.data.Survey?>(null) }
@@ -316,22 +325,103 @@ fun SubjectPaymentScreen(
                         isCapturingFingerprint = true
                         errorMessage = null
 
+                        // Get the subject's previously enrolled fingerprint
+                        val subjectFingerprint = withContext(Dispatchers.IO) {
+                            database.subjectFingerprintDao().getFingerprintBySurveyId(surveyId)
+                        }
+
+                        if (subjectFingerprint == null) {
+                            Log.e("SubjectPaymentScreen", "No fingerprint found for survey $surveyId")
+                            errorMessage = "No fingerprint enrollment found for this survey"
+                            isCapturingFingerprint = false
+                            return@launch
+                        }
+
+                        // Check for USB device and permission
+                        val usbManager = context.getSystemService(android.content.Context.USB_SERVICE) as UsbManager
+                        val deviceList = usbManager.deviceList
+                        var secugenDevice: UsbDevice? = null
+
+                        for ((_, device) in deviceList) {
+                            if (device.vendorId == 0x1162) { // SecuGen vendor ID
+                                secugenDevice = device
+                                break
+                            }
+                        }
+
+                        if (secugenDevice == null) {
+                            errorMessage = "Fingerprint scanner not connected"
+                            isCapturingFingerprint = false
+                            return@launch
+                        }
+
+                        if (!usbManager.hasPermission(secugenDevice)) {
+                            Log.i("SubjectPaymentScreen", "Requesting USB permission")
+                            val permissionIntent = PendingIntent.getBroadcast(
+                                context,
+                                0,
+                                Intent("com.dev.salt.USB_PERMISSION").apply {
+                                    setPackage(context.packageName)
+                                },
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                    PendingIntent.FLAG_IMMUTABLE
+                                } else {
+                                    0
+                                }
+                            )
+                            usbManager.requestPermission(secugenDevice, permissionIntent)
+                            errorMessage = "Please grant USB permission and try again"
+                            isCapturingFingerprint = false
+                            return@launch
+                        }
+
+                        // Create fingerprint implementation
+                        val fingerprintImpl: IFingerprintCapture = if (EmulatorDetector.isEmulator()) {
+                            Log.i("SubjectPaymentScreen", "Using mock fingerprint implementation for emulator")
+                            MockFingerprintImpl()
+                        } else {
+                            try {
+                                Log.i("SubjectPaymentScreen", "Using SecuGen fingerprint implementation")
+                                SecuGenFingerprintImpl(context)
+                            } catch (e: Exception) {
+                                Log.e("SubjectPaymentScreen", "Failed to create SecuGen implementation, using mock", e)
+                                MockFingerprintImpl()
+                            }
+                        }
+
                         // Initialize fingerprint device
-                        if (!fingerprintManager.initializeDevice()) {
+                        if (!fingerprintImpl.initializeDevice()) {
                             errorMessage = deviceInitError
                             isCapturingFingerprint = false
                             return@launch
                         }
 
                         // Capture fingerprint
-                        val fingerprintHash = fingerprintManager.captureFingerprint()
+                        val capturedTemplate = fingerprintImpl.captureFingerprint()
 
-                        if (fingerprintHash == null) {
+                        if (capturedTemplate == null) {
                             errorMessage = captureFailedError
                             isCapturingFingerprint = false
-                            fingerprintManager.closeDevice()
+                            fingerprintImpl.closeDevice()
                             return@launch
                         }
+
+                        // Match against the subject's original fingerprint
+                        val isMatch = fingerprintImpl.matchTemplates(
+                            capturedTemplate,
+                            subjectFingerprint.fingerprintTemplate
+                        )
+
+                        fingerprintImpl.closeDevice()
+
+                        if (!isMatch) {
+                            errorMessage = "Fingerprint does not match. Please try again."
+                            isCapturingFingerprint = false
+                            Log.w("SubjectPaymentScreen", "Fingerprint mismatch for survey $surveyId")
+                            return@launch
+                        }
+
+                        Log.i("SubjectPaymentScreen", "Fingerprint verified successfully for survey $surveyId")
 
                         // Update survey with payment confirmation
                         survey?.let { s ->
@@ -345,7 +435,6 @@ fun SubjectPaymentScreen(
                             Log.i("SubjectPaymentScreen", "Payment confirmed for survey $surveyId: amount=$paymentAmount")
                         }
 
-                        fingerprintManager.closeDevice()
                         isCapturingFingerprint = false
 
                         // Upload survey after payment confirmation
