@@ -140,13 +140,18 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
             });
         }
         
+        // Debug log the survey object
+        console.log('Survey from DB:', {
+            id: survey.id,
+            name: survey.name,
+            eligibility_script: survey.eligibility_script
+        });
+
         // Parse JSON fields for response
         if (survey.languages && typeof survey.languages === 'string') {
             survey.languages = JSON.parse(survey.languages);
         }
-        if (survey.eligibility_message_json && typeof survey.eligibility_message_json === 'string') {
-            survey.eligibility_message_json = JSON.parse(survey.eligibility_message_json);
-        }
+        // Note: eligibility_message_json is now handled through system messages
         
         // Get sections
         const sections = await allAsync(
@@ -242,13 +247,13 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
                 description: survey.description,
                 languages: survey.languages,
                 eligibility_script: survey.eligibility_script,
-                eligibility_message_json: survey.eligibility_message_json,
                 staff_validation_message_json: survey.staff_validation_message_json
             },
             survey_config: {
                 survey_name: survey.name,
                 fingerprint_enabled: Boolean(survey.fingerprint_enabled),
-                re_enrollment_days: survey.re_enrollment_days || 90
+                re_enrollment_days: survey.re_enrollment_days || 90,
+                hiv_rapid_test_enabled: Boolean(survey.hiv_rapid_test_enabled)
             },
             sections: sections,
             questions: questionsWithParsedJson,

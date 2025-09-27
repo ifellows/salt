@@ -239,22 +239,56 @@ class SurveySyncManager(private val context: Context) {
     private fun insertSurveyData(data: JSONObject) {
         database.runInTransaction {
             try {
-                // Parse survey configuration
+                // Parse survey metadata including eligibility script
+                var eligibilityScript: String? = null
+                if (data.has("survey")) {
+                    val surveyJson = data.getJSONObject("survey")
+                    eligibilityScript = if (surveyJson.has("eligibility_script")) {
+                        surveyJson.getString("eligibility_script")
+                    } else {
+                        null
+                    }
+                    Log.d("SurveySyncManager", "Parsed eligibility script: $eligibilityScript")
+                }
+
+                // Parse survey configuration (including eligibility script)
                 if (data.has("survey_config")) {
                     val configJson = data.getJSONObject("survey_config")
                     val surveyConfig = SurveyConfig(
                         surveyName = configJson.optString("survey_name", null),
                         fingerprintEnabled = configJson.optBoolean("fingerprint_enabled", false),
                         reEnrollmentDays = configJson.optInt("re_enrollment_days", 90),
-                        lastSyncTime = System.currentTimeMillis()
+                        lastSyncTime = System.currentTimeMillis(),
+                        eligibilityScript = eligibilityScript  // Store eligibility script in SurveyConfig
                     )
                     database.surveyConfigDao().insertSurveyConfig(surveyConfig)
-                    Log.d("SurveySyncManager", "Survey config updated: fingerprint=${surveyConfig.fingerprintEnabled}, reEnrollmentDays=${surveyConfig.reEnrollmentDays}")
+                    Log.d("SurveySyncManager", "Survey config updated: fingerprint=${surveyConfig.fingerprintEnabled}, reEnrollmentDays=${surveyConfig.reEnrollmentDays}, eligibilityScript=${surveyConfig.eligibilityScript}")
                 }
                 
+                // Parse and save sections
+                if (data.has("sections")) {
+                    // Clear existing sections
+                    database.sectionDao().deleteAllSections()
+
+                    val sectionsArray = data.getJSONArray("sections")
+                    for (i in 0 until sectionsArray.length()) {
+                        val sectionJson = sectionsArray.getJSONObject(i)
+                        val section = Section(
+                            id = sectionJson.getInt("id"),
+                            surveyId = sectionJson.getInt("survey_id"),
+                            sectionIndex = sectionJson.getInt("section_index"),
+                            sectionType = sectionJson.getString("section_type"),
+                            name = sectionJson.getString("name"),
+                            description = sectionJson.optString("description", null)
+                        )
+                        database.sectionDao().insertSection(section)
+                        Log.d("SurveySyncManager", "Inserted section: ${section.name} (type: ${section.sectionType})")
+                    }
+                }
+
                 // Map to track original question ID to language-specific question IDs
                 val questionIdMap = mutableMapOf<Pair<Int, String>, Int>() // (originalId, language) -> newId
-                
+
                 // Parse questions
                 val questionsArray = data.getJSONArray("questions")
                 for (i in 0 until questionsArray.length()) {
@@ -309,7 +343,9 @@ class SurveySyncManager(private val context: Context) {
                                 maxSelections = if (questionJson.has("max_selections") && !questionJson.isNull("max_selections"))
                                     questionJson.getInt("max_selections") else null,
                                 skipToScript = questionJson.optString("skip_to_script", null),
-                                skipToTarget = questionJson.optString("skip_to_target", null)
+                                skipToTarget = questionJson.optString("skip_to_target", null),
+                                sectionId = if (questionJson.has("section_id") && !questionJson.isNull("section_id"))
+                                    questionJson.getInt("section_id") else null
                             )
                             surveyDao.insertQuestion(question)
                         }
@@ -335,7 +371,9 @@ class SurveySyncManager(private val context: Context) {
                             maxSelections = if (questionJson.has("max_selections") && !questionJson.isNull("max_selections"))
                                 questionJson.getInt("max_selections") else null,
                             skipToScript = questionJson.optString("skip_to_script", null),
-                            skipToTarget = questionJson.optString("skip_to_target", null)
+                            skipToTarget = questionJson.optString("skip_to_target", null),
+                            sectionId = if (questionJson.has("section_id") && !questionJson.isNull("section_id"))
+                                questionJson.getInt("section_id") else null
                         )
                         surveyDao.insertQuestion(question)
                     }

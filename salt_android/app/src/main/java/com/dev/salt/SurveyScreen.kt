@@ -51,6 +51,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
+import com.dev.salt.ui.EligibilityCheckScreen
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,7 +64,36 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope, onN
     var currentMediaPlayer: MediaPlayer? by remember { mutableStateOf(null) }
     
     val surveyStateManager = SurveyStateManagerInstance.instance
-    
+
+    // Observe eligibility check states
+    val needsEligibilityCheck by viewModel.needsEligibilityCheck.collectAsState()
+    val isEligible by viewModel.isEligible.collectAsState()
+
+    // Handle eligibility check
+    if (needsEligibilityCheck) {
+        if (isEligible == true) {
+            // If eligible, just continue automatically
+            LaunchedEffect(Unit) {
+                viewModel.clearEligibilityCheck()
+            }
+        } else {
+            // If not eligible, show the eligibility check screen
+            EligibilityCheckScreen(
+                surveyId = viewModel.survey?.id ?: "",
+                isEligible = false,
+                onContinue = {
+                    // This shouldn't be called for ineligible participants
+                },
+                onCancel = {
+                    // End survey and navigate back
+                    surveyStateManager.endSurvey()
+                    onNavigateBack()
+                }
+            )
+            return // Don't show the survey questions
+        }
+    }
+
     // Track survey state
     LaunchedEffect(viewModel.survey) {
         viewModel.survey?.let { survey ->

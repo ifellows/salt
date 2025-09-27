@@ -380,23 +380,33 @@ class MainActivity : ComponentActivity() {
                             }
                             val coroutineScope = rememberCoroutineScope()
                             SurveyScreen(
-                                viewModel = viewModel, 
+                                viewModel = viewModel,
                                 coroutineScope = coroutineScope,
-                                onNavigateBack = { 
-                                    // Navigate to contact consent screen when survey completes
+                                onNavigateBack = {
+                                    // Check if this is an eligibility failure (survey ended early due to ineligibility)
                                     val generatedCoupons = viewModel.generatedCoupons.value
                                     val innerSurveyId = viewModel.survey?.id ?: ""
-                                    Log.d("MainActivity", "Survey completed. Survey ID: $innerSurveyId, Coupons: ${generatedCoupons.size} - $generatedCoupons")
-                                    
-                                    // Navigate to staff validation first, then to contact consent
-                                    val couponsParam = if (generatedCoupons.isNotEmpty()) {
-                                        generatedCoupons.joinToString(",")
+                                    val wasIneligible = viewModel.needsEligibilityCheck.value && viewModel.isEligible.value == false
+
+                                    Log.d("MainActivity", "Survey navigation back. Survey ID: $innerSurveyId, Was ineligible: $wasIneligible, Coupons: ${generatedCoupons.size}")
+
+                                    if (wasIneligible) {
+                                        // Ineligible participant - go back to main menu
+                                        Log.d("MainActivity", "Navigating to menu due to eligibility failure")
+                                        navController.navigate(AppDestinations.MENU) {
+                                            popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = true }
+                                        }
                                     } else {
-                                        ""
-                                    }
-                                    Log.d("MainActivity", "Navigating to staff validation with coupons: $couponsParam")
-                                    navController.navigate("${AppDestinations.STAFF_VALIDATION}/$innerSurveyId?coupons=$couponsParam") {
-                                        popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
+                                        // Normal survey completion - navigate to staff validation first, then to contact consent
+                                        val couponsParam = if (generatedCoupons.isNotEmpty()) {
+                                            generatedCoupons.joinToString(",")
+                                        } else {
+                                            ""
+                                        }
+                                        Log.d("MainActivity", "Navigating to staff validation with coupons: $couponsParam")
+                                        navController.navigate("${AppDestinations.STAFF_VALIDATION}/$innerSurveyId?coupons=$couponsParam") {
+                                            popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
+                                        }
                                     }
                                 }
                             )

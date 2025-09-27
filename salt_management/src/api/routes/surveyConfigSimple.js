@@ -261,6 +261,10 @@ router.put('/:id', [
                 updates.push('fingerprint_enabled = ?');
                 params.push(fingerprint_enabled);
             }
+            if (req.body.hiv_rapid_test_enabled !== undefined) {
+                updates.push('hiv_rapid_test_enabled = ?');
+                params.push(req.body.hiv_rapid_test_enabled ? 1 : 0);
+            }
             if (re_enrollment_days !== undefined) {
                 updates.push('re_enrollment_days = ?');
                 params.push(re_enrollment_days);

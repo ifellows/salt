@@ -40,13 +40,24 @@ class SurveyViewModel(
     
     private val _generatedCoupons = MutableStateFlow<List<String>>(emptyList())
     val generatedCoupons: StateFlow<List<String>> = _generatedCoupons
-    
+
     private val couponGenerator = CouponGenerator(database.couponDao())
     //public var currentQuestion: Pair<Question, List<Option>>? = null//StateFlow<Pair<Question, List<Option>>?> = _currentQuestion
     public var survey : Survey? = null
     public var questions: List<Question> = emptyList()
     //public var answers: MutableList<String?> = MutableList<String?>(0, { null })
     public var currentQuestionIndex = -1
+
+    // Section tracking
+    private var sections: List<com.dev.salt.data.Section> = emptyList()
+    private var currentSection: com.dev.salt.data.Section? = null
+
+    // Eligibility check flow state
+    private val _needsEligibilityCheck = MutableStateFlow(false)
+    val needsEligibilityCheck: StateFlow<Boolean> = _needsEligibilityCheck
+
+    private val _isEligible = MutableStateFlow<Boolean?>(null)
+    val isEligible: StateFlow<Boolean?> = _isEligible
 
     init {
         viewModelScope.launch {
@@ -92,30 +103,60 @@ class SurveyViewModel(
             generateWalkInSubjectId()
         }
 
+        // Load eligibility script from SurveyConfig
+        val eligibilityScript = database.surveyConfigDao().getSurveyConfig()?.eligibilityScript
+        Log.d("SurveyViewModel", "Loaded eligibility script from SurveyConfig: $eligibilityScript")
+
         val survey: Survey = Survey(
             language = language,
             subjectId = subjectId,
             startDatetime = System.currentTimeMillis(),
-            referralCouponCode = referralCouponCode
+            referralCouponCode = referralCouponCode,
+            eligibilityScript = eligibilityScript
         )
 
-        Log.d("SurveyViewModel", "Created survey with subjectId=$subjectId, referralCoupon=$referralCouponCode")
+        Log.d("SurveyViewModel", "Created survey with subjectId=$subjectId, referralCoupon=$referralCouponCode, eligibilityScript=$eligibilityScript")
         return survey
     }
 
     private fun loadSurvey(surv: Survey){
         survey = surv
+
+        // Load eligibility script from SurveyConfig if not already set
+        if (survey?.eligibilityScript.isNullOrEmpty()) {
+            val script = database.surveyConfigDao().getSurveyConfig()?.eligibilityScript
+            survey?.eligibilityScript = script
+            Log.d("SurveyViewModel", "Loaded eligibility script from SurveyConfig in loadSurvey: $script")
+        }
+
         survey?.populateFields(database.surveyDao())
         questions = survey?.questions ?: emptyList()
         Log.d("SurveyViewModel", "Loaded survey with language: ${survey?.language}")
         Log.d("SurveyViewModel", "Number of questions loaded: ${questions.size}")
-        
+
         // Also check what languages have questions
         val allLanguages = database.surveyDao().getDistinctLanguages()
         Log.d("SurveyViewModel", "Available languages in DB: $allLanguages")
-        
+
         questions.forEach { q ->
             Log.d("SurveyViewModel", "Question: id=${q.id}, questionId=${q.questionId}, language=${q.questionLanguage}, text=${q.statement.take(50)}")
+        }
+
+        // Load sections
+        viewModelScope.launch {
+            try {
+                sections = database.sectionDao().getAllSections()
+                Log.d("SurveyViewModel", "Loaded ${sections.size} sections")
+
+                // Determine initial section
+                if (sections.isNotEmpty()) {
+                    currentSection = sections.firstOrNull { it.sectionType == "eligibility" }
+                        ?: sections.firstOrNull()
+                    Log.d("SurveyViewModel", "Starting with section: ${currentSection?.name} (${currentSection?.sectionType})")
+                }
+            } catch (e: Exception) {
+                Log.e("SurveyViewModel", "Error loading sections", e)
+            }
         }
     }
 
@@ -135,6 +176,10 @@ class SurveyViewModel(
         if (currentQuestionIndex < questions.size) {
             val question = questions[currentQuestionIndex]
             val options = database.surveyDao().getOptionsForQuestion(question.id)
+
+            // Check if we've moved to a new section
+            checkSectionTransition(question)
+
             _currentQuestion.value = Triple(question, options, survey!!.answers[currentQuestionIndex])
             //currentQuestion = Pair(question, options)
         } else {
@@ -467,6 +512,91 @@ class SurveyViewModel(
             "fr" -> "Veuillez remettre la tablette au membre du personnel qui vous l'a donnée"
             else -> "Please hand the tablet back to the staff member who gave it to you"
         }
+    }
+
+    /**
+     * Check if we've transitioned between sections
+     */
+    private fun checkSectionTransition(question: Question) {
+        viewModelScope.launch {
+            try {
+                // Get the section for the current question
+                val newSection = sections.firstOrNull { it.id == question.sectionId }
+
+                if (newSection != null && newSection != currentSection) {
+                    Log.d("SurveyViewModel", "Transitioning from section ${currentSection?.name} to ${newSection.name}")
+
+                    // Check if we're leaving the eligibility section
+                    if (currentSection?.sectionType == "eligibility" && newSection.sectionType != "eligibility") {
+                        Log.d("SurveyViewModel", "Completed eligibility section, checking eligibility")
+                        checkEligibility()
+                    }
+
+                    currentSection = newSection
+                }
+            } catch (e: Exception) {
+                Log.e("SurveyViewModel", "Error checking section transition", e)
+            }
+        }
+    }
+
+    /**
+     * Clear the eligibility check flag to continue with the survey
+     */
+    fun clearEligibilityCheck() {
+        _needsEligibilityCheck.value = false
+    }
+
+    /**
+     * Evaluate the eligibility script to determine if the participant is eligible
+     */
+    private fun checkEligibility() {
+        val eligibilityScript = survey?.eligibilityScript
+        if (eligibilityScript.isNullOrBlank()) {
+            Log.d("SurveyViewModel", "No eligibility script defined, defaulting to eligible")
+            _isEligible.value = true
+            _needsEligibilityCheck.value = false
+            return
+        }
+
+        try {
+            val context = buildJexlContext()
+            val result = evaluateJexlScript(eligibilityScript, context)
+
+            val eligible = when (result) {
+                is Boolean -> result
+                is Number -> result.toInt() != 0
+                is String -> result.equals("true", ignoreCase = true) || result == "1"
+                null -> false
+                else -> result.toString().equals("true", ignoreCase = true)
+            }
+
+            Log.d("SurveyViewModel", "Eligibility check result: $eligible (script: $eligibilityScript)")
+            _isEligible.value = eligible
+            _needsEligibilityCheck.value = true
+        } catch (e: Exception) {
+            Log.e("SurveyViewModel", "Error evaluating eligibility script", e)
+            // Default to eligible on error to avoid blocking participants
+            _isEligible.value = true
+            _needsEligibilityCheck.value = false
+        }
+    }
+
+    /**
+     * Called when eligibility check is acknowledged and survey should continue
+     */
+    fun acknowledgeEligibilityCheck() {
+        _needsEligibilityCheck.value = false
+        // Continue with next question
+        // The navigation will be handled by the SurveyScreen
+    }
+
+    /**
+     * Reset eligibility check state (useful for testing)
+     */
+    fun resetEligibilityCheck() {
+        _needsEligibilityCheck.value = false
+        _isEligible.value = null
     }
 
 }

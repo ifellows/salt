@@ -23,7 +23,8 @@ data class SurveyConfig(
     @ColumnInfo(name = "survey_name") val surveyName: String? = null,
     @ColumnInfo(name = "fingerprint_enabled") val fingerprintEnabled: Boolean = false,
     @ColumnInfo(name = "re_enrollment_days") val reEnrollmentDays: Int = 90,
-    @ColumnInfo(name = "last_sync_time") val lastSyncTime: Long? = null
+    @ColumnInfo(name = "last_sync_time") val lastSyncTime: Long? = null,
+    @ColumnInfo(name = "eligibility_script") val eligibilityScript: String? = null
 )
 
 @Entity(tableName = "system_messages", primaryKeys = ["messageKey", "language"])
@@ -33,6 +34,16 @@ data class SystemMessage(
     @ColumnInfo(name = "audio_file_name") val audioFileName: String? = null,
     @ColumnInfo(name = "language") val language: String = "en",
     @ColumnInfo(name = "message_type") val messageType: String = "system"
+)
+
+@Entity(tableName = "sections")
+data class Section(
+    @PrimaryKey val id: Int,
+    @ColumnInfo(name = "survey_id") val surveyId: Int,
+    @ColumnInfo(name = "section_index") val sectionIndex: Int,
+    @ColumnInfo(name = "section_type") val sectionType: String, // 'eligibility', 'survey', 'main', 'conclusion'
+    @ColumnInfo(name = "name") val name: String,
+    @ColumnInfo(name = "description") val description: String?
 )
 
 @Entity(tableName = "questions")
@@ -51,7 +62,8 @@ data class Question(
     @ColumnInfo(name = "min_selections") var minSelections: Int? = null, // minimum number of selections for multi_select
     @ColumnInfo(name = "max_selections") var maxSelections: Int? = null, // maximum number of selections for multi_select
     @ColumnInfo(name = "skip_to_script") var skipToScript: String? = null, // JEXL expression - if true after validation, jump to target
-    @ColumnInfo(name = "skip_to_target") var skipToTarget: String? = null // short name of target question to jump to
+    @ColumnInfo(name = "skip_to_target") var skipToTarget: String? = null, // short name of target question to jump to
+    @ColumnInfo(name = "section_id") var sectionId: Int? = null // ID of the section this question belongs to
 )
 
 @Entity(tableName = "options")
@@ -79,7 +91,8 @@ data class Survey(
     @ColumnInfo(name = "payment_confirmed") var paymentConfirmed: Boolean? = null,
     @ColumnInfo(name = "payment_amount") var paymentAmount: Double? = null,
     @ColumnInfo(name = "payment_type") var paymentType: String? = null,
-    @ColumnInfo(name = "payment_date") var paymentDate: Long? = null
+    @ColumnInfo(name = "payment_date") var paymentDate: Long? = null,
+    @ColumnInfo(name = "eligibility_script") var eligibilityScript: String? = null // JEXL script to determine eligibility
 ) {
     @Ignore
     var questions: MutableList<Question> = mutableListOf()
@@ -515,6 +528,21 @@ interface SyncMetadataDao {
 }
 
 @Dao
+interface SectionDao {
+    @Query("SELECT * FROM sections ORDER BY section_index")
+    fun getAllSections(): List<Section>
+
+    @Query("SELECT * FROM sections WHERE id = :sectionId")
+    fun getSectionById(sectionId: Int): Section?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertSection(section: Section)
+
+    @Query("DELETE FROM sections")
+    fun deleteAllSections()
+}
+
+@Dao
 interface SurveyConfigDao {
     @Query("SELECT * FROM survey_config WHERE id = 1 LIMIT 1")
     fun getSurveyConfig(): SurveyConfig?
@@ -628,12 +656,13 @@ interface AppServerConfigDao {
     fun hasServerConfig(): Boolean
 }
 
-@Database(entities = [Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class], version = 43)
+@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class], version = 47)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao
     abstract fun uploadStateDao(): UploadStateDao
     abstract fun syncMetadataDao(): SyncMetadataDao
+    abstract fun sectionDao(): SectionDao
     abstract fun surveyConfigDao(): SurveyConfigDao
     abstract fun couponDao(): CouponDao
     abstract fun facilityConfigDao(): FacilityConfigDao
