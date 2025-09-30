@@ -24,7 +24,8 @@ data class SurveyConfig(
     @ColumnInfo(name = "fingerprint_enabled") val fingerprintEnabled: Boolean = false,
     @ColumnInfo(name = "re_enrollment_days") val reEnrollmentDays: Int = 90,
     @ColumnInfo(name = "last_sync_time") val lastSyncTime: Long? = null,
-    @ColumnInfo(name = "eligibility_script") val eligibilityScript: String? = null
+    @ColumnInfo(name = "eligibility_script") val eligibilityScript: String? = null,
+    @ColumnInfo(name = "hiv_rapid_test_enabled") val hivRapidTestEnabled: Boolean = false
 )
 
 @Entity(tableName = "system_messages", primaryKeys = ["messageKey", "language"])
@@ -92,7 +93,8 @@ data class Survey(
     @ColumnInfo(name = "payment_amount") var paymentAmount: Double? = null,
     @ColumnInfo(name = "payment_type") var paymentType: String? = null,
     @ColumnInfo(name = "payment_date") var paymentDate: Long? = null,
-    @ColumnInfo(name = "eligibility_script") var eligibilityScript: String? = null // JEXL script to determine eligibility
+    @ColumnInfo(name = "eligibility_script") var eligibilityScript: String? = null, // JEXL script to determine eligibility
+    @ColumnInfo(name = "hiv_rapid_test_result") var hivRapidTestResult: String? = null // "positive", "negative", "indeterminate", "not_performed"
 ) {
     @Ignore
     var questions: MutableList<Question> = mutableListOf()
@@ -656,7 +658,7 @@ interface AppServerConfigDao {
     fun hasServerConfig(): Boolean
 }
 
-@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class], version = 47)
+@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class], version = 49)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao

@@ -18,6 +18,7 @@ data class SerializedSurvey(
     val referralCouponCode: String? = null,
     val issuedCoupons: List<String> = emptyList(),
     val sampleCollected: Boolean? = null, // null=not reached, true=collected, false=refused
+    val hivRapidTestResult: String? = null, // "positive", "negative", "indeterminate", "not_performed"
     val paymentConfirmed: Boolean? = null,
     val paymentAmount: Double? = null,
     val paymentType: String? = null,
@@ -127,6 +128,7 @@ class SurveySerializer {
             referralCouponCode = survey.referralCouponCode,
             issuedCoupons = issuedCoupons,
             sampleCollected = survey.sampleCollected,
+            hivRapidTestResult = survey.hivRapidTestResult,
             paymentConfirmed = survey.paymentConfirmed,
             paymentAmount = survey.paymentAmount,
             paymentType = survey.paymentType,
@@ -159,6 +161,13 @@ class SurveySerializer {
                 true -> put("sampleCollected", true)
                 false -> put("sampleCollected", false)
                 null -> put("sampleCollected", JSONObject.NULL)
+            }
+
+            // HIV rapid test result
+            if (survey.hivRapidTestResult != null) {
+                put("hivRapidTestResult", survey.hivRapidTestResult)
+            } else {
+                put("hivRapidTestResult", JSONObject.NULL)
             }
 
             // Payment information

@@ -259,7 +259,8 @@ class SurveySyncManager(private val context: Context) {
                         fingerprintEnabled = configJson.optBoolean("fingerprint_enabled", false),
                         reEnrollmentDays = configJson.optInt("re_enrollment_days", 90),
                         lastSyncTime = System.currentTimeMillis(),
-                        eligibilityScript = eligibilityScript  // Store eligibility script in SurveyConfig
+                        eligibilityScript = eligibilityScript,  // Store eligibility script in SurveyConfig
+                        hivRapidTestEnabled = configJson.optBoolean("hiv_rapid_test_enabled", false)
                     )
                     database.surveyConfigDao().insertSurveyConfig(surveyConfig)
                     Log.d("SurveySyncManager", "Survey config updated: fingerprint=${surveyConfig.fingerprintEnabled}, reEnrollmentDays=${surveyConfig.reEnrollmentDays}, eligibilityScript=${surveyConfig.eligibilityScript}")

@@ -21,6 +21,8 @@ import com.dev.salt.upload.UploadResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import android.content.Context
@@ -58,6 +60,14 @@ class SurveyViewModel(
 
     private val _isEligible = MutableStateFlow<Boolean?>(null)
     val isEligible: StateFlow<Boolean?> = _isEligible
+
+    // Track if we need to show HIV test after eligibility
+    private val _needsHivTestAfterEligibility = MutableStateFlow(false)
+    val needsHivTestAfterEligibility: StateFlow<Boolean> = _needsHivTestAfterEligibility
+
+    // Track if HIV test has been completed
+    private val _hivTestCompleted = MutableStateFlow(false)
+    val hivTestCompleted: StateFlow<Boolean> = _hivTestCompleted
 
     init {
         viewModelScope.launch {
@@ -574,6 +584,17 @@ class SurveyViewModel(
             Log.d("SurveyViewModel", "Eligibility check result: $eligible (script: $eligibilityScript)")
             _isEligible.value = eligible
             _needsEligibilityCheck.value = true
+
+            // Check if HIV test is needed after eligibility
+            if (eligible && !_hivTestCompleted.value) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    val config = database.surveyConfigDao().getSurveyConfig()
+                    if (config?.hivRapidTestEnabled == true) {
+                        Log.d("SurveyViewModel", "HIV test enabled and participant eligible - will need HIV test")
+                        _needsHivTestAfterEligibility.value = true
+                    }
+                }
+            }
         } catch (e: Exception) {
             Log.e("SurveyViewModel", "Error evaluating eligibility script", e)
             // Default to eligible on error to avoid blocking participants
@@ -589,6 +610,15 @@ class SurveyViewModel(
         _needsEligibilityCheck.value = false
         // Continue with next question
         // The navigation will be handled by the SurveyScreen
+    }
+
+    /**
+     * Called when HIV test has been completed and survey should continue
+     */
+    fun markHivTestCompleted() {
+        _hivTestCompleted.value = true
+        _needsHivTestAfterEligibility.value = false
+        Log.d("SurveyViewModel", "HIV test marked as completed")
     }
 
     /**

@@ -24,6 +24,7 @@ import com.dev.salt.AppDestinations
 import android.util.Log
 import androidx.compose.ui.res.stringResource
 import com.dev.salt.R
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +34,10 @@ fun CouponIssuedScreen(
     surveyId: String? = null,
     database: com.dev.salt.data.SurveyDatabase? = null
 ) {
-    
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val actualDatabase = database ?: com.dev.salt.data.SurveyDatabase.getInstance(context)
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -158,9 +162,22 @@ fun CouponIssuedScreen(
             Button(
                 onClick = {
                     if (!surveyId.isNullOrBlank()) {
-                        // Navigate to payment screen
-                        navController.navigate("${AppDestinations.SUBJECT_PAYMENT}/$surveyId?coupons=${generatedCoupons.joinToString(",")}") {
-                            popUpTo(AppDestinations.COUPON_ISSUED) { inclusive = true }
+                        // Check if HIV test was done (check if HIV test is enabled and we need to collect result)
+                        scope.launch {
+                            val config = actualDatabase.surveyConfigDao().getSurveyConfig()
+                            val isHivTestEnabled = config?.hivRapidTestEnabled == true
+
+                            if (isHivTestEnabled) {
+                                // Navigate to HIV test result screen
+                                navController.navigate("${AppDestinations.HIV_TEST_RESULT}/$surveyId") {
+                                    popUpTo(AppDestinations.COUPON_ISSUED) { inclusive = true }
+                                }
+                            } else {
+                                // Navigate to payment screen
+                                navController.navigate("${AppDestinations.SUBJECT_PAYMENT}/$surveyId?coupons=${generatedCoupons.joinToString(",")}") {
+                                    popUpTo(AppDestinations.COUPON_ISSUED) { inclusive = true }
+                                }
+                            }
                         }
                     } else {
                         // No surveyId provided, error state

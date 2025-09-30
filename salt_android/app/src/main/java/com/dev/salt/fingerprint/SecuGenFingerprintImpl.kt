@@ -303,17 +303,39 @@ class SecuGenFingerprintImpl(private val context: Context) : IFingerprintCapture
     override suspend fun closeDevice() {
         withContext(Dispatchers.IO) {
             try {
-                Log.d(TAG, "Closing SecuGen device")
+                Log.d(TAG, "Closing SecuGen device, isInitialized: $isInitialized")
+
+                // Only close if we actually initialized
+                if (!isInitialized) {
+                    Log.d(TAG, "Device was not initialized, skipping close")
+                    return@withContext
+                }
 
                 sgfplib?.let { lib ->
-                    val closeError = lib.CloseDevice()
-                    if (closeError != SGFDxErrorCode.SGFDX_ERROR_NONE.toLong()) {
-                        Log.w(TAG, "Error closing device: $closeError")
+                    try {
+                        // First close the device if it was opened
+                        val closeError = lib.CloseDevice()
+                        if (closeError != SGFDxErrorCode.SGFDX_ERROR_NONE.toLong()) {
+                            Log.w(TAG, "Error closing device: $closeError")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Exception while closing device", e)
+                    } catch (e: Error) {
+                        Log.e(TAG, "Error while closing device", e)
                     }
 
-                    val libCloseError = lib.Close()
-                    if (libCloseError != SGFDxErrorCode.SGFDX_ERROR_NONE.toLong()) {
-                        Log.w(TAG, "Error closing library: $libCloseError")
+                    try {
+                        // Then close the library
+                        val libCloseError = lib.Close()
+                        if (libCloseError != SGFDxErrorCode.SGFDX_ERROR_NONE.toLong()) {
+                            Log.w(TAG, "Error closing library: $libCloseError")
+                        }else{
+
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Exception while closing library", e)
+                    } catch (e: Error) {
+                        Log.e(TAG, "Error while closing library", e)
                     }
                 }
 

@@ -184,7 +184,7 @@
     <string name="completion_coupons_instruction">Please provide these %1$d coupons to the participant:</string>
     <string name="completion_coupon_label">Coupon %1$d</string>
     <string name="completion_coupons_usage">Each coupon can be used once for survey participation</string>
-    <string name="completion_continue_payment">Continue to Payment</string>
+    <string name="completion_continue_payment">Continue</string>
 
     <!-- Server Settings strings -->
     <string name="server_settings_title">Server Settings</string>
@@ -249,6 +249,8 @@
     <string name="cd_copy">Copy Message</string>
     <string name="cd_retry">Retry Upload</string>
     <string name="cd_replay">Replay</string>
+    <string name="cd_security">Security</string>
+    <string name="cd_tablet">Tablet</string>
 
     <!-- Common buttons -->
     <string name="common_yes">Yes</string>
@@ -381,4 +383,16 @@
     <string name="staff_instructions_give_tablet_desc">Hand the tablet to the participant along with headphones</string>
     <string name="staff_instructions_provide_privacy">Provide Privacy</string>
     <string name="staff_instructions_provide_privacy_desc">Take the participant to a private room where they can complete the survey comfortably and confidentially</string>
+
+    <!-- Hand Tablet Back Screen -->
+    <string name="hand_tablet_title">Return to Survey</string>
+    <string name="hand_tablet_instruction">Please hand the tablet back to the participant</string>
+    <string name="hand_tablet_description">The participant will now continue with their survey</string>
+    <string name="hand_tablet_continue_survey">Continue Survey</string>
+
+    <!-- Audio -->
+    <string name="replay_audio">Replay Audio</string>
+
+    <!-- Content Descriptions -->
+    <string name="cd_verified_user">Verified user icon</string>
 </resources>

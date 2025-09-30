@@ -68,7 +68,21 @@ fun FingerprintScreeningScreen(
         val facilityConfig = database.facilityConfigDao().getFacilityConfig()
         facilityId = facilityConfig?.facilityId
     }
-    
+
+    // Clean up fingerprint device when screen is disposed
+    DisposableEffect(Unit) {
+        onDispose {
+            scope.launch {
+                try {
+                    Log.d("FingerprintScreeningScreen", "Cleaning up fingerprint device")
+                    fingerprintManager.closeDevice()
+                } catch (e: Exception) {
+                    Log.e("FingerprintScreeningScreen", "Error closing fingerprint device", e)
+                }
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(

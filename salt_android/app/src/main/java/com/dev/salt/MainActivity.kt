@@ -96,6 +96,10 @@ object AppDestinations {
     const val LANGUAGE_SETTINGS = "language_settings" // For app language settings
     const val STAFF_FINGERPRINT_ENROLLMENT = "staff_fingerprint_enrollment" // For staff fingerprint enrollment
     const val FACILITY_SETUP = "facility_setup" // For facility setup with short code
+    const val HIV_TEST_INSTRUCTION = "hiv_test_instruction" // For HIV rapid test instruction
+    const val HIV_TEST_RESULT = "hiv_test_result" // For HIV rapid test result entry
+    const val HIV_TEST_STAFF_VALIDATION = "hiv_test_staff_validation" // For HIV test staff validation
+    const val HAND_TABLET_BACK = "hand_tablet_back" // For handing tablet back to participant
 
     // Compatibility aliases for existing code
     const val WELCOME_SCREEN = WELCOME
@@ -397,17 +401,29 @@ class MainActivity : ComponentActivity() {
                                             popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = true }
                                         }
                                     } else {
-                                        // Normal survey completion - navigate to staff validation first, then to contact consent
+                                        // Normal survey completion - navigate to staff validation
                                         val couponsParam = if (generatedCoupons.isNotEmpty()) {
                                             generatedCoupons.joinToString(",")
                                         } else {
                                             ""
                                         }
+
                                         Log.d("MainActivity", "Navigating to staff validation with coupons: $couponsParam")
                                         navController.navigate("${AppDestinations.STAFF_VALIDATION}/$innerSurveyId?coupons=$couponsParam") {
                                             popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
                                         }
                                     }
+                                },
+                                onNavigateToHivTest = {
+                                    // Navigate to HIV Test Staff Validation screen first
+                                    val currentSurveyId = viewModel.survey?.id ?: ""
+                                    Log.d("MainActivity", "Navigating to HIV Test Staff Validation after eligibility for survey: $currentSurveyId")
+                                    navController.navigate("${AppDestinations.HIV_TEST_STAFF_VALIDATION}/$currentSurveyId") {
+                                        // Don't pop the survey screen, we'll return to it after HIV test
+                                        launchSingleTop = true
+                                    }
+                                    // Mark that we've started the HIV test process
+                                    viewModel.markHivTestCompleted()
                                 }
                             )
                         } else {
@@ -462,6 +478,10 @@ class MainActivity : ComponentActivity() {
                     ) { backStackEntry ->
                         val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
                         val coupons = backStackEntry.arguments?.getString("coupons") ?: ""
+                        val context = LocalContext.current
+                        val database = SurveyDatabase.getInstance(context)
+                        val scope = rememberCoroutineScope()
+
                         com.dev.salt.StaffValidationScreen(
                             surveyId = surveyId,
                             onValidationSuccess = {
@@ -721,6 +741,96 @@ class MainActivity : ComponentActivity() {
                             navController = navController,
                             surveyId = surveyId,
                             coupons = coupons
+                        )
+                    }
+
+                    composable(
+                        route = "${AppDestinations.HIV_TEST_STAFF_VALIDATION}/{surveyId}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        com.dev.salt.ui.HIVTestStaffValidationScreen(
+                            navController = navController,
+                            surveyId = surveyId
+                        )
+                    }
+
+                    composable(
+                        route = "${AppDestinations.HAND_TABLET_BACK}/{surveyId}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        com.dev.salt.ui.HandTabletBackScreen(
+                            navController = navController,
+                            surveyId = surveyId
+                        )
+                    }
+
+                    composable(
+                        route = "${AppDestinations.HIV_TEST_INSTRUCTION}/{surveyId}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        com.dev.salt.ui.HIVRapidTestInstructionScreen(
+                            surveyId = surveyId,
+                            onStaffValidated = {
+                                // Navigate to the Hand Tablet Back screen after HIV test instruction
+                                navController.navigate("${AppDestinations.HAND_TABLET_BACK}/$surveyId") {
+                                    popUpTo("${AppDestinations.HIV_TEST_INSTRUCTION}/$surveyId") { inclusive = true }
+                                }
+                            },
+                            onCancel = {
+                                // Go back to menu if cancelled
+                                navController.navigate(AppDestinations.MENU_SCREEN) {
+                                    popUpTo(AppDestinations.HIV_TEST_INSTRUCTION) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
+                    composable(
+                        route = "${AppDestinations.HIV_TEST_RESULT}/{surveyId}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val context = LocalContext.current
+                        val database = SurveyDatabase.getInstance(context)
+                        val scope = rememberCoroutineScope()
+
+                        // Get coupons from the survey for later navigation
+                        var coupons by remember { mutableStateOf("") }
+                        LaunchedEffect(surveyId) {
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                val survey = database.surveyDao().getSurveyById(surveyId)
+                                val existingCoupons = database.couponDao().getCouponsIssuedToSurvey(surveyId)
+                                if (existingCoupons.isNotEmpty()) {
+                                    coupons = existingCoupons.joinToString(",") { it.couponCode }
+                                }
+                            }
+                        }
+
+                        com.dev.salt.ui.HIVRapidTestResultScreen(
+                            surveyId = surveyId,
+                            onResultSubmitted = {
+                                // After test result is submitted, navigate to payment
+                                navController.navigate("${AppDestinations.SUBJECT_PAYMENT}/$surveyId?coupons=$coupons") {
+                                    popUpTo("${AppDestinations.HIV_TEST_RESULT}/$surveyId") { inclusive = true }
+                                }
+                            },
+                            onCancel = {
+                                // Go back to menu if cancelled
+                                navController.navigate(AppDestinations.MENU_SCREEN) {
+                                    popUpTo(AppDestinations.HIV_TEST_RESULT) { inclusive = true }
+                                }
+                            }
                         )
                     }
 

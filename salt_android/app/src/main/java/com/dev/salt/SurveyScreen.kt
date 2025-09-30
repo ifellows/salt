@@ -55,7 +55,7 @@ import com.dev.salt.ui.EligibilityCheckScreen
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope, onNavigateBack: () -> Unit = {}) {
+fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope, onNavigateBack: () -> Unit = {}, onNavigateToHivTest: () -> Unit = {}) {
     //var currentQuestion = viewModel.currentQuestion
     val context = LocalContext.current
     val currentQuestion by viewModel.currentQuestion.collectAsState()
@@ -68,6 +68,17 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope, onN
     // Observe eligibility check states
     val needsEligibilityCheck by viewModel.needsEligibilityCheck.collectAsState()
     val isEligible by viewModel.isEligible.collectAsState()
+
+    // Observe HIV test requirement after eligibility
+    val needsHivTestAfterEligibility by viewModel.needsHivTestAfterEligibility.collectAsState()
+
+    // Navigate to HIV test when needed (after eligibility check completes)
+    LaunchedEffect(needsHivTestAfterEligibility) {
+        if (needsHivTestAfterEligibility && !viewModel.hivTestCompleted.value) {
+            // Navigate to HIV test instruction screen
+            onNavigateToHivTest()
+        }
+    }
 
     // Handle eligibility check
     if (needsEligibilityCheck) {
