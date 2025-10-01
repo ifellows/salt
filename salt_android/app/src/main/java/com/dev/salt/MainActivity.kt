@@ -67,6 +67,8 @@ import com.dev.salt.ui.StaffFingerprintEnrollmentScreen
 import com.dev.salt.upload.SurveyUploadWorkManager
 import com.dev.salt.i18n.LanguageManager
 import android.util.Log
+import androidx.lifecycle.viewModelScope
+
 // Import your screen Composables if they are in separate files
 // e.g., import com.dev.salt.ui.WelcomeScreen
 // e.g., import com.dev.salt.ui.LoginScreen
@@ -891,10 +893,10 @@ class MainActivity : ComponentActivity() {
                             onSamplesConfirmed = {
                                 // Mark rapid tests as completed so survey doesn't retrigger navigation
                                 surveyViewModel.markRapidTestsCompleted()
-
                                 // Return to survey - only pop once since staff validation already removed itself
                                 Log.d("MainActivity", "Samples collected, marking rapid tests handled and returning to survey")
                                 navController.popBackStack()
+                                surveyViewModel.jumpToQuestion(surveyViewModel.currentQuestionIndex + 1)
                             },
                             onCancel = {
                                 navController.navigate(AppDestinations.MENU_SCREEN) {

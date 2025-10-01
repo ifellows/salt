@@ -127,6 +127,10 @@ class SurveyViewModel(
         }
     }
 
+    public fun getTheCurrentQuestionIndex() : Int {
+        return currentQuestionIndex
+    }
+
     private fun makeNewSurvey(language: String): Survey {
         // Use coupon code as subject ID if participant has one, otherwise generate walk-in ID
         val subjectId = if (!referralCouponCode.isNullOrEmpty()) {
@@ -198,7 +202,7 @@ class SurveyViewModel(
         questions = database.surveyDao().getAllQuestions()
     }
 
-    private fun updateCurrentQuestion() {
+    public fun updateCurrentQuestion() {
         if(survey == null){
             return
         }
@@ -212,10 +216,12 @@ class SurveyViewModel(
             val options = database.surveyDao().getOptionsForQuestion(question.id)
 
             // Check if we've moved to a new section
-            checkSectionTransition(question)
+            val navToRapidTests = checkSectionTransition(question)
 
-
-            _currentQuestion.value = Triple(question, options, survey!!.answers[currentQuestionIndex])
+            if(!navToRapidTests)
+                _currentQuestion.value = Triple(question, options, survey!!.answers[currentQuestionIndex])
+            //else
+            //    currentQuestionIndex--
             //currentQuestion = Pair(question, options)
         } else {
             _currentQuestion.value = null
@@ -344,15 +350,20 @@ class SurveyViewModel(
         }
     }
 
-    // Jump to a specific question by short name
-    private fun jumpToQuestion(targetShortName: String) {
+    public fun jumpToQuestion(targetShortName: String){
         val questions = survey?.questions ?: return
 
         // Find the target question index
         val targetIndex = questions.indexOfFirst { it.questionShortName == targetShortName }
+        jumpToQuestion(targetIndex)
+    }
+
+    // Jump to a specific question by short name
+    public fun jumpToQuestion(targetIndex: Int) {
+        val questions = survey?.questions ?: return
 
         if (targetIndex >= 0) {
-            Log.d("SurveyViewModel", "Jumping from index $currentQuestionIndex to $targetIndex (question: $targetShortName)")
+            Log.d("SurveyViewModel", "Jumping from index $currentQuestionIndex to $targetIndex")
             currentQuestionIndex = targetIndex
             updateCurrentQuestion()
 
@@ -362,7 +373,7 @@ class SurveyViewModel(
                 loadNextQuestion()
             }
         } else {
-            Log.w("SurveyViewModel", "Skip-to target not found: $targetShortName")
+            Log.w("SurveyViewModel", "Skip-to target not found: $targetIndex")
             // If target not found, just proceed normally
             currentQuestionIndex++
             updateCurrentQuestion()
@@ -390,6 +401,7 @@ class SurveyViewModel(
     //@Composable
     //@OptIn(ExperimentalMaterial3Api::class)
     fun loadNextQuestion() : String? {
+        Log.d("SurveyViewModel", "loadNextQuestion from question: $currentQuestionIndex")
         // Check multi-select validation first
         val multiSelectError = validateMultiSelectAnswer()
         if (multiSelectError != null) {
@@ -552,9 +564,10 @@ class SurveyViewModel(
     /**
      * Check if we've transitioned between sections
      */
-    private fun checkSectionTransition(question: Question) {
-        viewModelScope.launch {
+    private fun checkSectionTransition(question: Question) : Boolean {
+        //viewModelScope.launch {
             try {
+                var eligStatus = -1
                 // Get the section for the current question
                 val newSection = sections.firstOrNull { it.id == question.sectionId }
 
@@ -564,15 +577,17 @@ class SurveyViewModel(
                     // Check if we're leaving the eligibility section
                     if (currentSection?.sectionType == "eligibility" && newSection.sectionType != "eligibility") {
                         Log.d("SurveyViewModel", "Completed eligibility section, checking eligibility")
-                        checkEligibility()
+                        eligStatus = checkEligibility()
                     }
 
                     currentSection = newSection
+                    return eligStatus == 2 // Return true if we navigated to rapid tests
                 }
             } catch (e: Exception) {
                 Log.e("SurveyViewModel", "Error checking section transition", e)
             }
-        }
+            return false
+        //}
     }
 
     /**
@@ -585,34 +600,34 @@ class SurveyViewModel(
     /**
      * Evaluate the eligibility script to determine if the participant is eligible
      */
-    private fun checkEligibility() {
+    private fun checkEligibility() : Int {
+        var returnValue = -1
         val eligibilityScript = survey?.eligibilityScript
-        if (eligibilityScript.isNullOrBlank()) {
-            Log.d("SurveyViewModel", "No eligibility script defined, defaulting to eligible")
-            _isEligible.value = true
-            _needsEligibilityCheck.value = false
-            return
-        }
 
         try {
             val context = buildJexlContext()
-            val result = evaluateJexlScript(eligibilityScript, context)
 
-            val eligible = when (result) {
-                is Boolean -> result
-                is Number -> result.toInt() != 0
-                is String -> result.equals("true", ignoreCase = true) || result == "1"
-                null -> false
-                else -> result.toString().equals("true", ignoreCase = true)
+            var eligible = true
+            if (!eligibilityScript.isNullOrBlank()) {
+                val result = evaluateJexlScript(eligibilityScript, context)
+                eligible = when (result) {
+                    is Boolean -> result
+                    is Number -> result.toInt() != 0
+                    is String -> result.equals("true", ignoreCase = true) || result == "1"
+                    null -> false
+                    else -> result.toString().equals("true", ignoreCase = true)
+                }
+            }else{
+                Log.d("SurveyViewModel", "No eligibility script defined, defaulting to eligible")
             }
 
             Log.d("SurveyViewModel", "Eligibility check result: $eligible (script: $eligibilityScript)")
             _isEligible.value = eligible
             _needsEligibilityCheck.value = true
-
+            returnValue = if (eligible) 1 else 0
             // Check if rapid tests are needed after eligibility
             if (eligible && !_rapidTestsCompleted.value) {
-                viewModelScope.launch(Dispatchers.IO) {
+                //viewModelScope.launch(Dispatchers.IO) {
                     // Check if any tests are enabled
                     val enabledTests = database.testConfigurationDao().getEnabledTestConfigurations(1L)
                     if (enabledTests.isNotEmpty()) {
@@ -622,25 +637,15 @@ class SurveyViewModel(
                         // Emit navigation event if we haven't already
                         if (!hasNavigatedToRapidTests) {
                             hasNavigatedToRapidTests = true
-                            _navigationEvent.emit(SurveyNavigationEvent.NavigateToRapidTests)
+                            returnValue = 2
+                            viewModelScope.launch {
+                                _navigationEvent.emit(SurveyNavigationEvent.NavigateToRapidTests)
+                            }
+                            //_navigationEvent.emit(SurveyNavigationEvent.NavigateToRapidTests)
                             Log.d("SurveyViewModel", "Emitting NavigateToRapidTests event")
                         }
-                    } else {
-                        // Fallback: check old HIV test config for backward compatibility
-                        val config = database.surveyConfigDao().getSurveyConfig()
-                        if (config?.hivRapidTestEnabled == true && !_hivTestCompleted.value) {
-                            Log.d("SurveyViewModel", "HIV test enabled (legacy) - will need HIV test")
-                            _needsHivTestAfterEligibility.value = true
-
-                            // Emit navigation event for HIV test if we haven't already
-                            if (!hasNavigatedToHivTest) {
-                                hasNavigatedToHivTest = true
-                                _navigationEvent.emit(SurveyNavigationEvent.NavigateToHivTest)
-                                Log.d("SurveyViewModel", "Emitting NavigateToHivTest event")
-                            }
-                        }
                     }
-                }
+                //}
             }
         } catch (e: Exception) {
             Log.e("SurveyViewModel", "Error evaluating eligibility script", e)
@@ -648,6 +653,7 @@ class SurveyViewModel(
             _isEligible.value = true
             _needsEligibilityCheck.value = false
         }
+        return returnValue
     }
 
     /**
