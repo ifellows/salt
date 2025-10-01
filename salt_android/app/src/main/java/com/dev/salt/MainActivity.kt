@@ -45,6 +45,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -157,6 +158,9 @@ class MainActivity : ComponentActivity() {
                 val sessionState by sessionManager.sessionState.collectAsState()
                 val sessionEvent by sessionManager.sessionEvents.collectAsState()
                 val surveyState by surveyStateManager.surveyState.collectAsState()
+
+                // Map to store SurveyViewModels by surveyId to ensure single instance
+                val surveyViewModels = remember { mutableStateMapOf<String, SurveyViewModel>() }
                 var showSessionWarning by remember { mutableStateOf(false) }
                 var showSessionExpired by remember { mutableStateOf(false) }
                 
@@ -384,9 +388,13 @@ class MainActivity : ComponentActivity() {
                             isLoading = false
                         }
 
-                        if (!isLoading && surveyId != null) {
-                            val viewModel: SurveyViewModel = viewModel(key = surveyId) {
-                                com.dev.salt.viewmodel.SurveyViewModelFactory(database, context, referralCouponCode, surveyId).create(SurveyViewModel::class.java)
+                        val finalSurveyId = surveyId
+                        if (!isLoading && finalSurveyId != null) {
+                            // Get or create ViewModel from shared map to ensure single instance
+                            val viewModel: SurveyViewModel = surveyViewModels.getOrPut(finalSurveyId) {
+                                viewModel(key = finalSurveyId) {
+                                    com.dev.salt.viewmodel.SurveyViewModelFactory(database, context, referralCouponCode, finalSurveyId).create(SurveyViewModel::class.java)
+                                }
                             }
                             val coroutineScope = rememberCoroutineScope()
                             SurveyScreen(
@@ -880,23 +888,23 @@ class MainActivity : ComponentActivity() {
                         )
                     ) { backStackEntry ->
                         val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
-                        val context = LocalContext.current
-                        val database = SurveyDatabase.getInstance(context)
 
-                        // Get the survey viewmodel to mark rapid tests as handled
-                        val surveyViewModel: SurveyViewModel = viewModel(key = surveyId) {
-                            com.dev.salt.viewmodel.SurveyViewModelFactory(database, context, "", surveyId).create(SurveyViewModel::class.java)
-                        }
+                        // Get the existing survey viewmodel from the shared map
+                        val surveyViewModel: SurveyViewModel? = surveyViewModels[surveyId]
 
                         com.dev.salt.ui.BiologicalSampleCollectionScreen(
                             surveyId = surveyId,
                             onSamplesConfirmed = {
                                 // Mark rapid tests as completed so survey doesn't retrigger navigation
-                                surveyViewModel.markRapidTestsCompleted()
+                                surveyViewModel?.let { vm ->
+                                    vm.markRapidTestsCompleted()
+                                    // Advance to next question since we prevented it earlier
+                                    vm.jumpToQuestion(vm.getTheCurrentQuestionIndex())
+                                    Log.d("MainActivity", "Samples collected, marked rapid tests handled and advanced to question ${vm.getTheCurrentQuestionIndex()}")
+                                }
+
                                 // Return to survey - only pop once since staff validation already removed itself
-                                Log.d("MainActivity", "Samples collected, marking rapid tests handled and returning to survey")
                                 navController.popBackStack()
-                                surveyViewModel.jumpToQuestion(surveyViewModel.currentQuestionIndex + 1)
                             },
                             onCancel = {
                                 navController.navigate(AppDestinations.MENU_SCREEN) {
