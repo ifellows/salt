@@ -73,13 +73,23 @@ router.get('/survey/version', requireFacilityApiKey, async (req, res) => {
             [activeSurvey.id]
         );
 
+        // Get test configurations
+        const testConfigurations = await allAsync(
+            `SELECT test_id, test_name, enabled, display_order
+             FROM test_configurations
+             WHERE survey_id = ?
+             ORDER BY display_order`,
+            [activeSurvey.id]
+        );
+
         // Calculate checksum from actual content (same as download endpoint)
         const contentForChecksum = {
             survey: activeSurvey,  // Use full survey object
             sections: sections,
             questions: questions,
             options: options,
-            messages: messages
+            messages: messages,
+            testConfigurations: testConfigurations
         };
 
         const checksum = calculateChecksum(contentForChecksum);
@@ -224,6 +234,15 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
             audio: JSON.parse(msg.audio_files_json || '{}')
         }));
 
+        // Get test configurations
+        const testConfigurations = await allAsync(
+            `SELECT test_id, test_name, enabled, display_order
+             FROM test_configurations
+             WHERE survey_id = ?
+             ORDER BY display_order`,
+            [survey.id]
+        );
+
         // Log the messages being sent
         console.log('Survey sync - messages found:', messages.length);
         if (messages.length > 0) {
@@ -252,13 +271,13 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
             survey_config: {
                 survey_name: survey.name,
                 fingerprint_enabled: Boolean(survey.fingerprint_enabled),
-                re_enrollment_days: survey.re_enrollment_days || 90,
-                hiv_rapid_test_enabled: Boolean(survey.hiv_rapid_test_enabled)
+                re_enrollment_days: survey.re_enrollment_days || 90
             },
             sections: sections,
             questions: questionsWithParsedJson,
             options: optionsWithParsedJson,
-            messages: messagesWithParsedJson
+            messages: messagesWithParsedJson,
+            test_configurations: testConfigurations
         };
         
         // Get raw survey for checksum calculation (re-fetch to ensure no mutations)
@@ -274,7 +293,8 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
             sections: sections,
             questions: questions,  // Use raw questions, not parsed
             options: options,
-            messages: messages  // Use raw messages, not parsed
+            messages: messages,  // Use raw messages, not parsed
+            testConfigurations: testConfigurations
         };
         const checksum = calculateChecksum(checksumData);
         

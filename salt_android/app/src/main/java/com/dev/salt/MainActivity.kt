@@ -96,10 +96,14 @@ object AppDestinations {
     const val LANGUAGE_SETTINGS = "language_settings" // For app language settings
     const val STAFF_FINGERPRINT_ENROLLMENT = "staff_fingerprint_enrollment" // For staff fingerprint enrollment
     const val FACILITY_SETUP = "facility_setup" // For facility setup with short code
-    const val HIV_TEST_INSTRUCTION = "hiv_test_instruction" // For HIV rapid test instruction
-    const val HIV_TEST_RESULT = "hiv_test_result" // For HIV rapid test result entry
-    const val HIV_TEST_STAFF_VALIDATION = "hiv_test_staff_validation" // For HIV test staff validation
+    const val HIV_TEST_INSTRUCTION = "hiv_test_instruction" // Deprecated - use RAPID_TEST_INSTRUCTION
+    const val HIV_TEST_RESULT = "hiv_test_result" // Deprecated - use RAPID_TEST_RESULT
+    const val HIV_TEST_STAFF_VALIDATION = "hiv_test_staff_validation" // Deprecated
     const val HAND_TABLET_BACK = "hand_tablet_back" // For handing tablet back to participant
+    const val RAPID_TEST_INSTRUCTION = "rapid_test_instruction" // For generic rapid test instruction
+    const val RAPID_TEST_RESULT = "rapid_test_result" // For generic rapid test result entry
+    const val SAMPLE_COLLECTION_STAFF_VALIDATION = "sample_collection_staff_validation" // Staff validation before sample collection
+    const val BIOLOGICAL_SAMPLE_COLLECTION = "biological_sample_collection" // Biological sample collection confirmation
 
     // Compatibility aliases for existing code
     const val WELCOME_SCREEN = WELCOME
@@ -363,12 +367,12 @@ class MainActivity : ComponentActivity() {
                         val database = SurveyDatabase.getInstance(context)
                         // Get the coupon code from navigation arguments
                         val referralCouponCode: String? = backStackEntry.arguments?.getString("couponCode")
-                        
+
                         // Find the most recent survey that matches this referral coupon code
                         val scope = rememberCoroutineScope()
                         var surveyId by remember { mutableStateOf<String?>(null) }
                         var isLoading by remember { mutableStateOf(true) }
-                        
+
                         LaunchedEffect(referralCouponCode) {
                             // Find the most recent survey (it should have been created at language selection)
                             Log.d("MainActivity", "Looking for most recent survey (coupon code passed: $referralCouponCode)")
@@ -377,9 +381,9 @@ class MainActivity : ComponentActivity() {
                             Log.d("MainActivity", "Found survey: $surveyId with language: ${recentSurvey?.language}")
                             isLoading = false
                         }
-                        
+
                         if (!isLoading && surveyId != null) {
-                            val viewModel: SurveyViewModel = viewModel(key = surveyId) { 
+                            val viewModel: SurveyViewModel = viewModel(key = surveyId) {
                                 com.dev.salt.viewmodel.SurveyViewModelFactory(database, context, referralCouponCode, surveyId).create(SurveyViewModel::class.java)
                             }
                             val coroutineScope = rememberCoroutineScope()
@@ -415,7 +419,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 onNavigateToHivTest = {
-                                    // Navigate to HIV Test Staff Validation screen first
+                                    // Navigate to HIV Test Staff Validation screen first (deprecated path)
                                     val currentSurveyId = viewModel.survey?.id ?: ""
                                     Log.d("MainActivity", "Navigating to HIV Test Staff Validation after eligibility for survey: $currentSurveyId")
                                     navController.navigate("${AppDestinations.HIV_TEST_STAFF_VALIDATION}/$currentSurveyId") {
@@ -424,6 +428,14 @@ class MainActivity : ComponentActivity() {
                                     }
                                     // Mark that we've started the HIV test process
                                     viewModel.markHivTestCompleted()
+                                },
+                                onNavigateToRapidTests = {
+                                    // Navigate to rapid test flow - start with staff validation
+                                    val currentSurveyId = viewModel.survey?.id ?: ""
+                                    Log.d("MainActivity", "Navigating to sample collection staff validation after eligibility for survey: $currentSurveyId")
+                                    navController.navigate("${AppDestinations.SAMPLE_COLLECTION_STAFF_VALIDATION}/$currentSurveyId") {
+                                        launchSingleTop = true
+                                    }
                                 }
                             )
                         } else {
@@ -832,6 +844,181 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         )
+                    }
+
+                    // Sample Collection Staff Validation (after eligibility)
+                    composable(
+                        route = "${AppDestinations.SAMPLE_COLLECTION_STAFF_VALIDATION}/{surveyId}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        StaffValidationScreen(
+                            surveyId = surveyId,
+                            onValidationSuccess = {
+                                // Navigate to biological sample collection screen
+                                navController.navigate("${AppDestinations.BIOLOGICAL_SAMPLE_COLLECTION}/$surveyId") {
+                                    popUpTo("${AppDestinations.SAMPLE_COLLECTION_STAFF_VALIDATION}/$surveyId") { inclusive = true }
+                                }
+                            },
+                            onCancel = {
+                                navController.navigate(AppDestinations.MENU_SCREEN) {
+                                    popUpTo(AppDestinations.SAMPLE_COLLECTION_STAFF_VALIDATION) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
+                    // Biological Sample Collection Confirmation
+                    composable(
+                        route = "${AppDestinations.BIOLOGICAL_SAMPLE_COLLECTION}/{surveyId}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val context = LocalContext.current
+                        val database = SurveyDatabase.getInstance(context)
+
+                        // Get the survey viewmodel to mark rapid tests as handled
+                        val surveyViewModel: SurveyViewModel = viewModel(key = surveyId) {
+                            com.dev.salt.viewmodel.SurveyViewModelFactory(database, context, "", surveyId).create(SurveyViewModel::class.java)
+                        }
+
+                        com.dev.salt.ui.BiologicalSampleCollectionScreen(
+                            surveyId = surveyId,
+                            onSamplesConfirmed = {
+                                // Mark rapid tests as completed so survey doesn't retrigger navigation
+                                surveyViewModel.markRapidTestsCompleted()
+
+                                // Return to survey - only pop once since staff validation already removed itself
+                                Log.d("MainActivity", "Samples collected, marking rapid tests handled and returning to survey")
+                                navController.popBackStack()
+                            },
+                            onCancel = {
+                                navController.navigate(AppDestinations.MENU_SCREEN) {
+                                    popUpTo(AppDestinations.BIOLOGICAL_SAMPLE_COLLECTION) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
+                    // New: Generic Rapid Test Instruction Screen (DEPRECATED - not used in new flow)
+                    composable(
+                        route = "${AppDestinations.RAPID_TEST_INSTRUCTION}/{surveyId}/{testIndex}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType },
+                            navArgument("testIndex") { type = NavType.IntType }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val testIndex = backStackEntry.arguments?.getInt("testIndex") ?: 0
+                        val context = LocalContext.current
+                        val database = SurveyDatabase.getInstance(context)
+                        val testManagementViewModel: com.dev.salt.viewmodels.TestManagementViewModel = viewModel()
+
+                        // Load enabled tests
+                        LaunchedEffect(Unit) {
+                            testManagementViewModel.loadEnabledTests(1L)
+                        }
+
+                        val enabledTests by testManagementViewModel.enabledTests.collectAsState()
+                        val currentTest = enabledTests.getOrNull(testIndex)
+
+                        if (currentTest != null) {
+                            com.dev.salt.ui.RapidTestInstructionScreen(
+                                surveyId = surveyId,
+                                testId = currentTest.testId,
+                                testName = currentTest.testName,
+                                onStaffValidated = {
+                                    // Navigate to result entry for this test
+                                    navController.navigate("${AppDestinations.RAPID_TEST_RESULT}/$surveyId/$testIndex") {
+                                        popUpTo("${AppDestinations.RAPID_TEST_INSTRUCTION}/$surveyId/$testIndex") { inclusive = true }
+                                    }
+                                },
+                                onCancel = {
+                                    navController.navigate(AppDestinations.MENU_SCREEN) {
+                                        popUpTo(AppDestinations.RAPID_TEST_INSTRUCTION) { inclusive = true }
+                                    }
+                                }
+                            )
+                        } else {
+                            // No test at this index - shouldn't happen, but handle gracefully
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Error: Test not found")
+                            }
+                        }
+                    }
+
+                    // New: Generic Rapid Test Result Screen
+                    composable(
+                        route = "${AppDestinations.RAPID_TEST_RESULT}/{surveyId}/{testIndex}?coupons={coupons}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType },
+                            navArgument("testIndex") { type = NavType.IntType },
+                            navArgument("coupons") {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val testIndex = backStackEntry.arguments?.getInt("testIndex") ?: 0
+                        val couponsParam = backStackEntry.arguments?.getString("coupons") ?: ""
+                        val context = LocalContext.current
+                        val database = SurveyDatabase.getInstance(context)
+                        val testManagementViewModel: com.dev.salt.viewmodels.TestManagementViewModel = viewModel()
+                        val scope = rememberCoroutineScope()
+
+                        // Load enabled tests
+                        LaunchedEffect(Unit) {
+                            testManagementViewModel.loadEnabledTests(1L)
+                        }
+
+                        val enabledTests by testManagementViewModel.enabledTests.collectAsState()
+                        val currentTest = enabledTests.getOrNull(testIndex)
+
+                        if (currentTest != null) {
+                            com.dev.salt.ui.RapidTestResultScreen(
+                                surveyId = surveyId,
+                                testId = currentTest.testId,
+                                testName = currentTest.testName,
+                                onResultSubmitted = {
+                                    // Check if there are more tests
+                                    val nextTestIndex = testIndex + 1
+                                    if (nextTestIndex < enabledTests.size) {
+                                        // Navigate to next test result entry (skip instruction screen)
+                                        Log.d("MainActivity", "Moving to next test result: $nextTestIndex/${enabledTests.size}")
+                                        navController.navigate("${AppDestinations.RAPID_TEST_RESULT}/$surveyId/$nextTestIndex?coupons=$couponsParam") {
+                                            popUpTo("${AppDestinations.RAPID_TEST_RESULT}/$surveyId/$testIndex") { inclusive = true }
+                                        }
+                                    } else {
+                                        // All tests completed - navigate to lab collection
+                                        Log.d("MainActivity", "All rapid tests completed, navigating to lab collection")
+                                        navController.navigate("${AppDestinations.LAB_COLLECTION}/$surveyId?coupons=$couponsParam") {
+                                            popUpTo("${AppDestinations.RAPID_TEST_RESULT}/$surveyId/$testIndex") { inclusive = true }
+                                        }
+                                    }
+                                },
+                                onCancel = {
+                                    navController.navigate(AppDestinations.MENU_SCREEN) {
+                                        popUpTo(AppDestinations.RAPID_TEST_RESULT) { inclusive = true }
+                                    }
+                                }
+                            )
+                        } else {
+                            // No test at this index
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Error: Test not found")
+                            }
+                        }
                     }
 
                     // Add other composables for your survey, admin dashboard, etc.

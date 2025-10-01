@@ -92,12 +92,17 @@ class SurveyUploadManager(
                 val couponDao = database.couponDao()
                 val issuedCoupons = couponDao.getCouponsIssuedToSurvey(surveyId).map { it.couponCode }
                 Log.d(TAG, "Found ${issuedCoupons.size} issued coupons for survey $surveyId: $issuedCoupons")
-                
+
+                // Get test results for this survey
+                val testResultDao = database.testResultDao()
+                val testResults = testResultDao.getTestResultsBySurveyId(surveyId)
+                Log.d(TAG, "Found ${testResults.size} test results for survey $surveyId")
+
                 // Create device info
                 val deviceInfo = serializer.createDeviceInfo(context)
-                
-                // Serialize survey to JSON including coupon information
-                val jsonData = serializer.serializeSurvey(survey, survey.questions, survey.answers, options, deviceInfo, issuedCoupons)
+
+                // Serialize survey to JSON including coupon information and test results
+                val jsonData = serializer.serializeSurvey(survey, survey.questions, survey.answers, options, deviceInfo, issuedCoupons, testResults)
                 
                 // Build the upload URL (append endpoint to base URL)
                 val uploadUrl = "${serverConfig.serverUrl}/api/sync/survey/upload"

@@ -6,6 +6,13 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
 
+data class SerializedTestResult(
+    val testId: String,
+    val testName: String,
+    val result: String,
+    val recordedAt: String
+)
+
 data class SerializedSurvey(
     val surveyId: String,
     val subjectId: String,
@@ -18,7 +25,8 @@ data class SerializedSurvey(
     val referralCouponCode: String? = null,
     val issuedCoupons: List<String> = emptyList(),
     val sampleCollected: Boolean? = null, // null=not reached, true=collected, false=refused
-    val hivRapidTestResult: String? = null, // "positive", "negative", "indeterminate", "not_performed"
+    val hivRapidTestResult: String? = null, // Deprecated - kept for backward compatibility
+    val testResults: List<SerializedTestResult> = emptyList(), // New multi-test support
     val paymentConfirmed: Boolean? = null,
     val paymentAmount: Double? = null,
     val paymentType: String? = null,
@@ -62,12 +70,13 @@ class SurveySerializer {
     }
     
     fun serializeSurvey(
-        survey: Survey, 
+        survey: Survey,
         questions: List<Question>,
         answers: List<Answer>,
         options: Map<Int, List<Option>>,
         deviceInfo: DeviceInfo,
-        issuedCoupons: List<String> = emptyList()
+        issuedCoupons: List<String> = emptyList(),
+        testResults: List<TestResult> = emptyList()
     ): JSONObject {
         
         val serializedQuestions = questions.map { question ->
@@ -116,6 +125,16 @@ class SurveySerializer {
         // Log sample collection status for debugging
         android.util.Log.d("SurveySerializer", "Survey ${survey.id} sample collection status: ${survey.sampleCollected}")
 
+        // Serialize test results
+        val serializedTestResults = testResults.map { testResult ->
+            SerializedTestResult(
+                testId = testResult.testId,
+                testName = testResult.testName,
+                result = testResult.result,
+                recordedAt = dateFormat.format(Date(testResult.recordedAt))
+            )
+        }
+
         val serializedSurvey = SerializedSurvey(
             surveyId = survey.id,
             subjectId = survey.subjectId,
@@ -128,7 +147,8 @@ class SurveySerializer {
             referralCouponCode = survey.referralCouponCode,
             issuedCoupons = issuedCoupons,
             sampleCollected = survey.sampleCollected,
-            hivRapidTestResult = survey.hivRapidTestResult,
+            hivRapidTestResult = survey.hivRapidTestResult, // Keep for backward compatibility
+            testResults = serializedTestResults,
             paymentConfirmed = survey.paymentConfirmed,
             paymentAmount = survey.paymentAmount,
             paymentType = survey.paymentType,
@@ -163,12 +183,24 @@ class SurveySerializer {
                 null -> put("sampleCollected", JSONObject.NULL)
             }
 
-            // HIV rapid test result
+            // HIV rapid test result (deprecated - kept for backward compatibility)
             if (survey.hivRapidTestResult != null) {
                 put("hivRapidTestResult", survey.hivRapidTestResult)
             } else {
                 put("hivRapidTestResult", JSONObject.NULL)
             }
+
+            // Test results (new multi-test support)
+            put("testResults", JSONArray().apply {
+                survey.testResults.forEach { testResult ->
+                    put(JSONObject().apply {
+                        put("testId", testResult.testId)
+                        put("testName", testResult.testName)
+                        put("result", testResult.result)
+                        put("recordedAt", testResult.recordedAt)
+                    })
+                }
+            })
 
             // Payment information
             when (survey.paymentConfirmed) {

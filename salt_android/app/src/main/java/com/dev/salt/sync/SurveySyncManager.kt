@@ -499,6 +499,37 @@ class SurveySyncManager(private val context: Context) {
                     Log.d("SurveySyncManager", "Inserted ${messagesArray.length()} system messages")
                 }
 
+                // Parse test configurations
+                if (data.has("test_configurations")) {
+                    val testConfigsArray = data.getJSONArray("test_configurations")
+                    val testConfigDao = database.testConfigurationDao()
+
+                    // Clear existing test configurations
+                    testConfigDao.deleteAllTestConfigurations()
+
+                    for (i in 0 until testConfigsArray.length()) {
+                        val testConfigJson = testConfigsArray.getJSONObject(i)
+
+                        // Get survey_id from survey object if available, otherwise use 1 as default
+                        val surveyId = if (data.has("survey")) {
+                            data.getJSONObject("survey").optLong("id", 1)
+                        } else {
+                            1L
+                        }
+
+                        val testConfiguration = TestConfiguration(
+                            surveyId = surveyId,
+                            testId = testConfigJson.getString("test_id"),
+                            testName = testConfigJson.getString("test_name"),
+                            enabled = testConfigJson.optInt("enabled", 0) == 1, // SQLite stores boolean as 0/1
+                            displayOrder = testConfigJson.getInt("display_order")
+                        )
+                        testConfigDao.insertTestConfiguration(testConfiguration)
+                        Log.d("SurveySyncManager", "Inserted test configuration: ${testConfiguration.testName} (enabled: ${testConfiguration.enabled})")
+                    }
+                    Log.d("SurveySyncManager", "Inserted ${testConfigsArray.length()} test configurations")
+                }
+
                 Log.d("SurveySyncManager", "Inserted ${questionsArray.length()} questions and ${optionsArray.length()} options")
             } catch (e: Exception) {
                 Log.e("SurveySyncManager", "Error parsing survey data", e)

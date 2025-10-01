@@ -20,6 +20,8 @@ import com.dev.salt.upload.SurveyUploadWorkManager
 import com.dev.salt.upload.UploadResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -27,6 +29,12 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import android.content.Context
 import com.dev.salt.util.CouponGenerator
+
+// Navigation events for the survey
+sealed class SurveyNavigationEvent {
+    object NavigateToRapidTests : SurveyNavigationEvent()
+    object NavigateToHivTest : SurveyNavigationEvent()  // For backward compatibility
+}
 
 class SurveyViewModel(
     private val database: SurveyDatabase,
@@ -36,6 +44,14 @@ class SurveyViewModel(
 ) : ViewModel() {
     private val _currentQuestion = MutableStateFlow<Triple<Question, List<Option>, Answer?>?>(null)
     val currentQuestion: StateFlow<Triple<Question, List<Option>, Answer?>?> = _currentQuestion
+
+    // Navigation event flow
+    private val _navigationEvent = MutableSharedFlow<SurveyNavigationEvent>()
+    val navigationEvent: SharedFlow<SurveyNavigationEvent> = _navigationEvent
+
+    // Track if we've already triggered navigation to rapid tests
+    private var hasNavigatedToRapidTests = false
+    private var hasNavigatedToHivTest = false
 
     private val _hasPreviousQuestion = mutableStateOf(false)
     val hasPreviousQuestion: State<Boolean> = _hasPreviousQuestion
@@ -65,9 +81,17 @@ class SurveyViewModel(
     private val _needsHivTestAfterEligibility = MutableStateFlow(false)
     val needsHivTestAfterEligibility: StateFlow<Boolean> = _needsHivTestAfterEligibility
 
-    // Track if HIV test has been completed
+    // Track if HIV test has been completed (deprecated - kept for backward compatibility)
     private val _hivTestCompleted = MutableStateFlow(false)
     val hivTestCompleted: StateFlow<Boolean> = _hivTestCompleted
+
+    // New: Track if rapid tests are needed after eligibility
+    private val _needsRapidTestsAfterEligibility = MutableStateFlow(false)
+    val needsRapidTestsAfterEligibility: StateFlow<Boolean> = _needsRapidTestsAfterEligibility
+
+    // Track if rapid tests have been completed
+    private val _rapidTestsCompleted = MutableStateFlow(false)
+    val rapidTestsCompleted: StateFlow<Boolean> = _rapidTestsCompleted
 
     init {
         viewModelScope.launch {
@@ -189,6 +213,7 @@ class SurveyViewModel(
 
             // Check if we've moved to a new section
             checkSectionTransition(question)
+
 
             _currentQuestion.value = Triple(question, options, survey!!.answers[currentQuestionIndex])
             //currentQuestion = Pair(question, options)
@@ -585,13 +610,35 @@ class SurveyViewModel(
             _isEligible.value = eligible
             _needsEligibilityCheck.value = true
 
-            // Check if HIV test is needed after eligibility
-            if (eligible && !_hivTestCompleted.value) {
+            // Check if rapid tests are needed after eligibility
+            if (eligible && !_rapidTestsCompleted.value) {
                 viewModelScope.launch(Dispatchers.IO) {
-                    val config = database.surveyConfigDao().getSurveyConfig()
-                    if (config?.hivRapidTestEnabled == true) {
-                        Log.d("SurveyViewModel", "HIV test enabled and participant eligible - will need HIV test")
-                        _needsHivTestAfterEligibility.value = true
+                    // Check if any tests are enabled
+                    val enabledTests = database.testConfigurationDao().getEnabledTestConfigurations(1L)
+                    if (enabledTests.isNotEmpty()) {
+                        Log.d("SurveyViewModel", "${enabledTests.size} rapid tests enabled - will need to perform tests")
+                        _needsRapidTestsAfterEligibility.value = true
+
+                        // Emit navigation event if we haven't already
+                        if (!hasNavigatedToRapidTests) {
+                            hasNavigatedToRapidTests = true
+                            _navigationEvent.emit(SurveyNavigationEvent.NavigateToRapidTests)
+                            Log.d("SurveyViewModel", "Emitting NavigateToRapidTests event")
+                        }
+                    } else {
+                        // Fallback: check old HIV test config for backward compatibility
+                        val config = database.surveyConfigDao().getSurveyConfig()
+                        if (config?.hivRapidTestEnabled == true && !_hivTestCompleted.value) {
+                            Log.d("SurveyViewModel", "HIV test enabled (legacy) - will need HIV test")
+                            _needsHivTestAfterEligibility.value = true
+
+                            // Emit navigation event for HIV test if we haven't already
+                            if (!hasNavigatedToHivTest) {
+                                hasNavigatedToHivTest = true
+                                _navigationEvent.emit(SurveyNavigationEvent.NavigateToHivTest)
+                                Log.d("SurveyViewModel", "Emitting NavigateToHivTest event")
+                            }
+                        }
                     }
                 }
             }
@@ -613,12 +660,22 @@ class SurveyViewModel(
     }
 
     /**
-     * Called when HIV test has been completed and survey should continue
+     * Called when HIV test has been completed and survey should continue (deprecated)
      */
     fun markHivTestCompleted() {
         _hivTestCompleted.value = true
         _needsHivTestAfterEligibility.value = false
         Log.d("SurveyViewModel", "HIV test marked as completed")
+    }
+
+    /**
+     * Called when all rapid tests have been completed and survey should continue
+     */
+    fun markRapidTestsCompleted() {
+        _rapidTestsCompleted.value = true
+        _needsRapidTestsAfterEligibility.value = false
+        hasNavigatedToRapidTests = false  // Reset for potential future use
+        Log.d("SurveyViewModel", "All rapid tests marked as completed")
     }
 
     /**

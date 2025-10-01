@@ -658,7 +658,7 @@ interface AppServerConfigDao {
     fun hasServerConfig(): Boolean
 }
 
-@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class], version = 49)
+@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class], version = 51)
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao
@@ -672,6 +672,8 @@ abstract class SurveyDatabase : RoomDatabase() {
     abstract fun subjectFingerprintDao(): SubjectFingerprintDao
     abstract fun systemMessageDao(): SystemMessageDao
     abstract fun appServerConfigDao(): AppServerConfigDao
+    abstract fun testConfigurationDao(): TestConfigurationDao
+    abstract fun testResultDao(): TestResultDao
     companion object {
         private var instance: SurveyDatabase? = null
 

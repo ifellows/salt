@@ -1,6 +1,7 @@
 package com.dev.salt
 
 import android.media.MediaPlayer
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -55,7 +56,13 @@ import com.dev.salt.ui.EligibilityCheckScreen
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope, onNavigateBack: () -> Unit = {}, onNavigateToHivTest: () -> Unit = {}) {
+fun SurveyScreen(
+    viewModel: SurveyViewModel,
+    coroutineScope: CoroutineScope,
+    onNavigateBack: () -> Unit = {},
+    onNavigateToHivTest: () -> Unit = {},
+    onNavigateToRapidTests: () -> Unit = {}
+) {
     //var currentQuestion = viewModel.currentQuestion
     val context = LocalContext.current
     val currentQuestion by viewModel.currentQuestion.collectAsState()
@@ -69,14 +76,22 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope, onN
     val needsEligibilityCheck by viewModel.needsEligibilityCheck.collectAsState()
     val isEligible by viewModel.isEligible.collectAsState()
 
-    // Observe HIV test requirement after eligibility
+    // Observe HIV test requirement after eligibility (deprecated - for backward compatibility)
     val needsHivTestAfterEligibility by viewModel.needsHivTestAfterEligibility.collectAsState()
 
-    // Navigate to HIV test when needed (after eligibility check completes)
-    LaunchedEffect(needsHivTestAfterEligibility) {
-        if (needsHivTestAfterEligibility && !viewModel.hivTestCompleted.value) {
-            // Navigate to HIV test instruction screen
-            onNavigateToHivTest()
+    // Collect navigation events from the ViewModel
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collect { event ->
+            when (event) {
+                is com.dev.salt.viewmodel.SurveyNavigationEvent.NavigateToRapidTests -> {
+                    Log.d("SurveyScreen", "Received NavigateToRapidTests event")
+                    onNavigateToRapidTests()
+                }
+                is com.dev.salt.viewmodel.SurveyNavigationEvent.NavigateToHivTest -> {
+                    Log.d("SurveyScreen", "Received NavigateToHivTest event")
+                    onNavigateToHivTest()
+                }
+            }
         }
     }
 
@@ -268,7 +283,11 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope, onN
                 Button(onClick = {
                     currentQuestion?.let { (question, _, _) ->
                         if (question.questionType != "multiple_choice") {
-                            viewModel.answerQuestion(textInputValue)
+                            coroutineScope.launch {
+                                kotlinx.coroutines.delay(2000)
+                                viewModel.answerQuestion(textInputValue)
+                            }
+                            //viewModel.answerQuestion(textInputValue)
                         }
                     }
                     viewModel.loadPreviousQuestion()
@@ -281,12 +300,13 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope, onN
                             viewModel.answerQuestion(textInputValue)
                         }
                     }
-
                     val message = viewModel.loadNextQuestion()
                     if(message != null){
                         errorMessageForDialog = message
                         showDialog = true // Show the dialog with the error message
                     }
+
+
                     //currentQuestion = viewModel.currentQuestion
 
                 }, enabled = true) {
@@ -329,7 +349,9 @@ fun SurveyScreen(viewModel: SurveyViewModel, coroutineScope: CoroutineScope, onN
                             ButtonDefaults.buttonColors() // Default color
                         }
                         Button(
-                            onClick = { viewModel.answerQuestion(option.id) },
+                            onClick = {
+                                viewModel.answerQuestion(option.id)
+                                      },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 8.dp),

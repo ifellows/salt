@@ -31,9 +31,34 @@ fun ContactInfoScreen(
     var email by remember { mutableStateOf("") }
     var showError by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
-    
+    var enabledTestsCount by remember { mutableStateOf<Int?>(null) }
+
     val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
+
+    // Check if rapid tests are enabled
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val tests = database.testConfigurationDao().getEnabledTestConfigurations(1L)
+            enabledTestsCount = tests.size
+        }
+    }
+
+    // Helper function to navigate to next screen
+    val navigateNext: () -> Unit = {
+        val testsEnabled = enabledTestsCount ?: 0
+        if (testsEnabled > 0) {
+            // Navigate to first test result entry
+            navController.navigate("${AppDestinations.RAPID_TEST_RESULT}/$surveyId/0?coupons=$coupons") {
+                popUpTo(AppDestinations.CONTACT_INFO) { inclusive = false }
+            }
+        } else {
+            // No tests, go directly to lab collection
+            navController.navigate("${AppDestinations.LAB_COLLECTION}/$surveyId?coupons=$coupons") {
+                popUpTo(AppDestinations.CONTACT_INFO) { inclusive = false }
+            }
+        }
+    }
     
     Scaffold(
         topBar = {
@@ -195,11 +220,9 @@ fun ContactInfoScreen(
                                 
                                 android.util.Log.d("ContactInfo", "Saved contact info for survey $surveyId: $contactType = $contactInfo")
                             }
-                            
-                            // Navigate to lab collection screen
-                            navController.navigate("${AppDestinations.LAB_COLLECTION}/$surveyId?coupons=$coupons") {
-                                popUpTo(AppDestinations.CONTACT_INFO) { inclusive = false }
-                            }
+
+                            // Navigate to test results or lab collection
+                            navigateNext()
                         } catch (e: Exception) {
                             android.util.Log.e("ContactInfo", "Error saving contact info", e)
                             showError = true
@@ -228,11 +251,7 @@ fun ContactInfoScreen(
             
             // Skip button
             TextButton(
-                onClick = {
-                    navController.navigate("${AppDestinations.LAB_COLLECTION}/$surveyId?coupons=$coupons") {
-                        popUpTo(AppDestinations.CONTACT_INFO) { inclusive = false }
-                    }
-                },
+                onClick = navigateNext,
                 modifier = Modifier.padding(top = 8.dp)
             ) {
                 Text("Skip")

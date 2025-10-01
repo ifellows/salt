@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.ContactPhone
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -14,6 +15,10 @@ import androidx.navigation.NavController
 import com.dev.salt.AppDestinations
 import androidx.compose.ui.res.stringResource
 import com.dev.salt.R
+import com.dev.salt.data.SurveyDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,6 +27,37 @@ fun ContactConsentScreen(
     surveyId: String,
     coupons: String
 ) {
+    val context = LocalContext.current
+    val database = remember { SurveyDatabase.getInstance(context) }
+    val coroutineScope = rememberCoroutineScope()
+
+    var enabledTestsCount by remember { mutableStateOf<Int?>(null) }
+
+    // Check if rapid tests are enabled
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            val tests = database.testConfigurationDao().getEnabledTestConfigurations(1L)
+            enabledTestsCount = tests.size
+        }
+    }
+
+    // Helper function to navigate to next screen
+    val navigateNext: () -> Unit = {
+        coroutineScope.launch {
+            val testsEnabled = enabledTestsCount ?: 0
+            if (testsEnabled > 0) {
+                // Navigate to first test result entry
+                navController.navigate("${AppDestinations.RAPID_TEST_RESULT}/$surveyId/0?coupons=$coupons") {
+                    popUpTo(AppDestinations.CONTACT_CONSENT) { inclusive = false }
+                }
+            } else {
+                // No tests, go directly to lab collection
+                navController.navigate("${AppDestinations.LAB_COLLECTION}/$surveyId?coupons=$coupons") {
+                    popUpTo(AppDestinations.CONTACT_CONSENT) { inclusive = false }
+                }
+            }
+        }
+    }
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -81,13 +117,9 @@ fun ContactConsentScreen(
                 )
             }
             
-            // No button - go to lab collection
+            // No button - navigate to test results or lab collection
             OutlinedButton(
-                onClick = {
-                    navController.navigate("${AppDestinations.LAB_COLLECTION}/$surveyId?coupons=$coupons") {
-                        popUpTo(AppDestinations.CONTACT_CONSENT) { inclusive = false }
-                    }
-                },
+                onClick = navigateNext,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
