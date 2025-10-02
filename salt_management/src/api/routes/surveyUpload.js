@@ -72,30 +72,189 @@ router.post('/survey/upload', requireFacilityApiKey, async (req, res) => {
         };
         
         // Save to file system
-        const uploadsDir = path.join(__dirname, '..', '..', '..', 'data', 'uploads');
+        const uploadsDir = path.join(__dirname, '..', '..', '..', 'data', 'uploads', 'surveys');
         await fs.mkdir(uploadsDir, { recursive: true });
         const filepath = path.join(uploadsDir, filename);
         await fs.writeFile(filepath, JSON.stringify(uploadData, null, 2));
-        
-        // Save upload record to database
-        const result = await runAsync(
-            `INSERT INTO uploads (
-                survey_response_id,
-                facility_id,
-                upload_time,
-                file_path,
-                status,
-                participant_id
-            ) VALUES (?, ?, datetime('now'), ?, ?, ?)`,
-            [
-                surveyData.surveyId,
-                facility.id,
-                filepath,
-                'COMPLETED',
-                surveyData.subjectId || null
-            ]
-        );
-        
+
+        // Begin transaction for database insertion
+        await runAsync('BEGIN TRANSACTION');
+
+        try {
+            // Get survey ID from database (assuming survey 1 for now, should be dynamic)
+            const surveyId = 1; // TODO: Match survey by name or version
+
+            // Insert into completed_surveys table
+            const completedSurveyResult = await runAsync(
+                `INSERT INTO completed_surveys (
+                    survey_response_id,
+                    participant_id,
+                    survey_id,
+                    facility_id,
+                    started_at,
+                    completed_at,
+                    language,
+                    device_id,
+                    device_model,
+                    android_version,
+                    app_version,
+                    referral_coupon_code,
+                    issued_coupons,
+                    json_file_path
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    surveyData.surveyId,
+                    surveyData.subjectId || surveyData.participantId || 'UNKNOWN',
+                    surveyId,
+                    facility.id,
+                    surveyData.startDatetime || surveyData.startedAt || new Date().toISOString(),
+                    surveyData.completedAt || new Date().toISOString(),
+                    surveyData.language || 'English',
+                    surveyData.deviceInfo?.deviceId || null,
+                    surveyData.deviceInfo?.deviceModel || null,
+                    surveyData.deviceInfo?.androidVersion || null,
+                    surveyData.deviceInfo?.appVersion || null,
+                    surveyData.referralCouponCode || null,
+                    surveyData.issuedCoupons ? JSON.stringify(surveyData.issuedCoupons) : null,
+                    filepath
+                ]
+            );
+
+            const completedSurveyId = completedSurveyResult.id;
+
+            // Insert each answer into survey_responses table
+            if (surveyData.answers && Array.isArray(surveyData.answers)) {
+                for (const answer of surveyData.answers) {
+                    // Try to find question ID from database
+                    const questionInfo = await getAsync(
+                        'SELECT id FROM questions WHERE short_name = ? AND survey_id = ?',
+                        [answer.questionShortName, surveyId]
+                    );
+
+                    await runAsync(
+                        `INSERT INTO survey_responses (
+                            completed_survey_id,
+                            question_id,
+                            question_index,
+                            question_short_name,
+                            response_value,
+                            response_option_index,
+                            response_option_text,
+                            response_multi_indices,
+                            answer_type
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                        [
+                            completedSurveyId,
+                            questionInfo?.id || null,
+                            answer.questionId || 0,
+                            answer.questionShortName || null,
+                            // For text/numeric answers, store the value
+                            (answer.answerType === 'text' || answer.answerType === 'numeric') ? answer.answerValue : null,
+                            // For single choice, store the index
+                            answer.answerType === 'multiple_choice' ? answer.answerValue : null,
+                            // Store option text for reporting
+                            answer.optionText || null,
+                            // For multi-select, store comma-separated indices
+                            answer.answerType === 'multi_select' ? answer.answerValue : null,
+                            answer.answerType || 'unknown'
+                        ]
+                    );
+                }
+            }
+
+            // Insert rapid test results if present
+            if (surveyData.testResults && Array.isArray(surveyData.testResults)) {
+                for (const test of surveyData.testResults) {
+                    await runAsync(
+                        `INSERT INTO rapid_test_results (
+                            completed_survey_id,
+                            test_id,
+                            test_name,
+                            result,
+                            recorded_at
+                        ) VALUES (?, ?, ?, ?, ?)`,
+                        [
+                            completedSurveyId,
+                            test.testId,
+                            test.testName,
+                            test.result,
+                            test.recordedAt || new Date().toISOString()
+                        ]
+                    );
+                }
+            }
+
+            // Track coupon usage
+            if (surveyData.referralCouponCode) {
+                await runAsync(
+                    `INSERT OR REPLACE INTO coupon_usage (
+                        coupon_code,
+                        used_by_survey_id,
+                        used_at,
+                        facility_id
+                    ) VALUES (?, ?, datetime('now'), ?)`,
+                    [
+                        surveyData.referralCouponCode,
+                        surveyData.surveyId,
+                        facility.id
+                    ]
+                );
+            }
+
+            // Track issued coupons
+            if (surveyData.issuedCoupons && Array.isArray(surveyData.issuedCoupons)) {
+                for (const coupon of surveyData.issuedCoupons) {
+                    await runAsync(
+                        `INSERT OR IGNORE INTO coupon_usage (
+                            coupon_code,
+                            issued_by_survey_id,
+                            issued_at,
+                            facility_id
+                        ) VALUES (?, ?, datetime('now'), ?)`,
+                        [
+                            coupon,
+                            surveyData.surveyId,
+                            facility.id
+                        ]
+                    );
+                }
+            }
+
+            // Save upload record to uploads table (for backward compatibility)
+            const result = await runAsync(
+                `INSERT INTO uploads (
+                    survey_response_id,
+                    facility_id,
+                    upload_time,
+                    file_path,
+                    status,
+                    participant_id
+                ) VALUES (?, ?, datetime('now'), ?, ?, ?)`,
+                [
+                    surveyData.surveyId,
+                    facility.id,
+                    filepath,
+                    'COMPLETED',
+                    surveyData.subjectId || null
+                ]
+            );
+
+            // Commit transaction
+            await runAsync('COMMIT');
+
+            console.log(`Survey ${surveyData.surveyId} successfully inserted into database`);
+
+            // Return the result for the response
+            var uploadId = result.id;
+        } catch (error) {
+            // Rollback transaction on error
+            await runAsync('ROLLBACK');
+            console.error('Error inserting survey data into database:', error);
+            // Continue with file-based storage even if database insertion fails
+            // This ensures surveys aren't lost
+            var uploadId = null;
+        }
+
         // Log the upload in audit log
         await runAsync(
             `INSERT INTO audit_log (user_id, action, entity_type, entity_id, new_value, timestamp)
@@ -129,7 +288,7 @@ router.post('/survey/upload', requireFacilityApiKey, async (req, res) => {
             message: 'Survey uploaded successfully',
             data: {
                 survey_id: surveyData.surveyId,
-                upload_id: result.id,
+                upload_id: uploadId || 'file-only',
                 uploaded_at: new Date().toISOString()
             }
         });

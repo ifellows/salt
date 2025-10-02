@@ -6,10 +6,27 @@ const { requireStaffOrAdmin } = require('../../middleware/auth');
 const fs = require('fs').promises;
 const path = require('path');
 
-// Validate subject ID exists (simplified - no database validation)
+// Validate subject ID exists in completed surveys
 router.get('/lab-results/validate-subject/:subjectId', requireStaffOrAdmin, async (req, res) => {
     try {
         const { subjectId } = req.params;
+
+        // Check if subject exists in completed_surveys
+        const subject = await getAsync(
+            `SELECT id, participant_id, completed_at, facility_id
+             FROM completed_surveys
+             WHERE participant_id = ?
+             ORDER BY completed_at DESC
+             LIMIT 1`,
+            [subjectId]
+        );
+
+        if (!subject) {
+            return res.json({
+                valid: false,
+                error: 'Subject ID not found. Please ensure the participant has completed a survey first.'
+            });
+        }
 
         // Get any existing lab results for this subject
         const existingResults = await allAsync(
@@ -21,14 +38,14 @@ router.get('/lab-results/validate-subject/:subjectId', requireStaffOrAdmin, asyn
             [subjectId]
         );
 
-        // Always return valid for now (no subject validation)
         res.json({
             valid: true,
+            surveyCompleted: subject.completed_at,
             existingResults: existingResults
         });
     } catch (error) {
-        console.error('Error checking subject:', error);
-        res.status(500).json({ error: 'Failed to check subject ID' });
+        console.error('Error validating subject:', error);
+        res.status(500).json({ error: 'Failed to validate subject ID' });
     }
 });
 

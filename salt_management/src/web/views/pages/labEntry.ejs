@@ -26,7 +26,8 @@
                 <input type="text"
                        id="subject_id"
                        placeholder="Enter participant ID"
-                       style="max-width: 300px;">
+                       style="max-width: 300px; text-transform: uppercase;"
+                       oninput="this.value = this.value.toUpperCase()">
                 <button onclick="validateSubject()" class="btn" style="margin-left: 1rem;">
                     Validate & Continue
                 </button>
@@ -139,7 +140,7 @@ let currentSubjectId = null;
 let availableTests = [];
 
 async function validateSubject() {
-    const subjectId = document.getElementById('subject_id').value.trim();
+    const subjectId = document.getElementById('subject_id').value.trim().toUpperCase();
 
     if (!subjectId) {
         showError('Please enter a Subject ID');
@@ -156,6 +157,12 @@ async function validateSubject() {
             currentSubjectId = subjectId;
             document.getElementById('confirmedSubjectId').textContent = subjectId;
 
+            // Show survey completion info
+            if (data.surveyCompleted) {
+                const completedDate = new Date(data.surveyCompleted).toLocaleString();
+                resultDiv.innerHTML = `<div class="alert alert-success">✓ Subject found. Survey completed: ${completedDate}</div>`;
+            }
+
             if (data.existingResults && data.existingResults.length > 0) {
                 document.getElementById('existingResults').style.display = 'block';
             }
@@ -167,8 +174,10 @@ async function validateSubject() {
             document.getElementById('step1').style.display = 'none';
             document.getElementById('step2').style.display = 'block';
         } else {
-            // This should not happen now since validation always returns true
-            resultDiv.innerHTML = `<div class="alert alert-error">Error validating subject ID. Please try again.</div>`;
+            // Subject not found in completed_surveys
+            resultDiv.innerHTML = `<div class="alert alert-error">${data.error || 'Subject ID not found. Please ensure the participant has completed a survey first.'}</div>`;
+            document.getElementById('subject_id').value = '';
+            document.getElementById('subject_id').focus();
         }
     } catch (error) {
         showError('Failed to validate subject: ' + error.message);

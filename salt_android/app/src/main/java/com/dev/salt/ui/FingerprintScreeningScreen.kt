@@ -178,11 +178,11 @@ fun FingerprintScreeningScreen(
             Button(
                 onClick = {
                     scope.launch {
-                        // temporary bypass for testing TODO remove dor production
-                        val route = "${AppDestinations.LANGUAGE_SELECTION}/$surveyId?couponCode=${couponCode ?: ""}"
-                        navController.navigate(route) {
-                            popUpTo(AppDestinations.FINGERPRINT_SCREENING) { inclusive = true }
-                        }
+                        // temporary bypass for testing TODO remove for production
+                        //val route = "${AppDestinations.LANGUAGE_SELECTION}/$surveyId?couponCode=${couponCode ?: ""}"
+                        //navController.navigate(route) {
+                        //    popUpTo(AppDestinations.FINGERPRINT_SCREENING) { inclusive = true }
+                        //}
 
                         isCapturing = true
                         errorMessage = null
