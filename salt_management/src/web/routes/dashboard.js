@@ -1,5 +1,5 @@
 const express = require('express');
-const { requireAdmin } = require('../../api/middleware/auth');
+const { requireAdmin } = require('../../middleware/auth');
 const { allAsync, getAsync } = require('../../models/database');
 const router = express.Router();
 
@@ -11,7 +11,12 @@ router.get('/login', (req, res) => {
     res.render('pages/login', { title: 'Login', error: null });
 });
 
-// Main dashboard (requires authentication)
+// Admin redirect
+router.get('/admin', requireAdmin, (req, res) => {
+    res.redirect('/');
+});
+
+// Main dashboard (admin only)
 router.get('/', requireAdmin, async (req, res) => {
     try {
         // Get statistics

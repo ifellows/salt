@@ -1,0 +1,292 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+    <div class="card" style="max-width: 700px; margin: 0 auto;">
+        <h2><%= title %></h2>
+
+        <% if (error) { %>
+            <div class="alert alert-error">
+                <%= error %>
+            </div>
+        <% } %>
+
+        <form id="testForm">
+            <div class="form-group">
+                <label for="test_name">Test Name *</label>
+                <input type="text"
+                       id="test_name"
+                       name="test_name"
+                       value="<%= editTest ? editTest.test_name : '' %>"
+                       required
+                       placeholder="e.g., Viral Load">
+            </div>
+
+            <div class="form-group">
+                <label for="test_code">Test Code</label>
+                <input type="text"
+                       id="test_code"
+                       name="test_code"
+                       value="<%= editTest ? editTest.test_code : '' %>"
+                       pattern="[A-Za-z0-9]+"
+                       placeholder="e.g., VL (alphanumeric only)">
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea id="description"
+                          name="description"
+                          rows="2"
+                          placeholder="Brief description of the test"><%= editTest ? editTest.description : '' %></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="test_type">Test Type *</label>
+                <select id="test_type" name="test_type" required onchange="toggleTypeFields()"
+                        <%= editTest ? 'disabled' : '' %>>
+                    <option value="">Select type...</option>
+                    <option value="numeric" <%= editTest && editTest.test_type === 'numeric' ? 'selected' : '' %>>
+                        Numeric (requires double entry)
+                    </option>
+                    <option value="dropdown" <%= editTest && editTest.test_type === 'dropdown' ? 'selected' : '' %>>
+                        Dropdown (single selection)
+                    </option>
+                </select>
+                <% if (editTest) { %>
+                    <input type="hidden" name="test_type" value="<%= editTest.test_type %>">
+                    <small>Test type cannot be changed after creation</small>
+                <% } %>
+            </div>
+
+            <!-- Numeric fields -->
+            <div id="numericFields" style="display: none;">
+                <div class="form-group">
+                    <label for="unit">Unit of Measurement</label>
+                    <input type="text"
+                           id="unit"
+                           name="unit"
+                           value="<%= editTest && editTest.test_type === 'numeric' ? editTest.unit : '' %>"
+                           placeholder="e.g., copies/mL, cells/μL">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="min_value">Minimum Value</label>
+                        <input type="number"
+                               id="min_value"
+                               name="min_value"
+                               step="any"
+                               value="<%= editTest && editTest.test_type === 'numeric' ? editTest.min_value : '' %>"
+                               placeholder="Optional">
+                    </div>
+
+                    <div class="form-group" style="flex: 1; margin-left: 1rem;">
+                        <label for="max_value">Maximum Value</label>
+                        <input type="number"
+                               id="max_value"
+                               name="max_value"
+                               step="any"
+                               value="<%= editTest && editTest.test_type === 'numeric' ? editTest.max_value : '' %>"
+                               placeholder="Optional">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dropdown fields -->
+            <div id="dropdownFields" style="display: none;">
+                <div class="form-group">
+                    <label>Options * (one per line, minimum 2)</label>
+                    <textarea id="options"
+                              rows="5"
+                              placeholder="Positive&#10;Negative&#10;Indeterminate"><%= editTest && editTest.options ? editTest.options.join('\n') : '' %></textarea>
+                    <small>Enter each option on a new line</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="display_order">Display Order</label>
+                <input type="number"
+                       id="display_order"
+                       name="display_order"
+                       value="<%= editTest ? editTest.display_order : 0 %>"
+                       min="0">
+                <small>Lower numbers appear first (0 = default)</small>
+            </div>
+
+            <% if (editTest) { %>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox"
+                               name="is_active"
+                               value="1"
+                               <%= editTest.is_active ? 'checked' : '' %>>
+                        Active (available for data entry)
+                    </label>
+                </div>
+            <% } %>
+
+            <div class="form-actions">
+                <button type="submit" class="btn">
+                    <%= editTest ? 'Update Test' : 'Create Test' %>
+                </button>
+                <a href="/admin/lab-tests" class="btn" style="background: #95a5a6;">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+    }
+    .form-group input[type="checkbox"] {
+        width: auto;
+        margin-right: 0.5rem;
+    }
+    .form-group input[disabled],
+    .form-group select[disabled] {
+        background-color: #f5f5f5;
+    }
+    .form-group small {
+        display: block;
+        margin-top: 0.25rem;
+        color: #666;
+        font-size: 0.875rem;
+    }
+    .form-row {
+        display: flex;
+        gap: 1rem;
+    }
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    .alert {
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+    }
+    .alert-error {
+        background: #fee;
+        color: #c00;
+        border: 1px solid #fcc;
+    }
+</style>
+
+<script>
+function toggleTypeFields() {
+    const testType = document.getElementById('test_type').value;
+    const numericFields = document.getElementById('numericFields');
+    const dropdownFields = document.getElementById('dropdownFields');
+
+    numericFields.style.display = testType === 'numeric' ? 'block' : 'none';
+    dropdownFields.style.display = testType === 'dropdown' ? 'block' : 'none';
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    <% if (editTest) { %>
+        toggleTypeFields();
+    <% } %>
+});
+
+document.getElementById('testForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const testType = document.getElementById('test_type').value;
+    const formData = {
+        test_name: document.getElementById('test_name').value,
+        test_code: document.getElementById('test_code').value || null,
+        description: document.getElementById('description').value || null,
+        test_type: testType,
+        display_order: parseInt(document.getElementById('display_order').value) || 0
+    };
+
+    // Add type-specific fields
+    if (testType === 'numeric') {
+        const minValue = document.getElementById('min_value').value;
+        const maxValue = document.getElementById('max_value').value;
+
+        if (minValue) formData.min_value = parseFloat(minValue);
+        if (maxValue) formData.max_value = parseFloat(maxValue);
+
+        const unit = document.getElementById('unit').value;
+        if (unit) formData.unit = unit;
+
+        // Validate min < max
+        if (minValue && maxValue && parseFloat(minValue) >= parseFloat(maxValue)) {
+            alert('Maximum value must be greater than minimum value');
+            return;
+        }
+    } else if (testType === 'dropdown') {
+        const optionsText = document.getElementById('options').value;
+        const options = optionsText.split('\n').filter(opt => opt.trim()).map(opt => opt.trim());
+
+        if (options.length < 2) {
+            alert('Please provide at least 2 options for dropdown');
+            return;
+        }
+
+        formData.options = options;
+    }
+
+    // Add active status for edits
+    const isEdit = <%= editTest ? 'true' : 'false' %>;
+    if (isEdit) {
+        const isActiveCheckbox = document.querySelector('input[name="is_active"]');
+        if (isActiveCheckbox) {
+            formData.is_active = isActiveCheckbox.checked;
+        }
+    }
+
+    try {
+        const url = isEdit
+            ? `/api/admin/lab-tests/<%= editTest ? editTest.id : '' %>`
+            : '/api/admin/lab-tests';
+
+        const method = isEdit ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            window.location.href = '/admin/lab-tests?success=' +
+                encodeURIComponent(isEdit ? 'Test updated successfully' : 'Test created successfully');
+        } else {
+            // Handle validation errors
+            if (result.errors) {
+                const errorMessages = result.errors.map(e => e.msg || e.message).join(', ');
+                alert('Validation errors: ' + errorMessages);
+            } else {
+                alert(result.error || 'Failed to save test');
+            }
+        }
+    } catch (error) {
+        alert('Failed to save test: ' + error.message);
+    }
+});
+</script>
+
+<%- include('../partials/footer') %>

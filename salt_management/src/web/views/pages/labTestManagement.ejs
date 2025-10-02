@@ -1,0 +1,234 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2>Lab Test Configuration</h2>
+            <a href="/admin/lab-tests/new" class="btn">Add New Test</a>
+        </div>
+
+        <% if (success) { %>
+            <div class="alert alert-success">
+                <%= success %>
+            </div>
+        <% } %>
+
+        <% if (error) { %>
+            <div class="alert alert-error">
+                <%= error %>
+            </div>
+        <% } %>
+
+        <div style="margin-bottom: 1rem;">
+            <label for="typeFilter">Filter by type:</label>
+            <select id="typeFilter" onchange="filterTests()" style="padding: 0.5rem; margin-left: 0.5rem;">
+                <option value="">All Types</option>
+                <option value="numeric">Numeric</option>
+                <option value="dropdown">Dropdown</option>
+            </select>
+
+            <label for="statusFilter" style="margin-left: 2rem;">Status:</label>
+            <select id="statusFilter" onchange="filterTests()" style="padding: 0.5rem; margin-left: 0.5rem;">
+                <option value="">All</option>
+                <option value="1">Active</option>
+                <option value="0">Inactive</option>
+            </select>
+        </div>
+
+        <table id="testsTable">
+            <thead>
+                <tr>
+                    <th>Order</th>
+                    <th>Test Name</th>
+                    <th>Code</th>
+                    <th>Type</th>
+                    <th>Details</th>
+                    <th>Status</th>
+                    <th>Results</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% tests.forEach(test => { %>
+                    <tr data-type="<%= test.test_type %>" data-active="<%= test.is_active %>">
+                        <td><%= test.display_order %></td>
+                        <td><strong><%= test.test_name %></strong></td>
+                        <td><%= test.test_code || '-' %></td>
+                        <td>
+                            <span class="badge <%= test.test_type === 'numeric' ? 'badge-info' : 'badge-warning' %>">
+                                <%= test.test_type %>
+                            </span>
+                        </td>
+                        <td>
+                            <% if (test.test_type === 'numeric') { %>
+                                <% if (test.unit) { %>Unit: <%= test.unit %><br><% } %>
+                                <% if (test.min_value !== null || test.max_value !== null) { %>
+                                    Range: <%= test.min_value !== null ? test.min_value : '∞' %> - <%= test.max_value !== null ? test.max_value : '∞' %>
+                                <% } %>
+                            <% } else if (test.options) { %>
+                                Options: <%= test.options.join(', ') %>
+                            <% } %>
+                        </td>
+                        <td>
+                            <span class="badge <%= test.is_active ? 'badge-success' : 'badge-danger' %>">
+                                <%= test.is_active ? 'Active' : 'Inactive' %>
+                            </span>
+                        </td>
+                        <td>
+                            <% if (test.result_count > 0) { %>
+                                <span class="badge badge-secondary"><%= test.result_count %> results</span>
+                            <% } else { %>
+                                -
+                            <% } %>
+                        </td>
+                        <td>
+                            <a href="/admin/lab-tests/<%= test.id %>/edit" class="btn btn-sm">Edit</a>
+                            <button onclick="toggleTest(<%= test.id %>, <%= test.is_active %>)"
+                                    class="btn btn-sm <%= test.is_active ? 'btn-warning' : 'btn-success' %>">
+                                <%= test.is_active ? 'Deactivate' : 'Activate' %>
+                            </button>
+                            <% if (test.result_count === 0) { %>
+                                <button onclick="deleteTest(<%= test.id %>, '<%= test.test_name %>')"
+                                        class="btn btn-sm btn-danger">
+                                    Delete
+                                </button>
+                            <% } %>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+
+        <% if (tests.length === 0) { %>
+            <p style="text-align: center; padding: 2rem; color: #999;">
+                No lab tests configured. Click "Add New Test" to create one.
+            </p>
+        <% } %>
+    </div>
+</div>
+
+<style>
+    .badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    .badge-info {
+        background: #17a2b8;
+        color: white;
+    }
+    .badge-warning {
+        background: #ffc107;
+        color: #212529;
+    }
+    .badge-secondary {
+        background: #6c757d;
+        color: white;
+    }
+    .badge-success {
+        background: #28a745;
+        color: white;
+    }
+    .badge-danger {
+        background: #dc3545;
+        color: white;
+    }
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        margin-right: 0.25rem;
+    }
+    .btn-warning {
+        background: #ffc107;
+        color: #212529;
+    }
+    .btn-warning:hover {
+        background: #e0a800;
+    }
+    .btn-success {
+        background: #28a745;
+    }
+    .btn-success:hover {
+        background: #218838;
+    }
+</style>
+
+<script>
+function filterTests() {
+    const typeFilter = document.getElementById('typeFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+    const rows = document.querySelectorAll('#testsTable tbody tr');
+
+    rows.forEach(row => {
+        const type = row.dataset.type;
+        const isActive = row.dataset.active;
+
+        let show = true;
+
+        if (typeFilter && type !== typeFilter) {
+            show = false;
+        }
+
+        if (statusFilter && isActive !== statusFilter) {
+            show = false;
+        }
+
+        row.style.display = show ? '' : 'none';
+    });
+}
+
+async function toggleTest(testId, currentStatus) {
+    const newStatus = !currentStatus;
+    const action = newStatus ? 'activate' : 'deactivate';
+
+    if (!confirm(`Are you sure you want to ${action} this test?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/admin/lab-tests/${testId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ is_active: newStatus })
+        });
+
+        if (response.ok) {
+            window.location.href = '/admin/lab-tests?success=' +
+                encodeURIComponent(`Test ${action}d successfully`);
+        } else {
+            const error = await response.json();
+            alert(error.error || `Failed to ${action} test`);
+        }
+    } catch (error) {
+        alert(`Failed to ${action} test: ${error.message}`);
+    }
+}
+
+async function deleteTest(testId, testName) {
+    if (!confirm(`Are you sure you want to delete "${testName}"? This cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/admin/lab-tests/${testId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            window.location.href = '/admin/lab-tests?success=' +
+                encodeURIComponent('Test deleted successfully');
+        } else {
+            const error = await response.json();
+            alert(error.error || 'Failed to delete test');
+        }
+    } catch (error) {
+        alert(`Failed to delete test: ${error.message}`);
+    }
+}
+</script>
+
+<%- include('../partials/footer') %>

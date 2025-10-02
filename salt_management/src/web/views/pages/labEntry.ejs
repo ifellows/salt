@@ -1,0 +1,419 @@
+<%- include('../partials/header') %>
+
+<% if (user.role === 'lab_staff') { %>
+    <!-- Minimal navigation for lab staff -->
+    <nav class="nav">
+        <ul>
+            <li><a href="/lab-entry">Lab Entry</a></li>
+        </ul>
+    </nav>
+<% } else { %>
+    <%- include('../partials/nav') %>
+<% } %>
+
+<div class="container">
+    <div class="card">
+        <h2>Laboratory Results Entry</h2>
+
+        <div id="successMessage" class="alert alert-success" style="display: none;"></div>
+        <div id="errorMessage" class="alert alert-error" style="display: none;"></div>
+
+        <!-- Step 1: Subject ID Entry -->
+        <div id="step1" class="form-step">
+            <h3>Step 1: Enter Subject ID</h3>
+            <div class="form-group">
+                <label for="subject_id">Subject ID *</label>
+                <input type="text"
+                       id="subject_id"
+                       placeholder="Enter participant ID"
+                       style="max-width: 300px;">
+                <button onclick="validateSubject()" class="btn" style="margin-left: 1rem;">
+                    Validate & Continue
+                </button>
+            </div>
+            <div id="validationResult"></div>
+        </div>
+
+        <!-- Step 2: Test Selection and Entry -->
+        <div id="step2" class="form-step" style="display: none;">
+            <h3>Step 2: Enter Test Results</h3>
+            <div class="subject-info">
+                <strong>Subject ID:</strong> <span id="confirmedSubjectId"></span>
+                <button onclick="resetForm()" class="btn" style="background: #95a5a6; margin-left: 1rem;">
+                    Change Subject
+                </button>
+            </div>
+
+            <div id="existingResults" style="display: none; margin: 1rem 0;">
+                <div class="alert" style="background: #fef8e7; border: 1px solid #fceb77; color: #856404;">
+                    <strong>Note:</strong> This subject has existing test results. You can still add new results below.
+                </div>
+            </div>
+
+            <div id="testsContainer" style="margin-top: 2rem;">
+                <!-- Tests will be loaded here dynamically -->
+            </div>
+
+            <div class="form-actions" style="margin-top: 2rem;">
+                <button onclick="submitResults()" class="btn">
+                    Submit Results
+                </button>
+                <button onclick="resetForm()" class="btn" style="background: #95a5a6;">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+    .form-group input,
+    .form-group select {
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+    }
+    .subject-info {
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+    }
+    .test-card {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+    .test-card h4 {
+        margin-bottom: 1rem;
+        color: #2c3e50;
+    }
+    .double-entry {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    .entry-field {
+        padding: 1rem;
+        background: white;
+        border-radius: 4px;
+    }
+    .entry-field input {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+    .entry-match {
+        color: #27ae60;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+    .entry-mismatch {
+        color: #e74c3c;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+    .dropdown-select {
+        width: 100%;
+        padding: 0.5rem;
+    }
+    .test-toggle {
+        margin-bottom: 0.5rem;
+    }
+    .test-toggle input[type="checkbox"] {
+        margin-right: 0.5rem;
+    }
+</style>
+
+<script>
+let currentSubjectId = null;
+let availableTests = [];
+
+async function validateSubject() {
+    const subjectId = document.getElementById('subject_id').value.trim();
+
+    if (!subjectId) {
+        showError('Please enter a Subject ID');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/admin/lab-results/validate-subject/${subjectId}`);
+        const data = await response.json();
+
+        const resultDiv = document.getElementById('validationResult');
+
+        if (data.valid) {
+            currentSubjectId = subjectId;
+            document.getElementById('confirmedSubjectId').textContent = subjectId;
+
+            if (data.existingResults && data.existingResults.length > 0) {
+                document.getElementById('existingResults').style.display = 'block';
+            }
+
+            // Load available tests
+            await loadTests();
+
+            // Show step 2
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+        } else {
+            // This should not happen now since validation always returns true
+            resultDiv.innerHTML = `<div class="alert alert-error">Error validating subject ID. Please try again.</div>`;
+        }
+    } catch (error) {
+        showError('Failed to validate subject: ' + error.message);
+    }
+}
+
+async function loadTests() {
+    try {
+        const response = await fetch('/api/admin/lab-tests/active');
+        const data = await response.json();
+
+        if (data.success) {
+            availableTests = data.tests;
+            displayTests();
+        }
+    } catch (error) {
+        showError('Failed to load tests: ' + error.message);
+    }
+}
+
+function displayTests() {
+    const container = document.getElementById('testsContainer');
+
+    if (availableTests.length === 0) {
+        container.innerHTML = '<p>No active tests configured. Please contact an administrator.</p>';
+        return;
+    }
+
+    let html = '<h4>Select tests to enter:</h4>';
+
+    availableTests.forEach(test => {
+        html += `
+            <div class="test-card">
+                <div class="test-toggle">
+                    <label>
+                        <input type="checkbox"
+                               id="test_enabled_${test.id}"
+                               onchange="toggleTest(${test.id})">
+                        <strong>${test.test_name}</strong>
+                        ${test.test_code ? `(${test.test_code})` : ''}
+                        ${test.description ? `<br><small>${test.description}</small>` : ''}
+                    </label>
+                </div>
+                <div id="test_entry_${test.id}" style="display: none; margin-top: 1rem;">
+        `;
+
+        if (test.test_type === 'numeric') {
+            // Double entry for numeric tests
+            html += `
+                <div class="double-entry">
+                    <div class="entry-field">
+                        <label>First Entry ${test.unit ? `(${test.unit})` : ''}</label>
+                        <input type="number"
+                               id="test_${test.id}_entry1"
+                               step="any"
+                               onkeyup="checkMatch(${test.id})"
+                               ${test.min_value !== null ? `min="${test.min_value}"` : ''}
+                               ${test.max_value !== null ? `max="${test.max_value}"` : ''}
+                               placeholder="${test.min_value !== null && test.max_value !== null ?
+                                           `${test.min_value} - ${test.max_value}` :
+                                           'Enter value'}">
+                    </div>
+                    <div class="entry-field">
+                        <label>Second Entry (Confirmation)</label>
+                        <input type="number"
+                               id="test_${test.id}_entry2"
+                               step="any"
+                               onkeyup="checkMatch(${test.id})"
+                               ${test.min_value !== null ? `min="${test.min_value}"` : ''}
+                               ${test.max_value !== null ? `max="${test.max_value}"` : ''}
+                               placeholder="Re-enter value">
+                    </div>
+                </div>
+                <div id="match_status_${test.id}"></div>
+            `;
+        } else if (test.test_type === 'dropdown') {
+            // Single selection for dropdown tests
+            html += `
+                <select id="test_${test.id}_value" class="dropdown-select">
+                    <option value="">Select result...</option>
+                    ${test.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                </select>
+            `;
+        }
+
+        html += `
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+function toggleTest(testId) {
+    const checkbox = document.getElementById(`test_enabled_${testId}`);
+    const entryDiv = document.getElementById(`test_entry_${testId}`);
+
+    if (checkbox.checked) {
+        entryDiv.style.display = 'block';
+    } else {
+        entryDiv.style.display = 'none';
+        // Clear values when unchecked
+        const test = availableTests.find(t => t.id === testId);
+        if (test.test_type === 'numeric') {
+            document.getElementById(`test_${testId}_entry1`).value = '';
+            document.getElementById(`test_${testId}_entry2`).value = '';
+            document.getElementById(`match_status_${testId}`).innerHTML = '';
+        } else {
+            document.getElementById(`test_${testId}_value`).value = '';
+        }
+    }
+}
+
+function checkMatch(testId) {
+    const entry1 = document.getElementById(`test_${testId}_entry1`).value;
+    const entry2 = document.getElementById(`test_${testId}_entry2`).value;
+    const statusDiv = document.getElementById(`match_status_${testId}`);
+
+    if (entry1 && entry2) {
+        if (entry1 === entry2) {
+            statusDiv.innerHTML = '<div class="entry-match">✓ Values match</div>';
+        } else {
+            statusDiv.innerHTML = '<div class="entry-mismatch">✗ Values do not match - please check</div>';
+        }
+    } else {
+        statusDiv.innerHTML = '';
+    }
+}
+
+async function submitResults() {
+    // Collect all enabled test results
+    const results = [];
+    let hasErrors = false;
+
+    for (const test of availableTests) {
+        const checkbox = document.getElementById(`test_enabled_${test.id}`);
+
+        if (!checkbox.checked) continue;
+
+        if (test.test_type === 'numeric') {
+            const entry1 = document.getElementById(`test_${test.id}_entry1`).value;
+            const entry2 = document.getElementById(`test_${test.id}_entry2`).value;
+
+            if (!entry1 || !entry2) {
+                showError(`Please complete both entries for ${test.test_name}`);
+                hasErrors = true;
+                continue;
+            }
+
+            if (entry1 !== entry2) {
+                showError(`Entries do not match for ${test.test_name}`);
+                hasErrors = true;
+                continue;
+            }
+
+            results.push({
+                test_id: test.id,
+                value: entry1
+            });
+        } else if (test.test_type === 'dropdown') {
+            const value = document.getElementById(`test_${test.id}_value`).value;
+
+            if (!value) {
+                showError(`Please select a result for ${test.test_name}`);
+                hasErrors = true;
+                continue;
+            }
+
+            results.push({
+                test_id: test.id,
+                value: value
+            });
+        }
+    }
+
+    if (hasErrors) {
+        return;
+    }
+
+    if (results.length === 0) {
+        showError('Please select and enter at least one test result');
+        return;
+    }
+
+    // Submit results
+    try {
+        const response = await fetch('/api/admin/lab-results', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                subject_id: currentSubjectId,
+                results: results
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showSuccess('Lab results submitted successfully');
+            setTimeout(() => {
+                resetForm();
+            }, 2000);
+        } else {
+            showError(data.error || 'Failed to submit results');
+        }
+    } catch (error) {
+        showError('Failed to submit results: ' + error.message);
+    }
+}
+
+function resetForm() {
+    currentSubjectId = null;
+    document.getElementById('subject_id').value = '';
+    document.getElementById('validationResult').innerHTML = '';
+    document.getElementById('testsContainer').innerHTML = '';
+    document.getElementById('step1').style.display = 'block';
+    document.getElementById('step2').style.display = 'none';
+    document.getElementById('existingResults').style.display = 'none';
+    hideMessages();
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('errorMessage');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    document.getElementById('successMessage').style.display = 'none';
+    setTimeout(() => {
+        errorDiv.style.display = 'none';
+    }, 5000);
+}
+
+function showSuccess(message) {
+    const successDiv = document.getElementById('successMessage');
+    successDiv.textContent = message;
+    successDiv.style.display = 'block';
+    document.getElementById('errorMessage').style.display = 'none';
+}
+
+function hideMessages() {
+    document.getElementById('successMessage').style.display = 'none';
+    document.getElementById('errorMessage').style.display = 'none';
+}
+</script>
+
+<%- include('../partials/footer') %>

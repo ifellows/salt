@@ -59,7 +59,8 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         const result = await response.json();
         
         if (response.ok) {
-            window.location.href = '/';
+            // Use the redirect URL from the server based on user role
+            window.location.href = result.redirectUrl || '/';
         } else {
             alert(result.error || 'Login failed');
         }

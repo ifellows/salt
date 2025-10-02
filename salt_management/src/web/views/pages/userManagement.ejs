@@ -1,0 +1,182 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2>User Management</h2>
+            <a href="/admin/users/new" class="btn">Add New User</a>
+        </div>
+
+        <% if (success) { %>
+            <div class="alert alert-success">
+                <%= success %>
+            </div>
+        <% } %>
+
+        <% if (error) { %>
+            <div class="alert alert-error">
+                <%= error %>
+            </div>
+        <% } %>
+
+        <div style="margin-bottom: 1rem;">
+            <label for="roleFilter">Filter by role:</label>
+            <select id="roleFilter" onchange="filterUsers()" style="padding: 0.5rem; margin-left: 0.5rem;">
+                <option value="">All Roles</option>
+                <% roles.forEach(role => { %>
+                    <option value="<%= role.value %>"><%= role.display %></option>
+                <% }); %>
+            </select>
+
+            <label for="statusFilter" style="margin-left: 2rem;">Status:</label>
+            <select id="statusFilter" onchange="filterUsers()" style="padding: 0.5rem; margin-left: 0.5rem;">
+                <option value="">All</option>
+                <option value="1">Active</option>
+                <option value="0">Inactive</option>
+            </select>
+        </div>
+
+        <table id="usersTable">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Last Login</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% users.forEach(u => { %>
+                    <tr data-role="<%= u.role %>" data-active="<%= u.is_active %>">
+                        <td><%= u.username %></td>
+                        <td><%= u.full_name || '-' %></td>
+                        <td><%= u.email || '-' %></td>
+                        <td>
+                            <span class="badge <%= u.role === 'administrator' ? 'badge-primary' : 'badge-secondary' %>">
+                                <%= u.roleDisplay %>
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge <%= u.is_active ? 'badge-success' : 'badge-danger' %>">
+                                <%= u.is_active ? 'Active' : 'Inactive' %>
+                            </span>
+                        </td>
+                        <td><%= u.last_login ? new Date(u.last_login).toLocaleString() : 'Never' %></td>
+                        <td>
+                            <a href="/admin/users/<%= u.id %>/edit" class="btn btn-sm">Edit</a>
+                            <% if (u.id !== user.id) { %>
+                                <button onclick="deleteUser(<%= u.id %>, '<%= u.username %>')"
+                                        class="btn btn-sm btn-danger"
+                                        <%= u.role === 'administrator' ? 'data-admin="true"' : '' %>>
+                                    <%= u.is_active ? 'Deactivate' : 'Activate' %>
+                                </button>
+                            <% } %>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    .badge-primary {
+        background: #3498db;
+        color: white;
+    }
+    .badge-secondary {
+        background: #95a5a6;
+        color: white;
+    }
+    .badge-success {
+        background: #27ae60;
+        color: white;
+    }
+    .badge-danger {
+        background: #e74c3c;
+        color: white;
+    }
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        margin-right: 0.25rem;
+    }
+    table tr[style*="display: none"] {
+        display: none;
+    }
+</style>
+
+<script>
+function filterUsers() {
+    const roleFilter = document.getElementById('roleFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+    const rows = document.querySelectorAll('#usersTable tbody tr');
+
+    rows.forEach(row => {
+        const role = row.dataset.role;
+        const isActive = row.dataset.active;
+
+        let show = true;
+
+        if (roleFilter && role !== roleFilter) {
+            show = false;
+        }
+
+        if (statusFilter && isActive !== statusFilter) {
+            show = false;
+        }
+
+        row.style.display = show ? '' : 'none';
+    });
+}
+
+async function deleteUser(userId, username) {
+    const button = event.target;
+    const isAdmin = button.dataset.admin === 'true';
+    const isActive = button.textContent === 'Deactivate';
+
+    if (isAdmin) {
+        const adminCount = document.querySelectorAll('tr[data-role="administrator"][data-active="1"]').length;
+        if (adminCount <= 1 && isActive) {
+            alert('Cannot deactivate the last administrator');
+            return;
+        }
+    }
+
+    const action = isActive ? 'deactivate' : 'activate';
+    if (!confirm(`Are you sure you want to ${action} user "${username}"?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/admin/users/${userId}`, {
+            method: isActive ? 'DELETE' : 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: isActive ? undefined : JSON.stringify({ is_active: true })
+        });
+
+        if (response.ok) {
+            window.location.href = '/admin/users?success=' + encodeURIComponent(`User ${action}d successfully`);
+        } else {
+            const error = await response.json();
+            alert(error.error || `Failed to ${action} user`);
+        }
+    } catch (error) {
+        alert(`Failed to ${action} user: ${error.message}`);
+    }
+}
+</script>
+
+<%- include('../partials/footer') %>
