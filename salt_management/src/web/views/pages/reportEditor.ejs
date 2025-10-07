@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= typeof title !== 'undefined' ? title : 'Report Editor' %> - SALT Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 1.5rem;
+        }
+        .nav {
+            background: #34495e;
+            padding: 0 2rem;
+        }
+        .nav ul {
+            list-style: none;
+            display: flex;
+        }
+        .nav li {
+            margin-right: 2rem;
+        }
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 1rem 0;
+            display: block;
+        }
+        .nav a:hover {
+            background: #2c3e50;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            background: #2980b9;
+        }
+    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <% if (typeof username !== 'undefined') { %>
+    <div class="header">
+        <h1>SALT Management System</h1>
+        <div>
+            Welcome, <%= username %> |
+            <a href="/logout" style="color: white;">Logout</a>
+        </div>
+    </div>
+    <nav class="nav">
+        <ul>
+            <li><a href="/">Dashboard</a></li>
+            <li><a href="/facilities">Facilities</a></li>
+            <li><a href="/uploads">Uploads</a></li>
+            <li><a href="/surveys">Surveys</a></li>
+            <li><a href="/admin/users">Users</a></li>
+            <li><a href="/admin/lab-tests">Lab Tests</a></li>
+            <li><a href="/recruitment">Recruitment</a></li>
+            <li><a href="/reports">Reports</a></li>
+            <li><a href="/export">Export Data</a></li>
+        </ul>
+    </nav>
+    <% } %>
+
+    <div class="container">
+        <h2><%= (typeof id !== 'undefined' && id) ? 'Edit Report' : 'Create New Report' %></h2>
+
+        <div class="card">
+            <div style="margin-bottom: 1.5rem;">
+                <label for="reportName" style="font-weight: bold;">Report Name:</label>
+                <input type="text" id="reportName" placeholder="Enter report name" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem;">
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label for="reportDescription" style="font-weight: bold;">Description:</label>
+                <textarea id="reportDescription" placeholder="Enter report description (optional)" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; min-height: 60px;"></textarea>
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <label style="font-weight: bold;">Quarto Document (R Code):</label>
+                    <select id="templateSelect" onchange="loadTemplate()" style="padding: 0.5rem;">
+                        <option value="">-- Select Template --</option>
+                        <option value="basic">Basic Summary Report</option>
+                        <option value="weekly">Weekly Activity Report</option>
+                        <option value="quality">Data Quality Report</option>
+                    </select>
+                </div>
+                <div id="editorContainer" style="height: 500px; border: 1px solid #ddd; font-family: 'Courier New', monospace;">
+                    <textarea id="codeEditor" style="width: 100%; height: 100%; padding: 1rem; font-family: inherit; font-size: 14px; border: none; outline: none;"></textarea>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #dee2e6; padding-top: 1.5rem;">
+                <button class="btn" style="background: #95a5a6;" onclick="cancelEdit()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn" style="background: #27ae60;" onclick="saveAndRun()">
+                        <i class="fas fa-play"></i> Save & Run
+                    </button>
+                    <button class="btn" onclick="saveReport()">
+                        <i class="fas fa-save"></i> Save Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const reportId = <%= typeof id !== 'undefined' && id ? id : 'null' %>;
+let originalContent = '';
+
+// Report templates
+const templates = {
+    basic: `---
+title: "SALT Survey Summary Report"
+author: "SALT Management System"
+date: "\`r Sys.Date()\`"
+format:
+  html:
+    toc: true
+    other-links: false
+    code-links: false
+  pdf:
+    toc: true
+  docx:
+    toc: true
+execute:
+  echo: false
+  warning: false
+---
+
+\`\`\`{r setup, include=FALSE}
+library(tidyverse)
+library(knitr)
+
+# Load data
+data_long <- read.csv("data_long.csv")
+data_wide <- read.csv("data_wide.csv")
+data_wide_numeric <- read.csv("data_wide_numeric.csv")
+\`\`\`
+
+# Executive Summary
+
+This report provides a summary of survey responses collected through the SALT system.
+
+## Response Overview
+
+\`\`\`{r}
+total_surveys <- length(unique(data_long$survey_id))
+total_participants <- length(unique(data_long$participant_id))
+
+summary_table <- data.frame(
+  Metric = c("Total Surveys", "Unique Participants"),
+  Value = c(total_surveys, total_participants)
+)
+
+kable(summary_table, caption = "Survey Statistics")
+\`\`\`
+
+## Variable Summary
+
+\`\`\`{r}
+variable_summary <- data_long %>%
+  group_by(variable) %>%
+  summarise(
+    n_responses = n(),
+    n_unique = n_distinct(participant_id),
+    mean_numeric = mean(numeric_value, na.rm = TRUE)
+  ) %>%
+  arrange(desc(n_responses))
+
+kable(head(variable_summary, 20), caption = "Top 20 Variables by Response Count")
+\`\`\`
+
+## Response Distribution
+
+\`\`\`{r, fig.width=10, fig.height=6}
+library(ggplot2)
+
+top_variables <- variable_summary$variable[1:10]
+
+data_long %>%
+  filter(variable %in% top_variables) %>%
+  ggplot(aes(x = variable, fill = variable)) +
+  geom_bar() +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Response Counts for Top 10 Variables",
+       x = "Variable",
+       y = "Count") +
+  guides(fill = "none")
+\`\`\`
+`,
+    weekly: `---
+title: "Weekly Activity Report"
+subtitle: "Week of \`r format(Sys.Date() - 7, '%B %d, %Y')\`"
+author: "SALT Management System"
+date: "\`r Sys.Date()\`"
+format:
+  html:
+    toc: true
+    other-links: false
+    code-links: false
+  pdf:
+    toc: true
+  docx:
+    toc: true
+execute:
+  echo: false
+  warning: false
+---
+
+\`\`\`{r setup, include=FALSE}
+library(tidyverse)
+library(knitr)
+library(lubridate)
+
+# Load data
+data_wide <- read.csv("data_wide.csv")
+
+# Convert date columns
+data_wide$meta_completed_at <- as.POSIXct(data_wide$meta_completed_at)
+
+# Filter for last 7 days
+week_data <- data_wide %>%
+  filter(meta_completed_at >= Sys.Date() - 7)
+\`\`\`
+
+# Weekly Activity Summary
+
+## Survey Completions
+
+\`\`\`{r}
+daily_completions <- week_data %>%
+  mutate(date = as.Date(meta_completed_at)) %>%
+  group_by(date) %>%
+  summarise(count = n())
+
+kable(daily_completions, caption = "Daily Survey Completions")
+\`\`\`
+
+## Facility Activity
+
+\`\`\`{r}
+facility_activity <- week_data %>%
+  group_by(meta_facility_name) %>%
+  summarise(
+    surveys = n(),
+    unique_participants = n_distinct(participant_id)
+  ) %>%
+  arrange(desc(surveys))
+
+kable(facility_activity, caption = "Activity by Facility")
+\`\`\`
+
+## Daily Trend
+
+\`\`\`{r, fig.width=10, fig.height=6}
+ggplot(daily_completions, aes(x = date, y = count)) +
+  geom_line(color = "blue", size = 1) +
+  geom_point(color = "blue", size = 3) +
+  theme_minimal() +
+  labs(title = "Daily Survey Completions",
+       x = "Date",
+       y = "Number of Surveys")
+\`\`\`
+`,
+    quality: `---
+title: "Data Quality Assessment Report"
+author: "SALT Management System"
+date: "\`r Sys.Date()\`"
+format:
+  html:
+    toc: true
+    other-links: false
+    code-links: false
+  pdf:
+    toc: true
+  docx:
+    toc: true
+execute:
+  echo: false
+  warning: false
+---
+
+\`\`\`{r setup, include=FALSE}
+library(tidyverse)
+library(knitr)
+
+# Load data
+data_long <- read.csv("data_long.csv")
+data_wide <- read.csv("data_wide.csv")
+\`\`\`
+
+# Data Quality Assessment
+
+## Completeness Analysis
+
+\`\`\`{r}
+# Calculate missing data percentages
+missing_summary <- data_long %>%
+  group_by(variable) %>%
+  summarise(
+    total_expected = n(),
+    missing_numeric = sum(is.na(numeric_value)),
+    missing_text = sum(is.na(text_value) | text_value == ""),
+    pct_complete = round((1 - (missing_numeric + missing_text) / (2 * total_expected)) * 100, 2)
+  ) %>%
+  arrange(pct_complete)
+
+kable(head(missing_summary, 20), caption = "Variables with Lowest Completion Rates")
+\`\`\`
+
+## Data Consistency Checks
+
+\`\`\`{r}
+# Check for duplicate participant IDs
+duplicates <- data_wide %>%
+  group_by(participant_id) %>%
+  summarise(count = n()) %>%
+  filter(count > 1)
+
+if(nrow(duplicates) > 0) {
+  kable(duplicates, caption = "Duplicate Participant IDs Found")
+} else {
+  cat("No duplicate participant IDs found.")
+}
+\`\`\`
+
+## Response Patterns
+
+\`\`\`{r, fig.width=10, fig.height=6}
+# Visualize completeness by variable
+missing_summary %>%
+  head(20) %>%
+  ggplot(aes(x = reorder(variable, pct_complete), y = pct_complete)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Completion Rate by Variable",
+       x = "Variable",
+       y = "Completion Rate (%)")
+\`\`\`
+`
+};
+
+// Load existing report if editing
+document.addEventListener('DOMContentLoaded', function() {
+    if (reportId) {
+        loadReport();
+    } else {
+        // Set default template for new reports
+        document.getElementById('codeEditor').value = templates.basic;
+    }
+});
+
+function loadReport() {
+    fetch('/api/admin/reports/' + reportId, {
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('reportName').value = data.report.name;
+            document.getElementById('reportDescription').value = data.report.description || '';
+            document.getElementById('codeEditor').value = data.report.qmd_content;
+            originalContent = data.report.qmd_content;
+        } else {
+            alert('Failed to load report');
+            window.location.href = '/reports';
+        }
+    })
+    .catch(error => {
+        console.error('Error loading report:', error);
+        alert('Failed to load report');
+        window.location.href = '/reports';
+    });
+}
+
+function loadTemplate() {
+    const templateKey = document.getElementById('templateSelect').value;
+    if (templateKey && templates[templateKey]) {
+        if (confirm('This will replace the current content. Continue?')) {
+            document.getElementById('codeEditor').value = templates[templateKey];
+        }
+    }
+    document.getElementById('templateSelect').value = '';
+}
+
+function saveReport() {
+    const name = document.getElementById('reportName').value.trim();
+    const description = document.getElementById('reportDescription').value.trim();
+    const qmdContent = document.getElementById('codeEditor').value;
+
+    if (!name) {
+        alert('Please enter a report name');
+        return;
+    }
+
+    if (!qmdContent) {
+        alert('Please enter report content');
+        return;
+    }
+
+    const reportData = {
+        name: name,
+        description: description,
+        qmd_content: qmdContent
+    };
+
+    const url = reportId
+        ? '/api/admin/reports/' + reportId
+        : '/api/admin/reports';
+
+    const method = reportId ? 'PUT' : 'POST';
+
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(reportData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Report saved successfully');
+            window.location.href = '/reports';
+        } else {
+            alert('Failed to save report: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error saving report:', error);
+        alert('Failed to save report');
+    });
+}
+
+function saveAndRun() {
+    // First save the report
+    const name = document.getElementById('reportName').value.trim();
+    const description = document.getElementById('reportDescription').value.trim();
+    const qmdContent = document.getElementById('codeEditor').value;
+
+    if (!name || !qmdContent) {
+        alert('Please enter report name and content');
+        return;
+    }
+
+    const reportData = {
+        name: name,
+        description: description,
+        qmd_content: qmdContent
+    };
+
+    const url = reportId
+        ? '/api/admin/reports/' + reportId
+        : '/api/admin/reports';
+
+    const method = reportId ? 'PUT' : 'POST';
+
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(reportData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const runReportId = reportId || data.reportId;
+
+            // Now run the report
+            return fetch('/api/admin/reports/' + runReportId + '/run', {
+                method: 'POST',
+                credentials: 'same-origin'
+            });
+        } else {
+            throw new Error('Failed to save report: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .then(response => response.json())
+    .then(runData => {
+        if (runData.success) {
+            alert('Report saved and execution started. Redirecting to history...');
+            const finalReportId = reportId || runData.reportId;
+            window.location.href = '/reports/' + finalReportId + '/history';
+        } else {
+            alert('Report saved but failed to run: ' + (runData.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to save and run report');
+    });
+}
+
+function cancelEdit() {
+    if (reportId) {
+        const currentContent = document.getElementById('codeEditor').value;
+        if (currentContent !== originalContent) {
+            if (!confirm('You have unsaved changes. Are you sure you want to leave?')) {
+                return;
+            }
+        }
+    }
+    window.location.href = '/reports';
+}
+
+// Add keyboard shortcut for save
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        saveReport();
+    }
+});
+</script>
+</body>
+</html>

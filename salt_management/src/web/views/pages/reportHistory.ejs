@@ -1,0 +1,320 @@
+<%
+var pageTitle = typeof title !== 'undefined' ? title : 'Report History';
+var pageUsername = typeof username !== 'undefined' ? username : '';
+var reportId = typeof id !== 'undefined' ? id : null;
+var reportName = typeof name !== 'undefined' ? name : 'Report';
+var body = `
+<h2>Report History: ${reportName}</h2>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3>Execution History</h3>
+        <button class="btn" onclick="window.location.href='/reports'">
+            <i class="fas fa-arrow-left"></i> Back to Reports
+        </button>
+    </div>
+
+    <div id="historyList">
+        <div style="text-align: center; padding: 2rem;">
+            <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #3498db;"></i>
+            <p>Loading history...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Logs Modal -->
+<div id="logsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="background: white; margin: 2% auto; padding: 2rem; width: 80%; max-width: 900px; height: 80%; border-radius: 8px; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3>Execution Logs</h3>
+            <button onclick="closeLogsModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        <div id="logsContent" style="flex: 1; overflow: auto; background: #f8f9fa; padding: 1rem; font-family: 'Courier New', monospace; font-size: 12px; white-space: pre-wrap; border: 1px solid #dee2e6;">
+        </div>
+    </div>
+</div>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<style>
+    .history-row {
+        padding: 1rem;
+        border-bottom: 1px solid #ecf0f1;
+    }
+
+    .history-row:hover {
+        background: #f8f9fa;
+    }
+
+    .run-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .run-info {
+        flex: 1;
+    }
+
+    .run-date {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .run-meta {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .run-status {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-right: 0.5rem;
+    }
+
+    .status-running {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .status-completed {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-failed {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .run-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .download-btn {
+        padding: 0.25rem 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        background: white;
+        color: #333;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .download-btn:hover {
+        background: #f8f9fa;
+        border-color: #3498db;
+        color: #3498db;
+    }
+
+    .download-btn.pdf {
+        border-color: #dc3545;
+        color: #dc3545;
+    }
+
+    .download-btn.html {
+        border-color: #28a745;
+        color: #28a745;
+    }
+
+    .download-btn.docx {
+        border-color: #007bff;
+        color: #007bff;
+    }
+
+    .logs-btn {
+        padding: 0.25rem 0.75rem;
+        border: 1px solid #6c757d;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        background: white;
+        color: #6c757d;
+    }
+
+    .logs-btn:hover {
+        background: #6c757d;
+        color: white;
+    }
+
+    .refresh-hint {
+        text-align: center;
+        padding: 1rem;
+        background: #e7f3ff;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+        color: #0c5460;
+    }
+</style>
+
+<script>
+const reportId = ${reportId ? reportId : 'null'};
+let runs = [];
+let refreshInterval = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadHistory();
+    // Auto-refresh every 5 seconds if there are running reports
+    refreshInterval = setInterval(() => {
+        if (hasRunningReports()) {
+            loadHistory();
+        }
+    }, 5000);
+});
+
+// Clean up interval on page unload
+window.addEventListener('beforeunload', () => {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
+});
+
+async function loadHistory() {
+    if (!reportId) return;
+
+    try {
+        const response = await fetch(\`/api/admin/reports/\${reportId}/runs\`, {
+            credentials: 'same-origin'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            runs = data.runs;
+            renderHistory(runs);
+        } else {
+            showError('Failed to load history');
+        }
+    } catch (error) {
+        console.error('Error loading history:', error);
+        showError('Failed to load history');
+    }
+}
+
+function hasRunningReports() {
+    return runs.some(run => run.status === 'running');
+}
+
+function renderHistory(runs) {
+    const container = document.getElementById('historyList');
+
+    if (runs.length === 0) {
+        container.innerHTML = \`
+            <div style="text-align: center; padding: 2rem; color: #6c757d;">
+                <i class="fas fa-history" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                <p>No execution history found. Run the report to see results here.</p>
+            </div>
+        \`;
+        return;
+    }
+
+    let html = '';
+
+    // Show refresh hint if there are running reports
+    if (hasRunningReports()) {
+        html += '<div class="refresh-hint"><i class="fas fa-info-circle"></i> Auto-refreshing every 5 seconds while reports are running...</div>';
+    }
+
+    runs.forEach(run => {
+        const startTime = new Date(run.started_at);
+        const endTime = run.completed_at ? new Date(run.completed_at) : null;
+        const duration = endTime
+            ? Math.round((endTime - startTime) / 1000)
+            : Math.round((Date.now() - startTime.getTime()) / 1000);
+
+        const formatDuration = (seconds) => {
+            // Handle negative or invalid durations
+            if (seconds < 0 || isNaN(seconds)) return 'calculating...';
+            if (seconds < 60) return \`\${seconds}s\`;
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return \`\${minutes}m \${secs}s\`;
+        };
+
+        html += \`
+            <div class="history-row">
+                <div class="run-header">
+                    <div class="run-info">
+                        <div class="run-date">\${startTime.toLocaleString()}</div>
+                        <div class="run-meta">
+                            <span class="run-status status-\${run.status}">\${run.status}</span>
+                            Type: \${run.run_type} | Duration: \${formatDuration(duration)}
+                            \${run.error_message ? \` | Error: \${run.error_message}\` : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="run-actions">
+                    \${run.status === 'completed' ? \`
+                        <a href="/api/admin/reports/runs/\${run.run_id}/download/pdf" class="download-btn pdf">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </a>
+                        <a href="/api/admin/reports/runs/\${run.run_id}/download/html" class="download-btn html">
+                            <i class="fas fa-file-code"></i> HTML
+                        </a>
+                        <a href="/api/admin/reports/runs/\${run.run_id}/download/docx" class="download-btn docx">
+                            <i class="fas fa-file-word"></i> DOCX
+                        </a>
+                    \` : ''}
+                    <button class="logs-btn" onclick="viewLogs('\${run.run_id}')">
+                        <i class="fas fa-terminal"></i> View Logs
+                    </button>
+                </div>
+            </div>
+        \`;
+    });
+
+    container.innerHTML = html;
+}
+
+async function viewLogs(runId) {
+    try {
+        const response = await fetch(\`/api/admin/reports/runs/\${runId}/logs\`, {
+            credentials: 'same-origin'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('logsContent').textContent = data.logs || 'No logs available';
+            document.getElementById('logsModal').style.display = 'block';
+        } else {
+            alert('Failed to load logs');
+        }
+    } catch (error) {
+        console.error('Error loading logs:', error);
+        alert('Failed to load logs');
+    }
+}
+
+function closeLogsModal() {
+    document.getElementById('logsModal').style.display = 'none';
+}
+
+function showError(message) {
+    document.getElementById('historyList').innerHTML = \`
+        <div style="padding: 2rem; text-align: center; color: #dc3545;">
+            <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+            <p>\${message}</p>
+        </div>
+    \`;
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeLogsModal();
+    }
+});
+</script>
+` %>
+<%- include('../layouts/main', { body: body, title: pageTitle, username: pageUsername }) %>
