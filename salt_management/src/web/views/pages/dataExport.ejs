@@ -1,0 +1,224 @@
+<%
+var pageTitle = typeof title !== 'undefined' ? title : 'Data Export';
+var pageUsername = typeof username !== 'undefined' ? username : '';
+var body = `
+<h2>Data Export</h2>
+
+<div class="card">
+    <h3 style="margin-bottom: 1.5rem;">
+        <i class="fas fa-download" style="color: #3498db;"></i> Export Survey Data
+    </h3>
+
+    <div style="margin-bottom: 2rem;">
+        <label style="font-weight: bold; display: block; margin-bottom: 1rem;">Select Export Format:</label>
+
+        <div class="format-option" onclick="selectFormat('long')" style="padding: 1rem; margin-bottom: 1rem; border: 2px solid #dee2e6; border-radius: 0.5rem; cursor: pointer;">
+            <input type="radio" name="format" value="long" id="formatLong" style="margin-right: 0.5rem;" checked>
+            <label for="formatLong" style="cursor: pointer;">
+                <div style="font-weight: 600; color: #212529; margin-bottom: 0.5rem;">
+                    <i class="fas fa-list"></i> Long Format
+                </div>
+                <div style="color: #6c757d; font-size: 0.9rem;">
+                    One row per variable per survey.
+                    <br>
+                    <small style="color: #999;">Columns: survey_id, participant_id, variable, numeric_value, text_value</small>
+                </div>
+            </label>
+        </div>
+
+        <div class="format-option" onclick="selectFormat('wide')" style="padding: 1rem; margin-bottom: 1rem; border: 2px solid #dee2e6; border-radius: 0.5rem; cursor: pointer;">
+            <input type="radio" name="format" value="wide" id="formatWide" style="margin-right: 0.5rem;">
+            <label for="formatWide" style="cursor: pointer;">
+                <div style="font-weight: 600; color: #212529; margin-bottom: 0.5rem;">
+                    <i class="fas fa-table"></i> Wide Format
+                </div>
+                <div style="color: #6c757d; font-size: 0.9rem;">
+                    One row per survey with all variables as columns.
+                    <br>
+                    <small style="color: #999;">Columns: survey_id, participant_id, all survey questions and metadata</small>
+                </div>
+            </label>
+        </div>
+    </div>
+
+    <!-- Options for Wide Format -->
+    <div id="wideFormatOptions" style="margin-bottom: 2rem; display: none;">
+        <label style="font-weight: bold; display: block; margin-bottom: 1rem;">Wide Format Options:</label>
+        <div style="margin-bottom: 0.5rem;">
+            <input type="radio" name="valueType" value="numeric" id="valueNumeric" style="margin-right: 0.5rem;" checked>
+            <label for="valueNumeric">
+                Use numeric codes when available
+                <small style="color: #6c757d; display: block; margin-left: 1.5rem;">Uses numeric values for categorical variables (e.g., 0, 1, 2)</small>
+            </label>
+        </div>
+        <div style="margin-top: 1rem;">
+            <input type="radio" name="valueType" value="text" id="valueText" style="margin-right: 0.5rem;">
+            <label for="valueText">
+                Use text labels when available
+                <small style="color: #6c757d; display: block; margin-left: 1.5rem;">Uses text values for categorical variables (e.g., "Male", "Female")</small>
+            </label>
+        </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #dee2e6; padding-top: 1.5rem;">
+        <div>
+            <small style="color: #6c757d;">
+                <i class="fas fa-info-circle"></i>
+                Export includes all surveys, questions, rapid test results, lab results, and payment information.
+            </small>
+        </div>
+        <button class="btn" onclick="exportData()" style="min-width: 150px;">
+            <i class="fas fa-download"></i> Download CSV
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 1rem;">Export Information</h3>
+    <ul style="list-style: none; padding: 0;">
+        <li style="margin-bottom: 0.75rem;">
+            <i class="fas fa-check-circle" style="color: #27ae60;"></i>
+            UTF-8 encoded with BOM for Excel compatibility
+        </li>
+        <li style="margin-bottom: 0.75rem;">
+            <i class="fas fa-check-circle" style="color: #27ae60;"></i>
+            Includes all survey responses
+        </li>
+        <li style="margin-bottom: 0.75rem;">
+            <i class="fas fa-check-circle" style="color: #27ae60;"></i>
+            Contains payment and sample collection data
+        </li>
+        <li style="margin-bottom: 0.75rem;">
+            <i class="fas fa-check-circle" style="color: #27ae60;"></i>
+            Includes rapid test and lab results
+        </li>
+        <li style="margin-bottom: 0.75rem;">
+            <i class="fas fa-check-circle" style="color: #27ae60;"></i>
+            Coupon tracking information included
+        </li>
+    </ul>
+
+    <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem;">Variable Prefixes</h4>
+    <ul style="list-style: none; padding: 0; font-family: monospace; font-size: 0.9rem;">
+        <li><code style="background: #f5f5f5; padding: 0.2rem 0.4rem;">q_</code> - Survey questions</li>
+        <li><code style="background: #f5f5f5; padding: 0.2rem 0.4rem;">meta_</code> - Survey metadata</li>
+        <li><code style="background: #f5f5f5; padding: 0.2rem 0.4rem;">device_</code> - Device information</li>
+        <li><code style="background: #f5f5f5; padding: 0.2rem 0.4rem;">rapid_</code> - Rapid test results</li>
+        <li><code style="background: #f5f5f5; padding: 0.2rem 0.4rem;">lab_</code> - Laboratory results</li>
+        <li><code style="background: #f5f5f5; padding: 0.2rem 0.4rem;">pay_</code> - Payment information</li>
+        <li><code style="background: #f5f5f5; padding: 0.2rem 0.4rem;">coupon_</code> - Coupon data</li>
+        <li><code style="background: #f5f5f5; padding: 0.2rem 0.4rem;">sample_collected</code> - Sample status</li>
+    </ul>
+</div>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<style>
+    .format-option:hover {
+        border-color: #3498db !important;
+        background-color: #f0f8ff;
+    }
+    .format-option.selected {
+        border-color: #3498db !important;
+        background-color: #e7f3ff;
+    }
+</style>
+
+<script>
+    function selectFormat(format) {
+        // Update radio button
+        document.getElementById(format === 'long' ? 'formatLong' : 'formatWide').checked = true;
+
+        // Update visual selection
+        document.querySelectorAll('.format-option').forEach(option => {
+            option.classList.remove('selected');
+        });
+        event.currentTarget.classList.add('selected');
+
+        // Show/hide wide format options
+        const wideOptions = document.getElementById('wideFormatOptions');
+        if (format === 'wide') {
+            wideOptions.style.display = 'block';
+        } else {
+            wideOptions.style.display = 'none';
+        }
+    }
+
+    function exportData() {
+        const format = document.querySelector('input[name="format"]:checked').value;
+        let exportUrl = \`/api/admin/export/\${format}\`;
+
+        // Add value type parameter for wide format
+        if (format === 'wide') {
+            const valueType = document.querySelector('input[name="valueType"]:checked').value;
+            exportUrl += \`?valueType=\${valueType}\`;
+        }
+
+        // Show loading state
+        const button = event.target.closest('button');
+        const originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing...';
+        button.disabled = true;
+
+        // Trigger download
+        fetch(exportUrl, {
+            method: 'GET',
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Export failed');
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const date = new Date().toISOString().split('T')[0];
+            a.href = url;
+            a.download = \`salt_export_\${format}_\${date}.csv\`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            // Reset button
+            button.innerHTML = originalContent;
+            button.disabled = false;
+
+            // Show success message
+            showAlert('Export completed successfully!', 'success');
+        })
+        .catch(error => {
+            console.error('Export error:', error);
+            button.innerHTML = originalContent;
+            button.disabled = false;
+            showAlert('Export failed. Please try again.', 'error');
+        });
+    }
+
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = \`alert alert-\${type}\`;
+        alertDiv.style.position = 'fixed';
+        alertDiv.style.top = '20px';
+        alertDiv.style.right = '20px';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.style.minWidth = '300px';
+        alertDiv.textContent = message;
+
+        document.body.appendChild(alertDiv);
+
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    // Set initial selection
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelector('.format-option').classList.add('selected');
+    });
+</script>
+` %>
+<%- include('../layouts/main', { body: body, title: pageTitle, username: pageUsername }) %>

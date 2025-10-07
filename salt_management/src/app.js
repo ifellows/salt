@@ -74,11 +74,13 @@ const testConfigRoutes = require('./api/routes/testConfig');
 const usersRoutes = require('./api/routes/users');
 const labTestsRoutes = require('./api/routes/labTests');
 const labResultsRoutes = require('./api/routes/labResults');
+const dataExportRoutes = require('./api/routes/dataExport');
 const webDashboardRoutes = require('./web/routes/dashboard');
 const webSurveyEditorRoutes = require('./web/routes/surveyEditor');
 const webUserManagementRoutes = require('./web/routes/userManagement');
 const webLabEntryRoutes = require('./web/routes/labEntry');
 const webLabTestManagementRoutes = require('./web/routes/labTestManagement');
+const webDataExportRoutes = require('./web/routes/dataExport');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -89,6 +91,7 @@ app.use('/api/admin/survey-config', surveyMessagesRoutes);
 app.use('/api/admin/users', usersRoutes);
 app.use('/api/admin', labTestsRoutes);
 app.use('/api/admin', labResultsRoutes);
+app.use('/api/admin', dataExportRoutes);
 app.use('/api/admin', testConfigRoutes);
 app.use('/api/sync', surveySyncRoutes);
 app.use('/api/sync', surveyUploadRoutes);
@@ -100,6 +103,7 @@ app.use('/', webSurveyEditorRoutes);
 app.use('/', webUserManagementRoutes);
 app.use('/', webLabEntryRoutes);
 app.use('/', webLabTestManagementRoutes);
+app.use('/', webDataExportRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

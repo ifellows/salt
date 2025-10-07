@@ -220,6 +220,28 @@ router.post('/survey/upload', requireFacilityApiKey, async (req, res) => {
                 }
             }
 
+            // Insert payment and sample collection information
+            if (surveyData.paymentConfirmed !== undefined || surveyData.sampleCollected !== undefined) {
+                await runAsync(
+                    `INSERT INTO survey_payments (
+                        completed_survey_id,
+                        payment_confirmed,
+                        payment_amount,
+                        payment_type,
+                        payment_date,
+                        sample_collected
+                    ) VALUES (?, ?, ?, ?, ?, ?)`,
+                    [
+                        completedSurveyId,
+                        surveyData.paymentConfirmed || false,
+                        surveyData.paymentAmount || null,
+                        surveyData.paymentType || null,
+                        surveyData.paymentDate || null,
+                        surveyData.sampleCollected || false
+                    ]
+                );
+            }
+
             // Save upload record to uploads table (for backward compatibility)
             const result = await runAsync(
                 `INSERT INTO uploads (
