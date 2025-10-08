@@ -343,6 +343,15 @@ fun EligibilityCheckScreen(
 
                                     if (matchedUser != null) {
                                         Log.i("EligibilityCheck", "Staff member authenticated: $matchedUser")
+                                        // Mark survey as completed before ending
+                                        withContext(Dispatchers.IO) {
+                                            val survey = database.surveyDao().getSurveyById(surveyId)
+                                            survey?.let { s ->
+                                                database.surveyDao().updateSurvey(
+                                                    s.copy(isCompleted = true)
+                                                )
+                                            }
+                                        }
                                         onCancel() // End the survey
                                     } else {
                                         attemptsRemaining--
@@ -459,6 +468,15 @@ fun EligibilityCheckScreen(
                                 (user.role == "SURVEY_STAFF" || user.role == "ADMINISTRATOR") &&
                                 PasswordUtils.verifyPassword(password, user.hashedPassword)) {
                                 showPasswordDialog = false
+                                // Mark survey as completed before ending
+                                withContext(Dispatchers.IO) {
+                                    val survey = database.surveyDao().getSurveyById(surveyId)
+                                    survey?.let { s ->
+                                        database.surveyDao().updateSurvey(
+                                            s.copy(isCompleted = true)
+                                        )
+                                    }
+                                }
                                 onCancel() // End the survey
                             } else {
                                 attemptsRemaining--

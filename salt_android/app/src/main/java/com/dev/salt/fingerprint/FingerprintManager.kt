@@ -75,9 +75,9 @@ class FingerprintManager(
     ): SubjectFingerprint? {
         return withContext(Dispatchers.IO) {
             val minDate = System.currentTimeMillis() - (reEnrollmentDays * 24 * 60 * 60 * 1000L)
-            val recentFingerprints = fingerprintDao.getRecentFingerprints(minDate)
+            val recentFingerprints = fingerprintDao.getRecentCompletedFingerprints(minDate)
 
-            Log.i(TAG, "Checking against ${recentFingerprints.size} recent fingerprints")
+            Log.i(TAG, "Checking against ${recentFingerprints.size} recent completed fingerprints")
 
             // For SecuGen implementation, perform template matching
             val impl = implementation

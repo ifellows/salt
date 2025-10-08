@@ -61,12 +61,27 @@ fun SubjectPaymentScreen(
     var currentMediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var isUploading by remember { mutableStateOf(false) }
     var uploadMessage by remember { mutableStateOf<String?>(null) }
-    var paymentMessage by remember { mutableStateOf("Thank you for your participation. You will now receive your payment.") }
+    var paymentMessage by remember { mutableStateOf("") }
     var messageMediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var showAdminOverrideDialog by remember { mutableStateOf(false) }
     var isCapturingAdminFingerprint by remember { mutableStateOf(false) }
     var adminOverrideError by remember { mutableStateOf<String?>(null) }
     var adminOverrideSuccess by remember { mutableStateOf(false) }
+
+    // Get default payment message and error strings
+    val defaultPaymentMessage = stringResource(R.string.payment_default_message)
+    val errorNoFingerprint = stringResource(R.string.payment_error_no_fingerprint)
+    val errorScannerNotConnected = stringResource(R.string.payment_error_scanner_not_connected)
+    val errorUsbPermission = stringResource(R.string.payment_error_usb_permission)
+    val errorFingerprintMismatch = stringResource(R.string.payment_error_fingerprint_mismatch)
+
+    // Admin override strings
+    val adminOverrideButton = stringResource(R.string.payment_admin_override_button)
+    val adminOverrideTitle = stringResource(R.string.payment_admin_override_title)
+    val adminOverrideMessage = stringResource(R.string.payment_admin_override_message)
+    val adminOverrideScanning = stringResource(R.string.payment_admin_override_scanning)
+    val adminOverrideScanButton = stringResource(R.string.payment_admin_override_scan_button)
+    val adminOverrideNoMatch = stringResource(R.string.payment_admin_override_error_no_match)
 
     // Load facility config and survey
     LaunchedEffect(Unit) {
@@ -104,6 +119,7 @@ fun SubjectPaymentScreen(
                 }
             } else {
                 Log.d("SubjectPaymentScreen", "No payment_confirmation message found, using default")
+                paymentMessage = defaultPaymentMessage
             }
         }
     }
@@ -336,7 +352,7 @@ fun SubjectPaymentScreen(
 
                         if (subjectFingerprint == null) {
                             Log.e("SubjectPaymentScreen", "No fingerprint found for survey $surveyId")
-                            errorMessage = "No fingerprint enrollment found for this survey"
+                            errorMessage = errorNoFingerprint
                             isCapturingFingerprint = false
                             return@launch
                         }
@@ -354,7 +370,7 @@ fun SubjectPaymentScreen(
                         }
 
                         if (secugenDevice == null) {
-                            errorMessage = "Fingerprint scanner not connected"
+                            errorMessage = errorScannerNotConnected
                             isCapturingFingerprint = false
                             return@launch
                         }
@@ -374,7 +390,7 @@ fun SubjectPaymentScreen(
                                 }
                             )
                             usbManager.requestPermission(secugenDevice, permissionIntent)
-                            errorMessage = "Please grant USB permission and try again"
+                            errorMessage = errorUsbPermission
                             isCapturingFingerprint = false
                             return@launch
                         }
@@ -419,7 +435,7 @@ fun SubjectPaymentScreen(
                         fingerprintImpl.closeDevice()
 
                         if (!isMatch) {
-                            errorMessage = "Fingerprint does not match. Please try again."
+                            errorMessage = errorFingerprintMismatch
                             isCapturingFingerprint = false
                             Log.w("SubjectPaymentScreen", "Fingerprint mismatch for survey $surveyId")
                             return@launch
@@ -433,7 +449,8 @@ fun SubjectPaymentScreen(
                                 paymentConfirmed = true,
                                 paymentAmount = paymentAmount,
                                 paymentType = facilityConfig?.subjectPaymentType ?: "Cash",
-                                paymentDate = System.currentTimeMillis()
+                                paymentDate = System.currentTimeMillis(),
+                                isCompleted = true
                             )
                             database.surveyDao().updateSurvey(updatedSurvey)
                             Log.i("SubjectPaymentScreen", "Payment confirmed for survey $surveyId: amount=$paymentAmount")
@@ -520,7 +537,7 @@ fun SubjectPaymentScreen(
                         .height(56.dp)
                 ) {
                     Text(
-                        text = "Admin Override - Continue Without Subject Fingerprint",
+                        text = adminOverrideButton,
                         style = MaterialTheme.typography.titleSmall
                     )
                 }
@@ -602,13 +619,13 @@ fun SubjectPaymentScreen(
                     adminOverrideError = null
                 }
             },
-            title = { Text("Admin Override Required") },
+            title = { Text(adminOverrideTitle) },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        "To confirm payment without subject fingerprint verification, an administrator must authorize this action with their fingerprint.",
+                        adminOverrideMessage,
                         style = MaterialTheme.typography.bodyMedium
                     )
 
@@ -618,7 +635,7 @@ fun SubjectPaymentScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                            Text("Scanning admin fingerprint...")
+                            Text(adminOverrideScanning)
                         }
                     }
 
@@ -657,7 +674,7 @@ fun SubjectPaymentScreen(
                             }
 
                             if (secugenDevice == null) {
-                                adminOverrideError = "Fingerprint scanner not connected"
+                                adminOverrideError = errorScannerNotConnected
                                 isCapturingAdminFingerprint = false
                                 return@launch
                             }
@@ -677,7 +694,7 @@ fun SubjectPaymentScreen(
                                     }
                                 )
                                 usbManager.requestPermission(secugenDevice, permissionIntent)
-                                adminOverrideError = "Please grant USB permission and try again"
+                                adminOverrideError = errorUsbPermission
                                 isCapturingAdminFingerprint = false
                                 return@launch
                             }
@@ -735,7 +752,7 @@ fun SubjectPaymentScreen(
                             fingerprintImpl.closeDevice()
 
                             if (matchedAdmin == null) {
-                                adminOverrideError = "Fingerprint does not match any administrator"
+                                adminOverrideError = adminOverrideNoMatch
                                 isCapturingAdminFingerprint = false
                                 Log.w("SubjectPaymentScreen", "No admin fingerprint match found")
                                 return@launch
@@ -749,7 +766,8 @@ fun SubjectPaymentScreen(
                                     paymentConfirmed = true,
                                     paymentAmount = paymentAmount,
                                     paymentType = "${facilityConfig?.subjectPaymentType ?: "Cash"} (Admin Override: ${matchedAdmin.fullName})",
-                                    paymentDate = System.currentTimeMillis()
+                                    paymentDate = System.currentTimeMillis(),
+                                    isCompleted = true
                                 )
                                 database.surveyDao().updateSurvey(updatedSurvey)
                                 Log.i("SubjectPaymentScreen", "Payment override confirmed by admin ${matchedAdmin.fullName}: amount=$paymentAmount")
@@ -758,7 +776,7 @@ fun SubjectPaymentScreen(
                             isCapturingAdminFingerprint = false
                             showAdminOverrideDialog = false
                             adminOverrideSuccess = true
-                            uploadMessage = "✓ Admin override logged. ${matchedAdmin.fullName} confirmed payment given."
+                            uploadMessage = context.getString(R.string.payment_admin_override_success, matchedAdmin.fullName)
 
                             // Upload survey after admin override
                             isUploading = true
@@ -796,7 +814,7 @@ fun SubjectPaymentScreen(
                     },
                     enabled = !isCapturingAdminFingerprint
                 ) {
-                    Text("Scan Admin Fingerprint")
+                    Text(adminOverrideScanButton)
                 }
             },
             dismissButton = {

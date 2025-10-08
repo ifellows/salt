@@ -52,6 +52,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import com.dev.salt.viewmodel.LoginViewModelFactory
 import com.dev.salt.auth.BiometricAuthManager
 import com.dev.salt.auth.BiometricAuthManagerFactory
@@ -800,14 +802,26 @@ class MainActivity : ComponentActivity() {
                             navArgument("surveyId") { type = NavType.StringType }
                         )
                     ) { backStackEntry ->
+                        val context = LocalContext.current
+                        val database = SurveyDatabase.getInstance(context)
                         val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val scope = rememberCoroutineScope()
+
                         com.dev.salt.ui.StaffInstructionScreen(
                             navController = navController,
                             surveyId = surveyId,
                             onContinue = {
-                                // Navigate to the survey screen with the surveyId
-                                navController.navigate("${AppDestinations.SURVEY}?couponCode=&surveyId=$surveyId") {
-                                    popUpTo(AppDestinations.STAFF_INSTRUCTION) { inclusive = true }
+                                scope.launch {
+                                    // Retrieve the coupon code from the survey entity
+                                    val survey = withContext(Dispatchers.IO) {
+                                        database.surveyDao().getSurveyById(surveyId)
+                                    }
+                                    val couponCode = survey?.referralCouponCode ?: ""
+
+                                    // Navigate to the survey screen with the surveyId and couponCode
+                                    navController.navigate("${AppDestinations.SURVEY}?couponCode=$couponCode&surveyId=$surveyId") {
+                                        popUpTo(AppDestinations.STAFF_INSTRUCTION) { inclusive = true }
+                                    }
                                 }
                             }
                         )

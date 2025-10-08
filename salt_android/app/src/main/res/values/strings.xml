@@ -476,4 +476,19 @@
     <string name="facility_setup_code_label">Setup Code</string>
     <string name="facility_setup_code_placeholder">ABC123</string>
     <string name="facility_setup_button">Setup Facility</string>
+
+    <!-- Subject Payment Screen -->
+    <string name="payment_default_message">Thank you for your participation. You will now receive your payment.</string>
+    <string name="payment_error_no_fingerprint">No fingerprint enrollment found for this survey</string>
+    <string name="payment_error_scanner_not_connected">Fingerprint scanner not connected</string>
+    <string name="payment_error_usb_permission">Please grant USB permission and try again</string>
+    <string name="payment_error_fingerprint_mismatch">Fingerprint does not match. Please try again.</string>
+    <string name="payment_admin_override_button">Admin Override - Continue Without Subject Fingerprint</string>
+    <string name="payment_admin_override_title">Admin Override Required</string>
+    <string name="payment_admin_override_message">To confirm payment without subject fingerprint verification, an administrator must authorize this action with their fingerprint.</string>
+    <string name="payment_admin_override_scanning">Scanning admin fingerprint...</string>
+    <string name="payment_admin_override_scan_button">Scan Admin Fingerprint</string>
+    <string name="payment_admin_override_error_no_match">Fingerprint does not match any administrator</string>
+    <string name="payment_admin_override_success">✓ Admin override logged. %1$s confirmed payment given.</string>
+    <string name="payment_admin_override_payment_type">%1$s (Admin Override: %2$s)</string>
 </resources>

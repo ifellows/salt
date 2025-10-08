@@ -95,7 +95,8 @@ data class Survey(
     @ColumnInfo(name = "payment_type") var paymentType: String? = null,
     @ColumnInfo(name = "payment_date") var paymentDate: Long? = null,
     @ColumnInfo(name = "eligibility_script") var eligibilityScript: String? = null, // JEXL script to determine eligibility
-    @ColumnInfo(name = "hiv_rapid_test_result") var hivRapidTestResult: String? = null // "positive", "negative", "indeterminate", "not_performed"
+    @ColumnInfo(name = "hiv_rapid_test_result") var hivRapidTestResult: String? = null, // "positive", "negative", "indeterminate", "not_performed"
+    @ColumnInfo(name = "is_completed") var isCompleted: Boolean = false
 ) {
     @Ignore
     var questions: MutableList<Question> = mutableListOf()
@@ -364,6 +365,12 @@ interface SurveyDao {
     @Query("SELECT COUNT(*) FROM surveys WHERE subject_id = :subjectId")
     fun countSurveysWithSubjectId(subjectId: String): Int
 
+    @Query("DELETE FROM surveys WHERE is_completed = 0 AND start_datetime < :cutoffTime")
+    fun deleteIncompleteSurveys(cutoffTime: Long): Int
+
+    @Query("DELETE FROM answers WHERE survey_id IN (SELECT id FROM surveys WHERE is_completed = 0 AND start_datetime < :cutoffTime)")
+    fun deleteIncompleteAnswers(cutoffTime: Long): Int
+
     @Query("SELECT EXISTS(SELECT 1 FROM coupons WHERE couponCode = :couponCode LIMIT 1)")
     fun isCouponCodeExists(couponCode: String): Boolean
 
@@ -610,6 +617,15 @@ interface SubjectFingerprintDao {
     @Query("SELECT * FROM subject_fingerprints WHERE enrollment_date > :minDate ORDER BY enrollment_date DESC")
     fun getRecentFingerprints(minDate: Long): List<SubjectFingerprint>
 
+    @Query("""
+        SELECT sf.* FROM subject_fingerprints sf
+        INNER JOIN surveys s ON sf.survey_id = s.id
+        WHERE sf.enrollment_date >= :minDate
+        AND s.is_completed = 1
+        ORDER BY sf.enrollment_date DESC
+    """)
+    fun getRecentCompletedFingerprints(minDate: Long): List<SubjectFingerprint>
+
     @Query("SELECT * FROM subject_fingerprints WHERE survey_id = :surveyId LIMIT 1")
     fun getFingerprintBySurveyId(surveyId: String): SubjectFingerprint?
 
@@ -659,7 +675,7 @@ interface AppServerConfigDao {
     fun hasServerConfig(): Boolean
 }
 
-@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class], version = 57, autoMigrations = [
+@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class], version = 58, autoMigrations = [
     AutoMigration(from = 52, to = 53)
 ])
 abstract class SurveyDatabase : RoomDatabase() {
