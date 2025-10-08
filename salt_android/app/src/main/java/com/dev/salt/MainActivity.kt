@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -107,6 +109,9 @@ object AppDestinations {
     const val RAPID_TEST_RESULT = "rapid_test_result" // For generic rapid test result entry
     const val SAMPLE_COLLECTION_STAFF_VALIDATION = "sample_collection_staff_validation" // Staff validation before sample collection
     const val BIOLOGICAL_SAMPLE_COLLECTION = "biological_sample_collection" // Biological sample collection confirmation
+    const val INITIAL_SERVER_CONFIG = "initial_server_config" // For initial server setup wizard
+    const val INITIAL_ADMIN_SETUP = "initial_admin_setup" // For initial admin user creation
+    const val INITIAL_FINGERPRINT_SETUP = "initial_fingerprint_setup" // For initial admin fingerprint enrollment
 
     // Compatibility aliases for existing code
     const val WELCOME_SCREEN = WELCOME
@@ -241,25 +246,39 @@ class MainActivity : ComponentActivity() {
                         surveyApplication.populateSampleData()
                         surveyApplication.copyRawFilesToLocalStorage(context)
 
-                        // Check if facility is configured
-                        var facilityConfigured by remember { mutableStateOf(false) }
+                        // Check if setup is needed (users and facility configuration)
+                        var setupComplete by remember { mutableStateOf(false) }
                         var isCheckingConfig by remember { mutableStateOf(true) }
 
                         LaunchedEffect(Unit) {
+                            // Check if any users exist (first-time setup check)
+                            val userCount = database.userDao().getAllUsers().size
+
+                            if (userCount == 0) {
+                                // No users - navigate to initial server config (Phase 1)
+                                isCheckingConfig = false
+                                navController.navigate(AppDestinations.INITIAL_SERVER_CONFIG) {
+                                    popUpTo(AppDestinations.WELCOME_SCREEN) { inclusive = true }
+                                }
+                                return@LaunchedEffect
+                            }
+
+                            // Users exist - check facility configuration
                             val facilityConfig = database.facilityConfigDao().getFacilityConfig()
                             val serverConfig = database.appServerConfigDao().getServerConfig()
-                            facilityConfigured = facilityConfig?.facilityId != null && serverConfig?.apiKey != null
+                            val facilityConfigured = facilityConfig?.facilityId != null && serverConfig?.apiKey != null
+                            setupComplete = facilityConfigured
                             isCheckingConfig = false
 
                             // Auto-navigate to facility setup if not configured
-                            if (!isCheckingConfig && !facilityConfigured) {
+                            if (!facilityConfigured) {
                                 navController.navigate("${AppDestinations.FACILITY_SETUP}?showCancel=false") {
                                     popUpTo(AppDestinations.WELCOME_SCREEN) { inclusive = true }
                                 }
                             }
                         }
 
-                        if (!isCheckingConfig && facilityConfigured) {
+                        if (!isCheckingConfig && setupComplete) {
                             WelcomeScreen(navController = navController)
                         } else {
                             Box(
@@ -270,6 +289,54 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+
+                    composable(AppDestinations.INITIAL_SERVER_CONFIG) {
+                        com.dev.salt.ui.InitialServerConfigScreen(
+                            onServerConfigured = {
+                                // Navigate to admin user creation (Phase 2)
+                                navController.navigate(AppDestinations.INITIAL_ADMIN_SETUP) {
+                                    popUpTo(AppDestinations.INITIAL_SERVER_CONFIG) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
+                    composable(AppDestinations.INITIAL_ADMIN_SETUP) {
+                        com.dev.salt.ui.InitialAdminSetupScreen(
+                            onAdminInfoCollected = { username, fullName, password ->
+                                // Navigate to fingerprint enrollment with user info
+                                navController.navigate("${AppDestinations.INITIAL_FINGERPRINT_SETUP}/$username/$fullName/$password") {
+                                    popUpTo(AppDestinations.INITIAL_ADMIN_SETUP) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
+                    composable(
+                        route = "${AppDestinations.INITIAL_FINGERPRINT_SETUP}/{username}/{fullName}/{password}",
+                        arguments = listOf(
+                            navArgument("username") { type = NavType.StringType },
+                            navArgument("fullName") { type = NavType.StringType },
+                            navArgument("password") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val username = backStackEntry.arguments?.getString("username") ?: ""
+                        val fullName = backStackEntry.arguments?.getString("fullName") ?: ""
+                        val password = backStackEntry.arguments?.getString("password") ?: ""
+
+                        com.dev.salt.ui.InitialFingerprintSetupScreen(
+                            username = username,
+                            fullName = fullName,
+                            password = password,
+                            onSetupComplete = {
+                                // Navigate to facility setup after admin user is created
+                                navController.navigate("${AppDestinations.FACILITY_SETUP}?showCancel=false") {
+                                    popUpTo(AppDestinations.INITIAL_FINGERPRINT_SETUP) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
                     composable(
                         route = "${AppDestinations.FACILITY_SETUP}?showCancel={showCancel}",
                         arguments = listOf(
@@ -930,7 +997,14 @@ class MainActivity : ComponentActivity() {
 
                         // Load enabled tests
                         LaunchedEffect(Unit) {
-                            testManagementViewModel.loadEnabledTests(1L)
+                            val sections = database.sectionDao().getAllSections()
+                            val actualSurveyId = sections.firstOrNull()?.surveyId?.toLong() ?: -1L
+
+                            if (actualSurveyId == -1L) {
+                                android.util.Log.e("MainActivity", "CRITICAL ERROR: No sections found in database - survey not properly synced!")
+                            }
+
+                            testManagementViewModel.loadEnabledTests(actualSurveyId)
                         }
 
                         val enabledTests by testManagementViewModel.enabledTests.collectAsState()
@@ -986,7 +1060,14 @@ class MainActivity : ComponentActivity() {
 
                         // Load enabled tests
                         LaunchedEffect(Unit) {
-                            testManagementViewModel.loadEnabledTests(1L)
+                            val sections = database.sectionDao().getAllSections()
+                            val actualSurveyId = sections.firstOrNull()?.surveyId?.toLong() ?: -1L
+
+                            if (actualSurveyId == -1L) {
+                                android.util.Log.e("MainActivity", "CRITICAL ERROR: No sections found in database - survey not properly synced!")
+                            }
+
+                            testManagementViewModel.loadEnabledTests(actualSurveyId)
                         }
 
                         val enabledTests by testManagementViewModel.enabledTests.collectAsState()
@@ -1173,8 +1254,19 @@ fun AdminDashboardScreen(
     onLogout: () -> Unit,
     showLogout: Boolean = true
 ) {
+    val context = LocalContext.current
+    val database = remember { SurveyDatabase.getInstance(context) }
+    var hasStaffUsers by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val staffUsers = database.userDao().getAllUsers().filter { it.role == "SURVEY_STAFF" }
+            hasStaffUsers = staffUsers.isNotEmpty()
+        }
+    }
+
     Scaffold(
-        topBar = { 
+        topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.menu_admin_title)) },
                 actions = {
@@ -1196,6 +1288,25 @@ fun AdminDashboardScreen(
         ) {
             Text(stringResource(R.string.menu_admin_area), style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Show message if no staff users exist
+            if (!hasStaffUsers) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Text(
+                        text = "Note: Only survey staff users can conduct surveys, not administrators. Create a SURVEY_STAFF user in the Manage Users area.",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             Button(
                 onClick = { navController.navigate(AppDestinations.USER_MANAGEMENT_SCREEN) },
                 modifier = Modifier.fillMaxWidth()

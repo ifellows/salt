@@ -54,51 +54,14 @@ class SurveyApplication : Application() {
         }
         Log.d("SurveyApplication", "Using default server URL: $defaultServerUrl (Emulator: ${EmulatorDetector.isEmulator()})")
 
-        // --- Populate Users ---
-        // Check if users are already populated (optional, but good practice)
-        if (userDao.getAllUsers().isEmpty()) {
-            Log.d("SurveyApplication", "Populating sample users...")
-            // IMPORTANT: Replace these with securely hashed passwords in a real app!
-            // Use a proper password hashing library/utility.
-            // These are placeholders for demonstration.
-            val adminUser = User(
-                userName = "admin",
-                // Example: In a real app, this would be the output of a hashing function
-                // e.g., PasswordHasher.hash("adminpass")
-                hashedPassword = hashPasswordWithNewSalt("123")!!,
-                fullName = "Administrator User",
-                role = "ADMINISTRATOR" // Consistent with your UserRole enum or string constants
-            )
-            val staffUser = User(
-                userName = "staff",
-                hashedPassword = hashPasswordWithNewSalt("123")!!,
-                fullName = "Survey Staff User",
-                role = "SURVEY_STAFF"
-            )
-            userDao.insertUser(adminUser)
-            userDao.insertUser(staffUser)
-            Log.d("SurveyApplication", "Sample users populated.")
-
-            // Set up default global server configuration
-            val defaultServerConfig = AppServerConfig(
-                serverUrl = defaultServerUrl,
-                apiKey = "fac_b83d45ae08113b380154e6134fa733a7fa945097983a24adee35d1350818ddbd"
-            )
-            database.appServerConfigDao().insertOrUpdate(defaultServerConfig)
-            Log.d("SurveyApplication", "Default server configuration set.")
-        } else {
-            Log.d("SurveyApplication", "Users already exist, checking for global server config...")
-            // Ensure global server config exists
-            val serverConfig = database.appServerConfigDao().getServerConfig()
-            if (serverConfig == null) {
-                val defaultServerConfig = AppServerConfig(
-                    serverUrl = defaultServerUrl,
-                    apiKey = "fac_b83d45ae08113b380154e6134fa733a7fa945097983a24adee35d1350818ddbd"
-                )
-                database.appServerConfigDao().insertOrUpdate(defaultServerConfig)
-                Log.d("SurveyApplication", "Created default global server configuration")
-            }
-        }
+        // --- User Setup Removed ---
+        // Users are now created through the first-time setup wizard.
+        // No sample users are auto-populated on first launch.
+        // The setup wizard will guide users to:
+        // 1. Configure server URL
+        // 2. Create initial admin account with fingerprint
+        // 3. Enter facility setup code
+        Log.d("SurveyApplication", "Sample user auto-population disabled. Users will be created via setup wizard.")
         
         // Initialize facility configuration with defaults if not present
         val facilityConfigDao = database.facilityConfigDao()

@@ -145,15 +145,20 @@ class SurveyViewModel(
         val eligibilityScript = database.surveyConfigDao().getSurveyConfig()?.eligibilityScript
         Log.d("SurveyViewModel", "Loaded eligibility script from SurveyConfig: $eligibilityScript")
 
+        // Get server survey ID from sections table
+        val serverSurveyId = database.sectionDao().getAllSections().firstOrNull()?.surveyId?.toLong()
+        Log.d("SurveyViewModel", "Server survey ID from sections: $serverSurveyId")
+
         val survey: Survey = Survey(
             language = language,
             subjectId = subjectId,
             startDatetime = System.currentTimeMillis(),
+            serverSurveyId = serverSurveyId,
             referralCouponCode = referralCouponCode,
             eligibilityScript = eligibilityScript
         )
 
-        Log.d("SurveyViewModel", "Created survey with subjectId=$subjectId, referralCoupon=$referralCouponCode, eligibilityScript=$eligibilityScript")
+        Log.d("SurveyViewModel", "Created survey with subjectId=$subjectId, serverSurveyId=$serverSurveyId, referralCoupon=$referralCouponCode, eligibilityScript=$eligibilityScript")
         return survey
     }
 
@@ -628,10 +633,21 @@ class SurveyViewModel(
             // Check if rapid tests are needed after eligibility
             if (eligible && !_rapidTestsCompleted.value) {
                 //viewModelScope.launch(Dispatchers.IO) {
-                    // Check if any tests are enabled
-                    val enabledTests = database.testConfigurationDao().getEnabledTestConfigurations(1L)
+                    // Get the actual survey ID from sections (all sections have the same survey ID)
+                    // If no sections exist, use -1 to ensure we error out rather than use wrong data
+                    val sections = database.sectionDao().getAllSections()
+                    val actualSurveyId = sections.firstOrNull()?.surveyId?.toLong() ?: -1L
+
+                    if (actualSurveyId == -1L) {
+                        Log.e("SurveyViewModel", "CRITICAL ERROR: No sections found in database - survey not properly synced!")
+                        Log.e("SurveyViewModel", "Using fallback survey ID -1, rapid tests will not be found")
+                        Log.e("SurveyViewModel", "Please ensure survey is properly downloaded from server")
+                    }
+
+                    // Check if any tests are enabled for the actual survey
+                    val enabledTests = database.testConfigurationDao().getEnabledTestConfigurations(actualSurveyId)
                     if (enabledTests.isNotEmpty()) {
-                        Log.d("SurveyViewModel", "${enabledTests.size} rapid tests enabled - will need to perform tests")
+                        Log.d("SurveyViewModel", "${enabledTests.size} rapid tests enabled for survey ID $actualSurveyId - will need to perform tests")
                         _needsRapidTestsAfterEligibility.value = true
 
                         // Emit navigation event if we haven't already

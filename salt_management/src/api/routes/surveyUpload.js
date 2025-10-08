@@ -81,8 +81,47 @@ router.post('/survey/upload', requireFacilityApiKey, async (req, res) => {
         await runAsync('BEGIN TRANSACTION');
 
         try {
-            // Get survey ID from database (assuming survey 1 for now, should be dynamic)
-            const surveyId = 1; // TODO: Match survey by name or version
+            // Use serverSurveyId from uploaded data if available
+            let surveyId = null;
+
+            if (surveyData.serverSurveyId) {
+                surveyId = surveyData.serverSurveyId;
+                console.log(`Using serverSurveyId ${surveyId} from uploaded data`);
+            } else {
+                // Fallback: Try to determine survey ID from question IDs in the uploaded data
+                console.warn('WARNING: serverSurveyId not found in uploaded data, attempting fallback matching');
+
+                if (surveyData.questions && surveyData.questions.length > 0) {
+                    const firstQuestionId = surveyData.questions[0].id;
+                    const questionMatch = await getAsync(
+                        'SELECT survey_id FROM questions WHERE id = ?',
+                        [firstQuestionId]
+                    );
+                    if (questionMatch) {
+                        surveyId = questionMatch.survey_id;
+                        console.log(`Matched survey ID ${surveyId} from question ID ${firstQuestionId}`);
+                    }
+                }
+
+                // Fallback: try to match by question short_name if question ID didn't work
+                if (!surveyId && surveyData.answers && surveyData.answers.length > 0) {
+                    const firstAnswer = surveyData.answers[0];
+                    const questionMatch = await getAsync(
+                        'SELECT survey_id FROM questions WHERE short_name = ? LIMIT 1',
+                        [firstAnswer.questionShortName]
+                    );
+                    if (questionMatch) {
+                        surveyId = questionMatch.survey_id;
+                        console.log(`Matched survey ID ${surveyId} from question short_name ${firstAnswer.questionShortName}`);
+                    }
+                }
+
+                // Final fallback to survey 1 (with warning)
+                if (!surveyId) {
+                    surveyId = 1;
+                    console.error('ERROR: Could not determine survey ID from uploaded data, defaulting to survey 1. This may cause data to be associated with the wrong survey!');
+                }
+            }
 
             // Insert into completed_surveys table
             const completedSurveyResult = await runAsync(

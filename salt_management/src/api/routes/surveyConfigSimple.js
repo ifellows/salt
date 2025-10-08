@@ -825,6 +825,20 @@ router.delete('/:id', async (req, res) => {
             return res.status(400).json({ error: 'Cannot delete the only survey. Create another survey first.' });
         }
         
+        // Delete all survey responses first (they reference questions)
+        await runAsync(
+            `DELETE FROM survey_responses WHERE completed_survey_id IN (
+                SELECT id FROM completed_surveys WHERE survey_id = ?
+            )`,
+            [surveyId]
+        );
+
+        // Delete all completed surveys for this survey
+        await runAsync(
+            'DELETE FROM completed_surveys WHERE survey_id = ?',
+            [surveyId]
+        );
+
         // Delete all options for questions in this survey
         await runAsync(
             `DELETE FROM options WHERE question_id IN (
@@ -842,6 +856,24 @@ router.delete('/:id', async (req, res) => {
         // Delete all sections for this survey
         await runAsync(
             'DELETE FROM sections WHERE survey_id = ?',
+            [surveyId]
+        );
+
+        // Delete all test configurations for this survey
+        await runAsync(
+            'DELETE FROM test_configurations WHERE survey_id = ?',
+            [surveyId]
+        );
+
+        // Delete all survey messages for this survey
+        await runAsync(
+            'DELETE FROM survey_messages WHERE survey_id = ?',
+            [surveyId]
+        );
+
+        // Update child surveys to remove parent reference
+        await runAsync(
+            'UPDATE surveys SET parent_survey_id = NULL WHERE parent_survey_id = ?',
             [surveyId]
         );
 

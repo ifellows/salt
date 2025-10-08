@@ -1,5 +1,6 @@
 package com.dev.salt.ui
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
@@ -36,8 +37,18 @@ fun ContactConsentScreen(
     // Check if rapid tests are enabled
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            val tests = database.testConfigurationDao().getEnabledTestConfigurations(1L)
+            // Get the actual survey ID from sections
+            val sections = database.sectionDao().getAllSections()
+            val actualSurveyId = sections.firstOrNull()?.surveyId?.toLong() ?: -1L
+
+            if (actualSurveyId == -1L) {
+                Log.e("ContactConsentScreen", "CRITICAL ERROR: No sections found in database - survey not properly synced!")
+                Log.e("ContactConsentScreen", "Using fallback survey ID -1, no tests will be found")
+            }
+
+            val tests = database.testConfigurationDao().getEnabledTestConfigurations(actualSurveyId)
             enabledTestsCount = tests.size
+            Log.d("ContactConsentScreen", "Found ${tests.size} enabled tests for survey ID $actualSurveyId")
         }
     }
 

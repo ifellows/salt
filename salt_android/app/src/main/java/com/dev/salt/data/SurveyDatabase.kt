@@ -84,6 +84,7 @@ data class Survey(
     @ColumnInfo(name = "subject_id") var subjectId: String,
     @ColumnInfo(name = "start_datetime") var startDatetime: Long,
     @ColumnInfo(name = "language") var language: String,
+    @ColumnInfo(name = "server_survey_id") var serverSurveyId: Long? = null, // Survey ID from management server
     @ColumnInfo(name = "referral_coupon_code") var referralCouponCode: String? = null,
     @ColumnInfo(name = "contact_phone") var contactPhone: String? = null,
     @ColumnInfo(name = "contact_email") var contactEmail: String? = null,
@@ -658,7 +659,9 @@ interface AppServerConfigDao {
     fun hasServerConfig(): Boolean
 }
 
-@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class], version = 51)
+@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class], version = 57, autoMigrations = [
+    AutoMigration(from = 52, to = 53)
+])
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao

@@ -62,6 +62,7 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'web', 'views'));
 
 // Import routes
+const healthRoutes = require('./api/routes/health');
 const authRoutes = require('./api/routes/auth');
 const surveyRoutes = require('./api/routes/surveys');
 const facilityRoutes = require('./api/routes/facilities');
@@ -88,6 +89,7 @@ const webReportsRoutes = require('./web/routes/reports');
 const reportScheduler = require('./services/reportScheduler');
 
 // API Routes
+app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/surveys', surveyRoutes);
 app.use('/api/admin/facilities', facilityRoutes);

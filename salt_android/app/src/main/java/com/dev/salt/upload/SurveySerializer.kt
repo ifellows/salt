@@ -18,6 +18,7 @@ data class SerializedSurvey(
     val subjectId: String,
     val startDatetime: String,
     val language: String,
+    val serverSurveyId: Long? = null, // Survey ID from management server
     val questions: List<SerializedQuestion>,
     val answers: List<SerializedAnswer>,
     val completedAt: String,
@@ -140,6 +141,7 @@ class SurveySerializer {
             subjectId = survey.subjectId,
             startDatetime = dateFormat.format(Date(survey.startDatetime)),
             language = survey.language,
+            serverSurveyId = survey.serverSurveyId,
             questions = serializedQuestions,
             answers = serializedAnswers,
             completedAt = dateFormat.format(Date()),
@@ -165,6 +167,9 @@ class SurveySerializer {
             put("startDatetime", survey.startDatetime)
             put("language", survey.language)
             put("completedAt", survey.completedAt)
+
+            // Include server survey ID if available
+            survey.serverSurveyId?.let { put("serverSurveyId", it) }
             
             // Coupon information
             survey.referralCouponCode?.let { put("referralCouponCode", it) }

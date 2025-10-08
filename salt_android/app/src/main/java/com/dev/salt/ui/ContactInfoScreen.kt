@@ -39,8 +39,18 @@ fun ContactInfoScreen(
     // Check if rapid tests are enabled
     LaunchedEffect(Unit) {
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            val tests = database.testConfigurationDao().getEnabledTestConfigurations(1L)
+            // Get the actual survey ID from sections
+            val sections = database.sectionDao().getAllSections()
+            val actualSurveyId = sections.firstOrNull()?.surveyId?.toLong() ?: -1L
+
+            if (actualSurveyId == -1L) {
+                android.util.Log.e("ContactInfoScreen", "CRITICAL ERROR: No sections found in database - survey not properly synced!")
+                android.util.Log.e("ContactInfoScreen", "Using fallback survey ID -1, no tests will be found")
+            }
+
+            val tests = database.testConfigurationDao().getEnabledTestConfigurations(actualSurveyId)
             enabledTestsCount = tests.size
+            android.util.Log.d("ContactInfoScreen", "Found ${tests.size} enabled tests for survey ID $actualSurveyId")
         }
     }
 

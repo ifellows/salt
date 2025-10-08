@@ -37,10 +37,28 @@ fun BiologicalSampleCollectionScreen(
     // Load enabled tests
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            val tests = database.testConfigurationDao().getEnabledTestConfigurations(1L)
+            // Get the actual survey configuration ID from sections
+            // All sections in the database belong to the same survey
+            val sections = database.sectionDao().getAllSections()
+            val configSurveyId = if (sections.isNotEmpty()) {
+                sections.first().surveyId.toLong()
+            } else {
+                // Fallback to -1 to ensure errors surface rather than silently using wrong data
+                Log.e("BiologicalSampleCollection", "CRITICAL ERROR: No sections found in database - survey not properly synced! Using fallback ID -1")
+                Log.e("BiologicalSampleCollection", "This will likely result in no tests being found. Please ensure survey is properly downloaded.")
+                -1L
+            }
+
+            if (configSurveyId == -1L) {
+                Log.e("BiologicalSampleCollection", "WARNING: Using fallback survey ID -1, no tests will be found")
+            } else {
+                Log.d("BiologicalSampleCollection", "Loading tests for survey configuration ID: $configSurveyId")
+            }
+
+            val tests = database.testConfigurationDao().getEnabledTestConfigurations(configSurveyId)
             enabledTests = tests
             isLoading = false
-            Log.d("BiologicalSampleCollection", "Loaded ${tests.size} enabled tests")
+            Log.d("BiologicalSampleCollection", "Loaded ${tests.size} enabled tests for survey ID $configSurveyId")
         }
     }
 

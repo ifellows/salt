@@ -514,6 +514,7 @@ class SurveySyncManager(private val context: Context) {
                         val surveyId = if (data.has("survey")) {
                             data.getJSONObject("survey").optLong("id", 1)
                         } else {
+                            Log.e("SurveySyncManager", "ERROR: No survey object in JSON data, falling back to survey ID 1. This may cause test configuration mismatches.")
                             1L
                         }
 
