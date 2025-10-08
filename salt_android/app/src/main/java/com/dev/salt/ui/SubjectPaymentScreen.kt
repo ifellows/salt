@@ -63,6 +63,10 @@ fun SubjectPaymentScreen(
     var uploadMessage by remember { mutableStateOf<String?>(null) }
     var paymentMessage by remember { mutableStateOf("Thank you for your participation. You will now receive your payment.") }
     var messageMediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+    var showAdminOverrideDialog by remember { mutableStateOf(false) }
+    var isCapturingAdminFingerprint by remember { mutableStateOf(false) }
+    var adminOverrideError by remember { mutableStateOf<String?>(null) }
+    var adminOverrideSuccess by remember { mutableStateOf(false) }
 
     // Load facility config and survey
     LaunchedEffect(Unit) {
@@ -502,6 +506,26 @@ fun SubjectPaymentScreen(
                 }
             }
 
+            // Admin Override button - only shown when payment type is configured (not "None")
+            // Allows admin to confirm payment received without subject fingerprint
+            if (facilityConfig?.subjectPaymentType != "None" && !adminOverrideSuccess) {
+                OutlinedButton(
+                    onClick = {
+                        showAdminOverrideDialog = true
+                        adminOverrideError = null
+                    },
+                    enabled = !isCapturingFingerprint && !isUploading && !isCapturingAdminFingerprint,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Text(
+                        text = "Admin Override - Continue Without Subject Fingerprint",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                }
+            }
+
             // Skip button if payment is None
             if (facilityConfig?.subjectPaymentType == "None") {
                 // Get upload messages outside onClick lambda
@@ -560,7 +584,236 @@ fun SubjectPaymentScreen(
             }
         }
     }
+
+    // Admin Override Dialog
+    if (showAdminOverrideDialog) {
+        // Get messages outside onClick lambda
+        val deviceInitError = stringResource(R.string.fingerprint_device_init_failed)
+        val captureFailedError = stringResource(R.string.fingerprint_capture_failed)
+        val uploadingMsg = stringResource(R.string.payment_uploading)
+        val uploadSuccessMsg = stringResource(R.string.payment_upload_success)
+        val uploadFailedMsg = stringResource(R.string.payment_upload_failed)
+        val uploadErrorMsg = stringResource(R.string.payment_upload_error)
+
+        AlertDialog(
+            onDismissRequest = {
+                if (!isCapturingAdminFingerprint) {
+                    showAdminOverrideDialog = false
+                    adminOverrideError = null
+                }
+            },
+            title = { Text("Admin Override Required") },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        "To confirm payment without subject fingerprint verification, an administrator must authorize this action with their fingerprint.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    if (isCapturingAdminFingerprint) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                            Text("Scanning admin fingerprint...")
+                        }
+                    }
+
+                    adminOverrideError?.let { error ->
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            )
+                        ) {
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            isCapturingAdminFingerprint = true
+                            adminOverrideError = null
+
+                            // Check for USB device and permission
+                            val usbManager = context.getSystemService(android.content.Context.USB_SERVICE) as UsbManager
+                            val deviceList = usbManager.deviceList
+                            var secugenDevice: UsbDevice? = null
+
+                            for ((_, device) in deviceList) {
+                                if (device.vendorId == 0x1162) { // SecuGen vendor ID
+                                    secugenDevice = device
+                                    break
+                                }
+                            }
+
+                            if (secugenDevice == null) {
+                                adminOverrideError = "Fingerprint scanner not connected"
+                                isCapturingAdminFingerprint = false
+                                return@launch
+                            }
+
+                            if (!usbManager.hasPermission(secugenDevice)) {
+                                Log.i("SubjectPaymentScreen", "Requesting USB permission for admin override")
+                                val permissionIntent = PendingIntent.getBroadcast(
+                                    context,
+                                    0,
+                                    Intent("com.dev.salt.USB_PERMISSION").apply {
+                                        setPackage(context.packageName)
+                                    },
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                        PendingIntent.FLAG_IMMUTABLE
+                                    } else {
+                                        0
+                                    }
+                                )
+                                usbManager.requestPermission(secugenDevice, permissionIntent)
+                                adminOverrideError = "Please grant USB permission and try again"
+                                isCapturingAdminFingerprint = false
+                                return@launch
+                            }
+
+                            // Create fingerprint implementation
+                            val fingerprintImpl: IFingerprintCapture = if (EmulatorDetector.isEmulator()) {
+                                Log.i("SubjectPaymentScreen", "Using mock fingerprint for admin override")
+                                MockFingerprintImpl()
+                            } else {
+                                try {
+                                    SecuGenFingerprintImpl(context)
+                                } catch (e: Exception) {
+                                    Log.e("SubjectPaymentScreen", "Failed to create SecuGen impl, using mock", e)
+                                    MockFingerprintImpl()
+                                }
+                            }
+
+                            // Initialize fingerprint device
+                            if (!fingerprintImpl.initializeDevice()) {
+                                adminOverrideError = deviceInitError
+                                isCapturingAdminFingerprint = false
+                                return@launch
+                            }
+
+                            // Capture admin fingerprint
+                            val capturedTemplate = fingerprintImpl.captureFingerprint()
+
+                            if (capturedTemplate == null) {
+                                adminOverrideError = captureFailedError
+                                isCapturingAdminFingerprint = false
+                                fingerprintImpl.closeDevice()
+                                return@launch
+                            }
+
+                            // Get all admin users with enrolled fingerprints
+                            val adminUsers = withContext(Dispatchers.IO) {
+                                database.userDao().getUsersByRole("ADMINISTRATOR")
+                            }
+
+                            // Try to match against any admin's fingerprint
+                            var matchedAdmin: com.dev.salt.data.User? = null
+                            for (admin in adminUsers) {
+                                if (admin.fingerprintTemplate != null) {
+                                    val isMatch = fingerprintImpl.matchTemplates(
+                                        capturedTemplate,
+                                        admin.fingerprintTemplate
+                                    )
+                                    if (isMatch) {
+                                        matchedAdmin = admin
+                                        break
+                                    }
+                                }
+                            }
+
+                            fingerprintImpl.closeDevice()
+
+                            if (matchedAdmin == null) {
+                                adminOverrideError = "Fingerprint does not match any administrator"
+                                isCapturingAdminFingerprint = false
+                                Log.w("SubjectPaymentScreen", "No admin fingerprint match found")
+                                return@launch
+                            }
+
+                            Log.i("SubjectPaymentScreen", "Admin ${matchedAdmin.fullName} authorized payment override for survey $surveyId")
+
+                            // Update survey with payment confirmation and admin override info
+                            survey?.let { s ->
+                                val updatedSurvey = s.copy(
+                                    paymentConfirmed = true,
+                                    paymentAmount = paymentAmount,
+                                    paymentType = "${facilityConfig?.subjectPaymentType ?: "Cash"} (Admin Override: ${matchedAdmin.fullName})",
+                                    paymentDate = System.currentTimeMillis()
+                                )
+                                database.surveyDao().updateSurvey(updatedSurvey)
+                                Log.i("SubjectPaymentScreen", "Payment override confirmed by admin ${matchedAdmin.fullName}: amount=$paymentAmount")
+                            }
+
+                            isCapturingAdminFingerprint = false
+                            showAdminOverrideDialog = false
+                            adminOverrideSuccess = true
+                            uploadMessage = "✓ Admin override logged. ${matchedAdmin.fullName} confirmed payment given."
+
+                            // Upload survey after admin override
+                            isUploading = true
+                            delay(2000) // Show override message
+                            uploadMessage = uploadingMsg
+                            try {
+                                Log.i("SubjectPaymentScreen", "Starting upload after admin override: $surveyId")
+                                val uploadManager = SurveyUploadManager(context, database)
+                                val uploadResult = uploadManager.uploadSurvey(surveyId)
+
+                                when (uploadResult) {
+                                    is UploadResult.Success -> {
+                                        Log.i("SubjectPaymentScreen", "Survey uploaded successfully: $surveyId")
+                                        uploadMessage = uploadSuccessMsg
+                                    }
+                                    else -> {
+                                        Log.e("SubjectPaymentScreen", "Upload failed: $uploadResult")
+                                        uploadMessage = uploadFailedMsg
+                                        val uploadWorkManager = SurveyUploadWorkManager(context)
+                                        uploadWorkManager.scheduleImmediateRetry(surveyId)
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("SubjectPaymentScreen", "Error uploading survey", e)
+                                uploadMessage = uploadErrorMsg
+                            } finally {
+                                isUploading = false
+                                delay(1500)
+                                navController.navigate(AppDestinations.MENU) {
+                                    popUpTo(AppDestinations.SURVEY) { inclusive = true }
+                                    popUpTo(AppDestinations.SUBJECT_PAYMENT) { inclusive = true }
+                                }
+                            }
+                        }
+                    },
+                    enabled = !isCapturingAdminFingerprint
+                ) {
+                    Text("Scan Admin Fingerprint")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showAdminOverrideDialog = false
+                        adminOverrideError = null
+                    },
+                    enabled = !isCapturingAdminFingerprint
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
+
 
 private fun getPaymentAmountLabel(language: String): String {
     return when (language) {

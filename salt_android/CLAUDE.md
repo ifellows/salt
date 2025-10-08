@@ -132,6 +132,27 @@ The SALT application is part of a larger three-tier architecture as illustrated 
 
 ### ✅ Completed in Recent Sessions
 
+**Survey Question Answer Validation**
+- **SurveyScreen.kt Enhancement**: Added reactive validation to prevent navigating to next question without answering current one
+- **Answer State Tracking**: Implemented `isQuestionAnswered` derived state that checks:
+  - Multiple choice: Requires option selection (`optionQuestionIndex != null`)
+  - Multi-select: Requires at least one option selected
+  - Numeric/Text: Requires non-empty input
+- **Next Button State**: Button enabled only when current question is answered
+- **User Experience**: Prevents incomplete survey submissions and ensures data quality
+
+**Admin Payment Override with Fingerprint Verification**
+- **SubjectPaymentScreen.kt Enhancement**: Added admin override capability for payment confirmation without subject fingerprint
+- **Multi-Admin Support**: Checks captured fingerprint against ALL administrators in system (not just current user)
+- **Workflow**:
+  1. Survey staff clicks "Admin Override" button when subject fingerprint unavailable
+  2. System prompts for admin fingerprint scan
+  3. Captured fingerprint matched against all enrolled admin fingerprints
+  4. If match found, payment confirmed with admin's name logged in audit trail
+- **Audit Trail**: Payment type updated to include admin override notation: `"Cash (Admin Override: [Admin Name])"`
+- **Security**: Full logging of override events with admin identification
+- **Error Handling**: Clear error messages for no match, no enrolled admins, or device issues
+
 **System Messages Support** (v36 → v39)
 - **Database Changes**:
   - Added `SystemMessage` entity for storing multilingual system messages with audio support
