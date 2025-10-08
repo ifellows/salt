@@ -162,6 +162,23 @@ fun SurveyScreen(
             } ?: ""
         )
     }
+
+    // Check if current question is answered
+    val isQuestionAnswered by remember(currentQuestion, textInputValue) {
+        derivedStateOf {
+            currentQuestion?.let { (question, _, answer) ->
+                when (question.questionType) {
+                    "multiple_choice" -> answer?.optionQuestionIndex != null
+                    "multi_select" -> {
+                        val selectedIndices = answer?.getSelectedIndices() ?: emptyList()
+                        selectedIndices.isNotEmpty()
+                    }
+                    "numeric", "text" -> textInputValue.trim().isNotEmpty()
+                    else -> false
+                }
+            } ?: false
+        }
+    }
     
     // Track unsaved changes
     LaunchedEffect(textInputValue) {
@@ -309,7 +326,7 @@ fun SurveyScreen(
 
                     //currentQuestion = viewModel.currentQuestion
 
-                }, enabled = true) {
+                }, enabled = isQuestionAnswered) {
                     Text("Next")
                 }
             }
