@@ -1,6 +1,8 @@
 package com.dev.salt.network
 
+import android.content.Context
 import android.util.Log
+import com.dev.salt.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -31,16 +33,18 @@ object ServerValidationService {
      * Validates that the given URL points to a SALT server.
      *
      * @param baseUrl The base URL to validate (e.g., "http://10.0.2.2:3000")
+     * @param context Android context for accessing string resources
      * @return ValidationResult indicating success or failure with details
      */
-    suspend fun validateSaltServer(baseUrl: String): ValidationResult = withContext(Dispatchers.IO) {
+    suspend fun validateSaltServer(baseUrl: String, context: Context? = null): ValidationResult = withContext(Dispatchers.IO) {
         try {
             // Clean up URL - remove trailing slash
             val cleanUrl = baseUrl.trimEnd('/')
 
             // Validate URL format
             if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
-                return@withContext ValidationResult.Error("URL must start with http:// or https://")
+                val message = context?.getString(R.string.error_url_invalid_protocol) ?: "URL must start with http:// or https://"
+                return@withContext ValidationResult.Error(message)
             }
 
             // Check if HTTPS is required (not localhost, emulator, or local network)
@@ -50,7 +54,8 @@ object ServerValidationService {
             val isDebugUrl = isLocalhost || isEmulator || isLocalNetwork
 
             if (!isDebugUrl && !cleanUrl.startsWith("https://")) {
-                return@withContext ValidationResult.Error("HTTPS required for non-local servers")
+                val message = context?.getString(R.string.error_https_required) ?: "HTTPS required for non-local servers"
+                return@withContext ValidationResult.Error(message)
             }
 
             // Build health check URL
@@ -73,7 +78,8 @@ object ServerValidationService {
                 Log.d(TAG, "Response code: $responseCode")
 
                 if (responseCode != HttpURLConnection.HTTP_OK) {
-                    return@withContext ValidationResult.Error("Server returned HTTP $responseCode")
+                    val message = context?.getString(R.string.error_server_http_code, responseCode) ?: "Server returned HTTP $responseCode"
+                    return@withContext ValidationResult.Error(message)
                 }
 
                 // Read and parse response
@@ -85,13 +91,15 @@ object ServerValidationService {
                 // Verify it's a SALT server
                 val system = jsonResponse.optString("system", "")
                 if (system != "SALT") {
-                    return@withContext ValidationResult.Error("Not a SALT server (system=$system)")
+                    val message = context?.getString(R.string.error_not_salt_server, system) ?: "Not a SALT server (system=$system)"
+                    return@withContext ValidationResult.Error(message)
                 }
 
                 // Verify status
                 val status = jsonResponse.optString("status", "")
                 if (status != "ok") {
-                    return@withContext ValidationResult.Error("Server status: $status")
+                    val message = context?.getString(R.string.error_server_status, status) ?: "Server status: $status"
+                    return@withContext ValidationResult.Error(message)
                 }
 
                 // Extract version
@@ -106,19 +114,25 @@ object ServerValidationService {
 
         } catch (e: java.net.UnknownHostException) {
             Log.e(TAG, "Unknown host", e)
-            ValidationResult.Error("Server not found - check URL")
+            val message = context?.getString(R.string.error_server_not_found) ?: "Server not found - check URL"
+            ValidationResult.Error(message)
         } catch (e: java.net.ConnectException) {
             Log.e(TAG, "Connection failed", e)
-            ValidationResult.Error("Cannot connect - check URL and network")
+            val message = context?.getString(R.string.error_cannot_connect) ?: "Cannot connect - check URL and network"
+            ValidationResult.Error(message)
         } catch (e: java.net.SocketTimeoutException) {
             Log.e(TAG, "Timeout", e)
-            ValidationResult.Error("Connection timeout - server may be unreachable")
+            val message = context?.getString(R.string.error_connection_timeout) ?: "Connection timeout - server may be unreachable"
+            ValidationResult.Error(message)
         } catch (e: org.json.JSONException) {
             Log.e(TAG, "Invalid JSON response", e)
-            ValidationResult.Error("Invalid server response")
+            val message = context?.getString(R.string.error_invalid_response) ?: "Invalid server response"
+            ValidationResult.Error(message)
         } catch (e: Exception) {
             Log.e(TAG, "Validation failed", e)
-            ValidationResult.Error("Validation failed: ${e.message ?: e.javaClass.simpleName}")
+            val errorDetail = e.message ?: e.javaClass.simpleName
+            val message = context?.getString(R.string.error_validation_failed, errorDetail) ?: "Validation failed: $errorDetail"
+            ValidationResult.Error(message)
         }
     }
 }

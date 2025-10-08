@@ -11,8 +11,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.dev.salt.R
 import com.dev.salt.data.AppServerConfig
 import com.dev.salt.data.SurveyDatabase
 import com.dev.salt.network.ServerValidationService
@@ -57,7 +59,7 @@ fun InitialServerConfigScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("SALT Setup - Server Configuration") },
+                title = { Text(stringResource(R.string.setup_server_title)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -79,12 +81,12 @@ fun InitialServerConfigScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Welcome to SALT",
+                    text = stringResource(R.string.setup_welcome_title),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Let's get started by configuring your server connection",
+                    text = stringResource(R.string.setup_server_subtitle),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -102,7 +104,7 @@ fun InitialServerConfigScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "Server URL",
+                        text = stringResource(R.string.label_server_url),
                         style = MaterialTheme.typography.titleMedium
                     )
 
@@ -112,7 +114,7 @@ fun InitialServerConfigScreen(
                             serverUrl = it
                             validationResult = null // Clear validation when URL changes
                         },
-                        label = { Text("Server URL") },
+                        label = { Text(stringResource(R.string.label_server_url)) },
                         placeholder = { Text(defaultUrl) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                         modifier = Modifier.fillMaxWidth(),
@@ -123,9 +125,7 @@ fun InitialServerConfigScreen(
 
                     // Info text
                     Text(
-                        text = "• For emulator: use http://10.0.2.2:3000\n" +
-                                "• For physical device on local network: use http://192.168.x.x:3000\n" +
-                                "• For production: use https://your-server.com",
+                        text = stringResource(R.string.info_server_url_examples),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -149,7 +149,7 @@ fun InitialServerConfigScreen(
                             )
                             Text(
                                 text = when (result) {
-                                    is ServerValidationService.ValidationResult.Success -> "✓ Connected to SALT server (v${result.version})"
+                                    is ServerValidationService.ValidationResult.Success -> stringResource(R.string.status_server_connected, result.version)
                                     is ServerValidationService.ValidationResult.Error -> "✗ ${result.message}"
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
@@ -174,7 +174,7 @@ fun InitialServerConfigScreen(
                     onClick = {
                         scope.launch {
                             isValidating = true
-                            validationResult = ServerValidationService.validateSaltServer(serverUrl)
+                            validationResult = ServerValidationService.validateSaltServer(serverUrl, context)
                             isValidating = false
                         }
                     },
@@ -188,9 +188,9 @@ fun InitialServerConfigScreen(
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Validating...")
+                        Text(stringResource(R.string.status_validating))
                     } else {
-                        Text("Validate Connection")
+                        Text(stringResource(R.string.button_validate_connection))
                     }
                 }
 
@@ -213,7 +213,7 @@ fun InitialServerConfigScreen(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = validationResult is ServerValidationService.ValidationResult.Success && !isValidating
                 ) {
-                    Text("Next: Create Admin Account")
+                    Text(stringResource(R.string.button_next_create_admin))
                 }
             }
         }

@@ -381,4 +381,99 @@
     <string name="staff_instructions_give_tablet_desc">Entregue la tableta al participante junto con los audífonos</string>
     <string name="staff_instructions_provide_privacy">Proporcionar Privacidad</string>
     <string name="staff_instructions_provide_privacy_desc">Lleve al participante a una habitación privada donde pueda completar la encuesta cómodamente y confidencialmente</string>
+
+    <!-- Hand Tablet Back Screen -->
+    <string name="hand_tablet_title">Volver a la Encuesta</string>
+    <string name="hand_tablet_instruction">Por favor devuelva la tableta al participante</string>
+    <string name="hand_tablet_description">El participante ahora continuará con su encuesta</string>
+    <string name="hand_tablet_continue_survey">Continuar Encuesta</string>
+
+    <!-- Audio -->
+    <string name="replay_audio">Reproducir Audio</string>
+
+    <!-- Content Descriptions -->
+    <string name="cd_verified_user">Icono de usuario verificado</string>
+    <string name="cd_hide_password">Ocultar contraseña</string>
+    <string name="cd_show_password">Mostrar contraseña</string>
+    <string name="cd_security">Seguridad</string>
+    <string name="cd_tablet">Tableta</string>
+
+    <!-- Initial Setup Wizard - Server Configuration -->
+    <string name="setup_server_title">Configuración SALT - Configuración del Servidor</string>
+    <string name="setup_welcome_title">Bienvenido a SALT</string>
+    <string name="setup_server_subtitle">Comencemos configurando su conexión al servidor</string>
+    <string name="label_server_url">URL del Servidor</string>
+    <string name="info_server_url_examples">• Para emulador: usar http://10.0.2.2:3000\n• Para dispositivo físico en red local: usar http://192.168.x.x:3000\n• Para producción: usar https://su-servidor.com</string>
+    <string name="status_server_connected">✓ Conectado al servidor SALT (v%1$s)</string>
+    <string name="status_validating">Validando...</string>
+    <string name="button_validate_connection">Validar Conexión</string>
+    <string name="button_next_create_admin">Siguiente: Crear Cuenta de Administrador</string>
+
+    <!-- Initial Setup Wizard - Admin Account Creation -->
+    <string name="setup_admin_title">Configuración SALT - Crear Cuenta de Administrador</string>
+    <string name="setup_admin_header">Crear Cuenta de Administrador</string>
+    <string name="setup_admin_description">Esta cuenta tendrá acceso administrativo completo al sistema SALT</string>
+    <string name="error_username_required">Se requiere nombre de usuario</string>
+    <string name="error_username_too_short">El nombre de usuario debe tener al menos 3 caracteres</string>
+    <string name="error_fullname_required">Se requiere nombre completo</string>
+    <string name="error_password_required">Se requiere contraseña</string>
+    <string name="error_password_too_short">La contraseña debe tener al menos 3 caracteres</string>
+    <string name="error_confirm_password_required">Por favor confirme la contraseña</string>
+    <string name="error_passwords_no_match">Las contraseñas no coinciden</string>
+    <string name="label_username">Nombre de Usuario</string>
+    <string name="label_full_name">Nombre Completo</string>
+    <string name="label_password">Contraseña</string>
+    <string name="label_confirm_password">Confirmar Contraseña</string>
+    <string name="placeholder_admin_username">admin</string>
+    <string name="placeholder_administrator">Administrador</string>
+    <string name="info_admin_requirements">• El nombre de usuario debe tener al menos 3 caracteres\n• La contraseña debe tener al menos 3 caracteres\n• La inscripción de huella dactilar será requerida en el siguiente paso</string>
+    <string name="button_next_fingerprint">Siguiente: Inscripción de Huella Dactilar</string>
+
+    <!-- Initial Setup Wizard - Fingerprint Enrollment -->
+    <string name="setup_fingerprint_title">Configuración SALT - Inscripción de Huella Dactilar</string>
+    <string name="setup_fingerprint_header">Inscripción de Huella Dactilar</string>
+    <string name="setup_fingerprint_description">Inscriba su huella dactilar para autenticación segura</string>
+    <string name="status_fingerprint_ready">Listo para capturar huella dactilar</string>
+    <string name="status_fingerprint_capturing">Capturando huella dactilar...</string>
+    <string name="status_fingerprint_success">✓ Huella dactilar capturada exitosamente</string>
+    <string name="status_creating_account">Creando Cuenta...</string>
+    <string name="error_scanner_not_connected">✗ Escáner de huellas dactilares no conectado. Por favor conecte el dispositivo e intente nuevamente.</string>
+    <string name="error_usb_permission_required">✗ Por favor otorgue el permiso USB e intente nuevamente.</string>
+    <string name="error_scanner_init_failed">✗ Error al inicializar el escáner de huellas dactilares</string>
+    <string name="error_fingerprint_capture_failed_max">✗ Error al capturar huella dactilar después de 3 intentos</string>
+    <string name="error_fingerprint_low_quality">✗ Escaneo de baja calidad. Por favor intente nuevamente (Intento %1$d de 3)</string>
+    <string name="error_fingerprint_not_captured">✗ Por favor capture la huella dactilar primero</string>
+    <string name="error_password_hash_failed">✗ Error al encriptar contraseña</string>
+    <string name="error_user_creation_failed">✗ Error al crear usuario: %1$s</string>
+    <string name="label_account_info">Información de la Cuenta</string>
+    <string name="label_username_display">Nombre de usuario: %1$s</string>
+    <string name="label_fullname_display">Nombre completo: %1$s</string>
+    <string name="label_role_administrator">Rol: Administrador</string>
+    <string name="label_fingerprint_scanner">Escáner de Huellas Dactilares</string>
+    <string name="button_capture_fingerprint">Capturar Huella Dactilar</string>
+    <string name="button_recapture_fingerprint">Recapturar Huella Dactilar</string>
+    <string name="button_complete_setup">Completar Configuración</string>
+    <string name="info_fingerprint_instructions">• Coloque su dedo índice en el escáner\n• Mantenga su dedo firme durante la captura\n• La huella dactilar es requerida para la creación de cuenta</string>
+
+    <!-- Server Validation Errors -->
+    <string name="error_url_invalid_protocol">La URL debe comenzar con http:// o https://</string>
+    <string name="error_https_required">Se requiere HTTPS para servidores no locales</string>
+    <string name="error_server_http_code">El servidor devolvió HTTP %1$d</string>
+    <string name="error_not_salt_server">No es un servidor SALT (sistema=%1$s)</string>
+    <string name="error_server_status">Estado del servidor: %1$s</string>
+    <string name="error_server_not_found">Servidor no encontrado - verifique la URL</string>
+    <string name="error_cannot_connect">No se puede conectar - verifique la URL y la red</string>
+    <string name="error_connection_timeout">Tiempo de espera de conexión agotado - el servidor puede ser inalcanzable</string>
+    <string name="error_invalid_response">Respuesta del servidor inválida</string>
+    <string name="error_validation_failed">Validación fallida: %1$s</string>
+
+    <!-- Admin Dashboard -->
+    <string name="note_no_staff_users">Nota: Solo los usuarios del personal de encuestas pueden realizar encuestas, no los administradores. Cree un usuario SURVEY_STAFF en el área de Administrar Usuarios.</string>
+
+    <!-- Facility Setup -->
+    <string name="facility_setup_title">Configuración de Instalación</string>
+    <string name="facility_setup_instructions">Ingrese el código de configuración proporcionado por su administrador</string>
+    <string name="facility_setup_code_label">Código de Configuración</string>
+    <string name="facility_setup_code_placeholder">ABC123</string>
+    <string name="facility_setup_button">Configurar Instalación</string>
 </resources>

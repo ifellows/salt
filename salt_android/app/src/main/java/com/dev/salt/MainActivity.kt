@@ -1298,7 +1298,7 @@ fun AdminDashboardScreen(
                     )
                 ) {
                     Text(
-                        text = "Note: Only survey staff users can conduct surveys, not administrators. Create a SURVEY_STAFF user in the Manage Users area.",
+                        text = stringResource(R.string.note_no_staff_users),
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer

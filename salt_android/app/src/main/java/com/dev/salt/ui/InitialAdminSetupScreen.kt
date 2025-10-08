@@ -13,6 +13,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.dev.salt.R
 
 /**
  * Initial admin user setup screen shown during first-time setup wizard.
@@ -26,6 +28,7 @@ import androidx.compose.ui.unit.dp
 fun InitialAdminSetupScreen(
     onAdminInfoCollected: (username: String, fullName: String, password: String) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var username by remember { mutableStateOf("") }
     var fullName by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -44,10 +47,10 @@ fun InitialAdminSetupScreen(
 
         // Username validation
         if (username.isBlank()) {
-            usernameError = "Username is required"
+            usernameError = context.getString(R.string.error_username_required)
             isValid = false
         } else if (username.length < 3) {
-            usernameError = "Username must be at least 3 characters"
+            usernameError = context.getString(R.string.error_username_too_short)
             isValid = false
         } else {
             usernameError = null
@@ -55,7 +58,7 @@ fun InitialAdminSetupScreen(
 
         // Full name validation
         if (fullName.isBlank()) {
-            fullNameError = "Full name is required"
+            fullNameError = context.getString(R.string.error_fullname_required)
             isValid = false
         } else {
             fullNameError = null
@@ -63,10 +66,10 @@ fun InitialAdminSetupScreen(
 
         // Password validation
         if (password.isBlank()) {
-            passwordError = "Password is required"
+            passwordError = context.getString(R.string.error_password_required)
             isValid = false
         } else if (password.length < 3) {
-            passwordError = "Password must be at least 3 characters"
+            passwordError = context.getString(R.string.error_password_too_short)
             isValid = false
         } else {
             passwordError = null
@@ -74,10 +77,10 @@ fun InitialAdminSetupScreen(
 
         // Confirm password validation
         if (confirmPassword.isBlank()) {
-            confirmPasswordError = "Please confirm password"
+            confirmPasswordError = context.getString(R.string.error_confirm_password_required)
             isValid = false
         } else if (password != confirmPassword) {
-            confirmPasswordError = "Passwords do not match"
+            confirmPasswordError = context.getString(R.string.error_passwords_no_match)
             isValid = false
         } else {
             confirmPasswordError = null
@@ -89,7 +92,7 @@ fun InitialAdminSetupScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("SALT Setup - Create Admin Account") },
+                title = { Text(stringResource(R.string.setup_admin_title)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -111,12 +114,12 @@ fun InitialAdminSetupScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Create Administrator Account",
+                    text = stringResource(R.string.setup_admin_header),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "This account will have full administrative access to the SALT system",
+                    text = stringResource(R.string.setup_admin_description),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -140,8 +143,8 @@ fun InitialAdminSetupScreen(
                             username = it
                             usernameError = null
                         },
-                        label = { Text("Username") },
-                        placeholder = { Text("admin") },
+                        label = { Text(stringResource(R.string.label_username)) },
+                        placeholder = { Text(stringResource(R.string.placeholder_admin_username)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         isError = usernameError != null,
@@ -159,8 +162,8 @@ fun InitialAdminSetupScreen(
                             fullName = it
                             fullNameError = null
                         },
-                        label = { Text("Full Name") },
-                        placeholder = { Text("Administrator") },
+                        label = { Text(stringResource(R.string.label_full_name)) },
+                        placeholder = { Text(stringResource(R.string.placeholder_administrator)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         isError = fullNameError != null,
@@ -178,7 +181,7 @@ fun InitialAdminSetupScreen(
                             password = it
                             passwordError = null
                         },
-                        label = { Text("Password") },
+                        label = { Text(stringResource(R.string.label_password)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -193,7 +196,7 @@ fun InitialAdminSetupScreen(
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
                                     imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                    contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                                    contentDescription = if (passwordVisible) stringResource(R.string.cd_hide_password) else stringResource(R.string.cd_show_password)
                                 )
                             }
                         }
@@ -206,7 +209,7 @@ fun InitialAdminSetupScreen(
                             confirmPassword = it
                             confirmPasswordError = null
                         },
-                        label = { Text("Confirm Password") },
+                        label = { Text(stringResource(R.string.label_confirm_password)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -221,7 +224,7 @@ fun InitialAdminSetupScreen(
                             IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                                 Icon(
                                     imageVector = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                    contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password"
+                                    contentDescription = if (confirmPasswordVisible) stringResource(R.string.cd_hide_password) else stringResource(R.string.cd_show_password)
                                 )
                             }
                         }
@@ -229,9 +232,7 @@ fun InitialAdminSetupScreen(
 
                     // Info text
                     Text(
-                        text = "• Username must be at least 3 characters\n" +
-                                "• Password must be at least 3 characters\n" +
-                                "• Fingerprint enrollment will be required in the next step",
+                        text = stringResource(R.string.info_admin_requirements),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -251,7 +252,7 @@ fun InitialAdminSetupScreen(
                 enabled = username.isNotBlank() && fullName.isNotBlank() &&
                           password.isNotBlank() && confirmPassword.isNotBlank()
             ) {
-                Text("Next: Fingerprint Enrollment")
+                Text(stringResource(R.string.button_next_fingerprint))
             }
         }
     }

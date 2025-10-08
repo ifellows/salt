@@ -12,8 +12,10 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.dev.salt.R
 import com.dev.salt.viewmodel.FacilitySetupViewModel
 import com.dev.salt.viewmodel.FacilitySetupViewModelFactory
 import kotlinx.coroutines.launch
@@ -38,14 +40,14 @@ fun FacilitySetupScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Facility Setup",
+            text = stringResource(R.string.facility_setup_title),
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
         Text(
-            text = "Enter the setup code provided by your administrator",
+            text = stringResource(R.string.facility_setup_instructions),
             fontSize = 16.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 32.dp)
@@ -54,8 +56,8 @@ fun FacilitySetupScreen(
         OutlinedTextField(
             value = uiState.shortCode,
             onValueChange = { viewModel.updateShortCode(it.uppercase()) },
-            label = { Text("Setup Code") },
-            placeholder = { Text("ABC123") },
+            label = { Text(stringResource(R.string.facility_setup_code_label)) },
+            placeholder = { Text(stringResource(R.string.facility_setup_code_placeholder)) },
             singleLine = true,
             enabled = !uiState.isLoading,
             isError = uiState.error != null,
@@ -103,7 +105,7 @@ fun FacilitySetupScreen(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
-                Text("Setup Facility")
+                Text(stringResource(R.string.facility_setup_button))
             }
         }
 
@@ -120,7 +122,7 @@ fun FacilitySetupScreen(
                     .height(48.dp)
                     .padding(horizontal = 48.dp)
             ) {
-                Text("Cancel")
+                Text(stringResource(R.string.common_cancel))
             }
         }
 

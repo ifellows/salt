@@ -395,4 +395,85 @@
 
     <!-- Content Descriptions -->
     <string name="cd_verified_user">Verified user icon</string>
+    <string name="cd_hide_password">Hide password</string>
+    <string name="cd_show_password">Show password</string>
+
+    <!-- Initial Setup Wizard - Server Configuration -->
+    <string name="setup_server_title">SALT Setup - Server Configuration</string>
+    <string name="setup_welcome_title">Welcome to SALT</string>
+    <string name="setup_server_subtitle">Let\'s get started by configuring your server connection</string>
+    <string name="label_server_url">Server URL</string>
+    <string name="info_server_url_examples">• For emulator: use http://10.0.2.2:3000\n• For physical device on local network: use http://192.168.x.x:3000\n• For production: use https://your-server.com</string>
+    <string name="status_server_connected">✓ Connected to SALT server (v%1$s)</string>
+    <string name="status_validating">Validating...</string>
+    <string name="button_validate_connection">Validate Connection</string>
+    <string name="button_next_create_admin">Next: Create Admin Account</string>
+
+    <!-- Initial Setup Wizard - Admin Account Creation -->
+    <string name="setup_admin_title">SALT Setup - Create Admin Account</string>
+    <string name="setup_admin_header">Create Administrator Account</string>
+    <string name="setup_admin_description">This account will have full administrative access to the SALT system</string>
+    <string name="error_username_required">Username is required</string>
+    <string name="error_username_too_short">Username must be at least 3 characters</string>
+    <string name="error_fullname_required">Full name is required</string>
+    <string name="error_password_required">Password is required</string>
+    <string name="error_password_too_short">Password must be at least 3 characters</string>
+    <string name="error_confirm_password_required">Please confirm password</string>
+    <string name="error_passwords_no_match">Passwords do not match</string>
+    <string name="label_username">Username</string>
+    <string name="label_full_name">Full Name</string>
+    <string name="label_password">Password</string>
+    <string name="label_confirm_password">Confirm Password</string>
+    <string name="placeholder_admin_username">admin</string>
+    <string name="placeholder_administrator">Administrator</string>
+    <string name="info_admin_requirements">• Username must be at least 3 characters\n• Password must be at least 3 characters\n• Fingerprint enrollment will be required in the next step</string>
+    <string name="button_next_fingerprint">Next: Fingerprint Enrollment</string>
+
+    <!-- Initial Setup Wizard - Fingerprint Enrollment -->
+    <string name="setup_fingerprint_title">SALT Setup - Fingerprint Enrollment</string>
+    <string name="setup_fingerprint_header">Fingerprint Enrollment</string>
+    <string name="setup_fingerprint_description">Enroll your fingerprint for secure authentication</string>
+    <string name="status_fingerprint_ready">Ready to capture fingerprint</string>
+    <string name="status_fingerprint_capturing">Capturing fingerprint...</string>
+    <string name="status_fingerprint_success">✓ Fingerprint captured successfully</string>
+    <string name="status_creating_account">Creating Account...</string>
+    <string name="error_scanner_not_connected">✗ Fingerprint scanner not connected. Please connect the device and try again.</string>
+    <string name="error_usb_permission_required">✗ Please grant USB permission and try again.</string>
+    <string name="error_scanner_init_failed">✗ Failed to initialize fingerprint scanner</string>
+    <string name="error_fingerprint_capture_failed_max">✗ Failed to capture fingerprint after 3 attempts</string>
+    <string name="error_fingerprint_low_quality">✗ Low quality scan. Please try again (Attempt %1$d of 3)</string>
+    <string name="error_fingerprint_not_captured">✗ Please capture fingerprint first</string>
+    <string name="error_password_hash_failed">✗ Failed to hash password</string>
+    <string name="error_user_creation_failed">✗ Failed to create user: %1$s</string>
+    <string name="label_account_info">Account Information</string>
+    <string name="label_username_display">Username: %1$s</string>
+    <string name="label_fullname_display">Full Name: %1$s</string>
+    <string name="label_role_administrator">Role: Administrator</string>
+    <string name="label_fingerprint_scanner">Fingerprint Scanner</string>
+    <string name="button_capture_fingerprint">Capture Fingerprint</string>
+    <string name="button_recapture_fingerprint">Recapture Fingerprint</string>
+    <string name="button_complete_setup">Complete Setup</string>
+    <string name="info_fingerprint_instructions">• Place your index finger on the scanner\n• Keep your finger steady during capture\n• Fingerprint is required for account creation</string>
+
+    <!-- Server Validation Errors -->
+    <string name="error_url_invalid_protocol">URL must start with http:// or https://</string>
+    <string name="error_https_required">HTTPS required for non-local servers</string>
+    <string name="error_server_http_code">Server returned HTTP %1$d</string>
+    <string name="error_not_salt_server">Not a SALT server (system=%1$s)</string>
+    <string name="error_server_status">Server status: %1$s</string>
+    <string name="error_server_not_found">Server not found - check URL</string>
+    <string name="error_cannot_connect">Cannot connect - check URL and network</string>
+    <string name="error_connection_timeout">Connection timeout - server may be unreachable</string>
+    <string name="error_invalid_response">Invalid server response</string>
+    <string name="error_validation_failed">Validation failed: %1$s</string>
+
+    <!-- Admin Dashboard -->
+    <string name="note_no_staff_users">Note: Only survey staff users can conduct surveys, not administrators. Create a SURVEY_STAFF user in the Manage Users area.</string>
+
+    <!-- Facility Setup -->
+    <string name="facility_setup_title">Facility Setup</string>
+    <string name="facility_setup_instructions">Enter the setup code provided by your administrator</string>
+    <string name="facility_setup_code_label">Setup Code</string>
+    <string name="facility_setup_code_placeholder">ABC123</string>
+    <string name="facility_setup_button">Setup Facility</string>
 </resources>

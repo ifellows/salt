@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.dev.salt.R
 import com.dev.salt.PasswordUtils
@@ -43,7 +44,7 @@ fun InitialFingerprintSetupScreen(
     val database = SurveyDatabase.getInstance(context)
     val fingerprintManager = remember { FingerprintManager(database.subjectFingerprintDao(), context) }
 
-    var captureStatus by remember { mutableStateOf("Ready to capture fingerprint") }
+    var captureStatus by remember { mutableStateOf(context.getString(R.string.status_fingerprint_ready)) }
     var fingerprintTemplate by remember { mutableStateOf<ByteArray?>(null) }
     var isCapturing by remember { mutableStateOf(false) }
     var isCreatingUser by remember { mutableStateOf(false) }
@@ -52,7 +53,7 @@ fun InitialFingerprintSetupScreen(
     fun captureFingerprint() {
         scope.launch {
             isCapturing = true
-            captureStatus = "Capturing fingerprint..."
+            captureStatus = context.getString(R.string.status_fingerprint_capturing)
 
             Log.i("InitialFingerprintSetup", "Starting fingerprint enrollment for admin user: $username")
 
@@ -70,7 +71,7 @@ fun InitialFingerprintSetupScreen(
 
             if (secugenDevice == null) {
                 Log.e("InitialFingerprintSetup", "No SecuGen device found")
-                captureStatus = "✗ Fingerprint scanner not connected. Please connect the device and try again."
+                captureStatus = context.getString(R.string.error_scanner_not_connected)
                 isCapturing = false
                 return@launch
             }
@@ -92,7 +93,7 @@ fun InitialFingerprintSetupScreen(
                 )
 
                 usbManager.requestPermission(secugenDevice, permissionIntent)
-                captureStatus = "✗ Please grant USB permission and try again."
+                captureStatus = context.getString(R.string.error_usb_permission_required)
                 isCapturing = false
                 return@launch
             }
@@ -100,7 +101,7 @@ fun InitialFingerprintSetupScreen(
             // Initialize device
             if (!fingerprintManager.initializeDevice()) {
                 Log.e("InitialFingerprintSetup", "Device initialization failed")
-                captureStatus = "✗ Failed to initialize fingerprint scanner"
+                captureStatus = context.getString(R.string.error_scanner_init_failed)
                 isCapturing = false
                 return@launch
             }
@@ -112,10 +113,10 @@ fun InitialFingerprintSetupScreen(
                 Log.e("InitialFingerprintSetup", "Capture failed")
                 retryCount++
                 if (retryCount >= 3) {
-                    captureStatus = "✗ Failed to capture fingerprint after 3 attempts"
+                    captureStatus = context.getString(R.string.error_fingerprint_capture_failed_max)
                     retryCount = 0
                 } else {
-                    captureStatus = "✗ Low quality scan. Please try again (Attempt $retryCount of 3)"
+                    captureStatus = context.getString(R.string.error_fingerprint_low_quality, retryCount)
                 }
                 fingerprintManager.closeDevice()
                 isCapturing = false
@@ -124,7 +125,7 @@ fun InitialFingerprintSetupScreen(
 
             Log.i("InitialFingerprintSetup", "Fingerprint captured successfully")
             fingerprintTemplate = template
-            captureStatus = "✓ Fingerprint captured successfully"
+            captureStatus = context.getString(R.string.status_fingerprint_success)
             fingerprintManager.closeDevice()
             isCapturing = false
         }
@@ -132,7 +133,7 @@ fun InitialFingerprintSetupScreen(
 
     fun completeSetup() {
         if (fingerprintTemplate == null) {
-            captureStatus = "✗ Please capture fingerprint first"
+            captureStatus = context.getString(R.string.error_fingerprint_not_captured)
             return
         }
 
@@ -142,7 +143,7 @@ fun InitialFingerprintSetupScreen(
                 // Hash the password
                 val hashedPassword = PasswordUtils.hashPasswordWithNewSalt(password)
                 if (hashedPassword == null) {
-                    captureStatus = "✗ Failed to hash password"
+                    captureStatus = context.getString(R.string.error_password_hash_failed)
                     isCreatingUser = false
                     return@launch
                 }
@@ -167,7 +168,7 @@ fun InitialFingerprintSetupScreen(
                 // Navigate to facility setup
                 onSetupComplete()
             } catch (e: Exception) {
-                captureStatus = "✗ Failed to create user: ${e.message}"
+                captureStatus = context.getString(R.string.error_user_creation_failed, e.message ?: "Unknown error")
                 isCreatingUser = false
                 Log.e("FingerprintSetup", "Error creating user", e)
             }
@@ -177,7 +178,7 @@ fun InitialFingerprintSetupScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("SALT Setup - Fingerprint Enrollment") },
+                title = { Text(stringResource(R.string.setup_fingerprint_title)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -199,12 +200,12 @@ fun InitialFingerprintSetupScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Fingerprint Enrollment",
+                    text = stringResource(R.string.setup_fingerprint_header),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Enroll your fingerprint for secure authentication",
+                    text = stringResource(R.string.setup_fingerprint_description),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -222,12 +223,12 @@ fun InitialFingerprintSetupScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "Account Information",
+                        text = stringResource(R.string.label_account_info),
                         style = MaterialTheme.typography.titleMedium
                     )
-                    Text("Username: $username")
-                    Text("Full Name: $fullName")
-                    Text("Role: Administrator")
+                    Text(stringResource(R.string.label_username_display, username))
+                    Text(stringResource(R.string.label_fullname_display, fullName))
+                    Text(stringResource(R.string.label_role_administrator))
                 }
             }
 
@@ -242,7 +243,7 @@ fun InitialFingerprintSetupScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Fingerprint Scanner",
+                        text = stringResource(R.string.label_fingerprint_scanner),
                         style = MaterialTheme.typography.titleMedium
                     )
 
@@ -280,14 +281,12 @@ fun InitialFingerprintSetupScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
-                        Text(if (fingerprintTemplate != null) "Recapture Fingerprint" else "Capture Fingerprint")
+                        Text(if (fingerprintTemplate != null) stringResource(R.string.button_recapture_fingerprint) else stringResource(R.string.button_capture_fingerprint))
                     }
 
                     // Instructions
                     Text(
-                        text = "• Place your index finger on the scanner\n" +
-                                "• Keep your finger steady during capture\n" +
-                                "• Fingerprint is required for account creation",
+                        text = stringResource(R.string.info_fingerprint_instructions),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -309,9 +308,9 @@ fun InitialFingerprintSetupScreen(
                         strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Creating Account...")
+                    Text(stringResource(R.string.status_creating_account))
                 } else {
-                    Text("Complete Setup")
+                    Text(stringResource(R.string.button_complete_setup))
                 }
             }
         }
