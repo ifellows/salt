@@ -185,8 +185,12 @@ function addQuestionHtml(q) {
     const primaryText = q.texts.English || q.texts[Object.keys(q.texts)[0]] || 'No text';
     bodyHtml += '                <p style="margin: 0.5rem 0;">' + primaryText + '</p>\n';
     
-    // Show other language texts
-    Object.keys(q.texts).filter(lang => lang.toLowerCase() !== 'english').forEach(lang => {
+    // Show other language texts (only those active in survey)
+    Object.keys(q.texts).filter(lang => {
+        // Skip English (shown as primary) and languages not in the survey's active languages
+        if (lang.toLowerCase() === 'english') return false;
+        return surveyLanguages.some(activeLang => activeLang.toLowerCase() === lang.toLowerCase());
+    }).forEach(lang => {
         bodyHtml += '                <p style="margin: 0.25rem 0; color: #666; font-size: 0.9rem;">\n';
         bodyHtml += '                    <strong>' + lang + ':</strong> ' + q.texts[lang] + '\n';
         bodyHtml += '                </p>\n';
