@@ -229,7 +229,10 @@ class LoginViewModel(
                 val capturedTemplate = fingerprintManager.captureFingerprint()
 
                 if (capturedTemplate == null) {
-                    fingerprintManager.closeDevice()
+                    // Close device in background to avoid blocking UI
+                    viewModelScope.launch(Dispatchers.IO) {
+                        fingerprintManager.closeDevice()
+                    }
                     isBiometricLoading = false
                     loginError = "Failed to capture fingerprint"
                     onLoginComplete(LoginResult(success = false, errorMessage = "Fingerprint capture failed"))
@@ -238,7 +241,11 @@ class LoginViewModel(
 
                 // Match templates
                 val matchResult = fingerprintManager.matchTemplates(capturedTemplate, user.fingerprintTemplate)
-                fingerprintManager.closeDevice()
+
+                // Close device in background to avoid blocking UI thread with GC
+                viewModelScope.launch(Dispatchers.IO) {
+                    fingerprintManager.closeDevice()
+                }
 
                 if (matchResult) {
                     Log.i("LoginViewModel", "Fingerprint match successful for $username")

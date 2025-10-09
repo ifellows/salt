@@ -12,8 +12,6 @@ import com.dev.salt.data.SurveyDatabase
 import com.dev.salt.data.Survey
 import com.dev.salt.data.Answer
 import com.dev.salt.data.saveSurvey
-import com.dev.salt.randomHash
-import com.dev.salt.generateWalkInSubjectId
 import com.dev.salt.evaluateJexlScript
 import com.dev.salt.upload.SurveyUploadManager
 import com.dev.salt.upload.SurveyUploadWorkManager
@@ -59,7 +57,7 @@ class SurveyViewModel(
     private val _generatedCoupons = MutableStateFlow<List<String>>(emptyList())
     val generatedCoupons: StateFlow<List<String>> = _generatedCoupons
 
-    private val couponGenerator = CouponGenerator(database.couponDao())
+    private val couponGenerator = CouponGenerator(database.couponDao(), database.surveyDao())
     //public var currentQuestion: Pair<Question, List<Option>>? = null//StateFlow<Pair<Question, List<Option>>?> = _currentQuestion
     public var survey : Survey? = null
     public var questions: List<Question> = emptyList()
@@ -131,14 +129,15 @@ class SurveyViewModel(
         return currentQuestionIndex
     }
 
-    private fun makeNewSurvey(language: String): Survey {
+    private suspend fun makeNewSurvey(language: String): Survey {
         // Use coupon code as subject ID if participant has one, otherwise generate walk-in ID
+        val couponGenerator = CouponGenerator(database.couponDao(), database.surveyDao())
         val subjectId = if (!referralCouponCode.isNullOrEmpty()) {
             // Participant has a coupon - use it as their subject ID
             referralCouponCode
         } else {
-            // Walk-in participant - generate ID with "W" prefix to avoid collisions
-            generateWalkInSubjectId()
+            // Walk-in participant - generate unique ID with "W" prefix to avoid collisions
+            couponGenerator.generateUniqueWalkInSubjectId()
         }
 
         // Load eligibility script from SurveyConfig

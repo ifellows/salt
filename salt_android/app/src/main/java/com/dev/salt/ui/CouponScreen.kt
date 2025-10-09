@@ -154,7 +154,8 @@ fun CouponScreen(
                                 // Create a new survey and navigate to appropriate screen
                                 GlobalScope.launch(Dispatchers.IO) {
                                     val surveyId = UUID.randomUUID().toString()
-                                    val subjectId = com.dev.salt.generateWalkInSubjectId() // Walk-in participant - use W prefix
+                                    val couponGenerator = com.dev.salt.util.CouponGenerator(database.couponDao(), database.surveyDao())
+                                    val subjectId = couponGenerator.generateUniqueWalkInSubjectId() // Walk-in participant - unique ID with W prefix
                                     val survey = com.dev.salt.data.Survey(
                                         id = surveyId,
                                         subjectId = subjectId,

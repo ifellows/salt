@@ -16,7 +16,7 @@ class SeedRecruitmentManager(
     private val seedRecruitmentDao = database.seedRecruitmentDao()
     private val facilityConfigDao = database.facilityConfigDao()
     private val couponDao = database.couponDao()
-    private val couponGenerator = CouponGenerator(couponDao)
+    private val couponGenerator = CouponGenerator(couponDao, database.surveyDao())
     
     /**
      * Check if seed recruitment is currently allowed based on facility config and timing

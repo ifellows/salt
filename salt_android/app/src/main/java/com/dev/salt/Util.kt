@@ -21,11 +21,11 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
 
-fun randomHash(): String {
+/*fun randomHash(): String {
     // Legacy function - kept for compatibility
     // New surveys should use generateWalkInSubjectId()
     return generateWalkInSubjectId()
-}
+}*/
 
 /**
  * Generates a 6-character alphanumeric subject ID
@@ -42,17 +42,29 @@ fun generateSubjectId(): String {
 
 /**
  * Generates a subject ID for walk-in participants (without coupon)
- * Format: W[A-Z0-9]{5}
- * Example: "WAB3K7"
+ * Format: W[cleaner-charset]{5}
+ * Example: "WAC3K7"
  * The "W" prefix ensures no collision with coupon codes
+ * Uses cleaner character set excluding ambiguous characters (0,O,1,I,L,Z,2,5,S,8,B)
+ *
+ * @deprecated Use CouponGenerator.generateUniqueWalkInSubjectId() instead to ensure uniqueness
  */
+/*@Deprecated(
+    message = "Use CouponGenerator.generateUniqueWalkInSubjectId() instead to ensure uniqueness",
+    replaceWith = ReplaceWith(
+        "CouponGenerator(couponDao, surveyDao).generateUniqueWalkInSubjectId()",
+        "com.dev.salt.util.CouponGenerator"
+    ),
+    level = DeprecationLevel.WARNING
+)
 fun generateWalkInSubjectId(): String {
-    val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    // Cleaner character set excluding ambiguous characters
+    val chars = "ACDEFGHJKMNPQRTUVWXY34679"
     val randomPart = (1..5)
         .map { chars.random() }
         .joinToString("")
     return "W$randomPart"
-}
+}*/
 
 
 

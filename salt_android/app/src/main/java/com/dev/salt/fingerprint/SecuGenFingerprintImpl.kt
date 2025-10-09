@@ -313,7 +313,7 @@ class SecuGenFingerprintImpl(private val context: Context) : IFingerprintCapture
 
                 sgfplib?.let { lib ->
                     try {
-                        // First close the device if it was opened
+                        // Close the device to release hardware
                         val closeError = lib.CloseDevice()
                         if (closeError != SGFDxErrorCode.SGFDX_ERROR_NONE.toLong()) {
                             Log.w(TAG, "Error closing device: $closeError")
@@ -324,19 +324,11 @@ class SecuGenFingerprintImpl(private val context: Context) : IFingerprintCapture
                         Log.e(TAG, "Error while closing device", e)
                     }
 
-                    try {
-                        // Then close the library
-                        val libCloseError = lib.Close()
-                        if (libCloseError != SGFDxErrorCode.SGFDX_ERROR_NONE.toLong()) {
-                            Log.w(TAG, "Error closing library: $libCloseError")
-                        }else{
-
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Exception while closing library", e)
-                    } catch (e: Error) {
-                        Log.e(TAG, "Error while closing library", e)
-                    }
+                    // NOTE: Skipping lib.Close() due to SecuGen SDK bug in fake detection component
+                    // The CFakeDetect destructor causes SIGABRT crashes when lib.Close() is called
+                    // CloseDevice() is sufficient to release the hardware resources
+                    // The library cleanup will happen automatically when the app terminates
+                    Log.d(TAG, "Skipped lib.Close() to avoid SecuGen SDK crash in fake detection destructor")
                 }
 
                 sgfplib = null
