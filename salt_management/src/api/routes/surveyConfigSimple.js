@@ -307,7 +307,7 @@ router.put('/:id', [
 // Add question with multi-language support
 router.post('/:surveyId/questions', [
     body('question_index').isInt(),
-    body('short_name').notEmpty().trim().matches(/^[a-zA-Z0-9_]+$/),
+    body('short_name').notEmpty().trim().matches(/^[a-zA-Z_][a-zA-Z0-9_]*$/).withMessage('Short name must start with a letter or underscore, and contain only letters, numbers, and underscores'),
     body('question_text_json').isObject(),
     body('audio_files_json').optional().isObject(),
     body('question_type').isIn(['multiple_choice', 'numeric', 'text', 'multi_select']),
@@ -404,7 +404,7 @@ router.post('/:surveyId/questions', [
 // Update question with multi-language support
 router.put('/:surveyId/questions/:questionId', [
     body('question_index').optional().isInt(),
-    body('short_name').optional().trim().matches(/^[a-zA-Z0-9_]+$/),
+    body('short_name').optional().trim().matches(/^[a-zA-Z_][a-zA-Z0-9_]*$/).withMessage('Short name must start with a letter or underscore, and contain only letters, numbers, and underscores'),
     body('question_text_json').optional().isObject(),
     body('audio_files_json').optional().isObject(),
     body('question_type').optional().isIn(['multiple_choice', 'numeric', 'text', 'multi_select']),
