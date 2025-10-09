@@ -128,13 +128,14 @@ router.put('/:id', [
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, description, languages, eligibility_script, eligibility_message_json, create_version = true, fingerprint_enabled, re_enrollment_days, staff_validation_message_json } = req.body;
+    const { name, description, languages, eligibility_script, eligibility_message_json, create_version = false, fingerprint_enabled, re_enrollment_days, staff_validation_message_json } = req.body;
     const surveyId = req.params.id;
     
     console.log('Update survey request:', {
         surveyId,
         fingerprint_enabled,
         re_enrollment_days,
+        languages,
         body: req.body
     });
     
@@ -632,23 +633,59 @@ router.post('/', [
         // New surveys always start at version 1
         const newVersion = 1;
         
-        // Use provided languages or get from base survey or use default
+        // Get settings from base survey if cloning
         let surveyLanguages = languages || '["en"]';
-        if (!languages && basedOnSurveyId) {
+        let eligibilityScript = 'consent == "1" && age >= 18 && age <= 65';
+        let eligibilityMessageJson = null;
+        let fingerprintEnabled = 0;
+        let reEnrollmentDays = 90;
+        let staffValidationMessageJson = null;
+        let hivRapidTestEnabled = 1;
+
+        if (basedOnSurveyId) {
             const baseSurvey = await getAsync(
-                'SELECT languages FROM surveys WHERE id = ?',
+                `SELECT languages, eligibility_script, eligibility_message_json,
+                        fingerprint_enabled, re_enrollment_days, staff_validation_message_json,
+                        hiv_rapid_test_enabled
+                 FROM surveys WHERE id = ?`,
                 [basedOnSurveyId]
             );
-            if (baseSurvey && baseSurvey.languages) {
-                surveyLanguages = baseSurvey.languages;
+            if (baseSurvey) {
+                // Copy all settings from base survey
+                if (!languages && baseSurvey.languages) {
+                    surveyLanguages = baseSurvey.languages;
+                }
+                if (baseSurvey.eligibility_script) {
+                    eligibilityScript = baseSurvey.eligibility_script;
+                }
+                if (baseSurvey.eligibility_message_json) {
+                    eligibilityMessageJson = baseSurvey.eligibility_message_json;
+                }
+                if (baseSurvey.fingerprint_enabled !== null) {
+                    fingerprintEnabled = baseSurvey.fingerprint_enabled;
+                }
+                if (baseSurvey.re_enrollment_days !== null) {
+                    reEnrollmentDays = baseSurvey.re_enrollment_days;
+                }
+                if (baseSurvey.staff_validation_message_json) {
+                    staffValidationMessageJson = baseSurvey.staff_validation_message_json;
+                }
+                if (baseSurvey.hiv_rapid_test_enabled !== null) {
+                    hivRapidTestEnabled = baseSurvey.hiv_rapid_test_enabled;
+                }
             }
         }
-        
-        // Create new survey with default eligibility script
-        const defaultEligibilityScript = 'consent == "1" && age >= 18 && age <= 65';
+
+        // Create new survey with settings from base survey or defaults
         const result = await runAsync(
-            'INSERT INTO surveys (version, base_survey_id, name, description, languages, eligibility_script, is_draft) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [newVersion, null, name, description, surveyLanguages, defaultEligibilityScript, 0]
+            `INSERT INTO surveys (version, base_survey_id, name, description, languages,
+                                  eligibility_script, eligibility_message_json, fingerprint_enabled,
+                                  re_enrollment_days, staff_validation_message_json, hiv_rapid_test_enabled,
+                                  is_draft)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [newVersion, null, name, description, surveyLanguages, eligibilityScript,
+             eligibilityMessageJson, fingerprintEnabled, reEnrollmentDays,
+             staffValidationMessageJson, hivRapidTestEnabled, 0]
         );
         
         const newSurveyId = result.id;
@@ -733,8 +770,24 @@ router.post('/', [
                     );
                 }
             }
+
+            // Copy system messages
+            const systemMessages = await allAsync(
+                'SELECT * FROM survey_messages WHERE survey_id = ?',
+                [basedOnSurveyId]
+            );
+
+            for (const message of systemMessages) {
+                await runAsync(
+                    `INSERT INTO survey_messages (survey_id, message_key, display_order,
+                     message_text_json, audio_files_json, message_type)
+                     VALUES (?, ?, ?, ?, ?, ?)`,
+                    [newSurveyId, message.message_key, message.display_order,
+                     message.message_text_json, message.audio_files_json, message.message_type]
+                );
+            }
         }
-        
+
         await logAudit(
             req.session.userId,
             'CREATE_SURVEY',
