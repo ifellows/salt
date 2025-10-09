@@ -96,19 +96,7 @@ surveyLanguages.forEach(lang => {
 bodyHtml += '        </div>\n';
 bodyHtml += '    </div>\n';
 bodyHtml += '    <div style="display: flex; gap: 0.5rem; align-items: center;">\n';
-bodyHtml += '        <select id="newLanguageSelect" style="padding: 0.5rem;" onchange="handleLanguageSelectChange()">\n';
-bodyHtml += '            <option value="">Select a language...</option>\n';
-bodyHtml += '            <option value="English">English</option>\n';
-bodyHtml += '            <option value="Swahili">Swahili</option>\n';
-bodyHtml += '            <option value="Spanish">Spanish</option>\n';
-bodyHtml += '            <option value="French">French</option>\n';
-bodyHtml += '            <option value="Portuguese">Portuguese</option>\n';
-bodyHtml += '            <option value="Arabic">Arabic</option>\n';
-bodyHtml += '            <option value="Chinese">Chinese</option>\n';
-bodyHtml += '            <option value="Hindi">Hindi</option>\n';
-bodyHtml += '            <option value="Other">Other...</option>\n';
-bodyHtml += '        </select>\n';
-bodyHtml += '        <input type="text" id="customLanguageInput" placeholder="Enter custom language" style="padding: 0.5rem; display: none;">\n';
+bodyHtml += '        <input type="text" id="newLanguageInput" placeholder="Enter language name..." style="padding: 0.5rem; flex: 1;">\n';
 bodyHtml += '        <button onclick="addLanguage()" class="btn">Add Language</button>\n';
 bodyHtml += '    </div>\n';
 bodyHtml += '</div>\n';
@@ -181,14 +169,14 @@ function addQuestionHtml(q) {
     bodyHtml += '                <button onclick="editQuestion(' + q.id + ')" class="btn btn-sm">Edit</button>\n';
     bodyHtml += '            </div>\n';
     bodyHtml += '            <div style="margin-left: 2rem;">\n';
-    // Get the first language text (prioritize English if available)
-    const primaryText = q.texts.English || q.texts[Object.keys(q.texts)[0]] || 'No text';
+    // Get the first language text (use first survey language)
+    const primaryText = q.texts[surveyLanguages[0]] || q.texts[Object.keys(q.texts)[0]] || 'No text';
     bodyHtml += '                <p style="margin: 0.5rem 0;">' + primaryText + '</p>\n';
     
     // Show other language texts (only those active in survey)
     Object.keys(q.texts).filter(lang => {
-        // Skip English (shown as primary) and languages not in the survey's active languages
-        if (lang.toLowerCase() === 'english') return false;
+        // Skip first language (shown as primary) and languages not in the survey's active languages
+        if (lang.toLowerCase() === surveyLanguages[0].toLowerCase()) return false;
         return surveyLanguages.some(activeLang => activeLang.toLowerCase() === lang.toLowerCase());
     }).forEach(lang => {
         bodyHtml += '                <p style="margin: 0.25rem 0; color: #666; font-size: 0.9rem;">\n';
@@ -204,7 +192,7 @@ function addQuestionHtml(q) {
                 JSON.parse(opt.option_text_json) : opt.option_text_json || {};
             bodyHtml += '                    <div class="option-item">\n';
             bodyHtml += '                        <span class="option-index">' + optIdx + '</span>\n';
-            const optPrimaryText = optTexts.English || optTexts[Object.keys(optTexts)[0]] || 'No text';
+            const optPrimaryText = optTexts[surveyLanguages[0]] || optTexts[Object.keys(optTexts)[0]] || 'No text';
             bodyHtml += '                        ' + optPrimaryText + '\n';
             bodyHtml += '                    </div>\n';
             });
@@ -271,7 +259,7 @@ surveyLanguages.forEach(lang => {
     const langId = lang.replace(/\s+/g, '_');
     bodyHtml += '                    <div class="form-group">\n';
     bodyHtml += '                        <div style="display: flex; gap: 0.5rem; align-items: center;">\n';
-    bodyHtml += '                            <input type="text" id="text_' + langId + '" class="form-control" placeholder="' + lang + ' text" ' + (lang.toLowerCase() === 'english' ? 'required' : '') + ' style="flex: 1;">\n';
+    bodyHtml += '                            <input type="text" id="text_' + langId + '" class="form-control" placeholder="' + lang + ' text" ' + (lang === surveyLanguages[0] ? 'required' : '') + ' style="flex: 1;">\n';
     bodyHtml += '                            <button type="button" id="record_' + langId + '" onclick="toggleRecording(\'' + langId + '\')" class="btn btn-sm" style="width: 100px;">🎤 Record</button>\n';
     bodyHtml += '                            <button type="button" id="play_' + langId + '" onclick="playAudio(\'' + langId + '\')" class="btn btn-sm" style="display: none;">▶️ Play</button>\n';
     bodyHtml += '                        </div>\n';
@@ -401,15 +389,7 @@ bodyHtml += '}\n';
 bodyHtml += '\n';
 
 // Language management functions
-bodyHtml += 'function handleLanguageSelectChange() {\n';
-bodyHtml += '    const select = document.getElementById("newLanguageSelect");\n';
-bodyHtml += '    const customInput = document.getElementById("customLanguageInput");\n';
-bodyHtml += '    if (select.value === "Other") {\n';
-bodyHtml += '        customInput.style.display = "block";\n';
-bodyHtml += '    } else {\n';
-bodyHtml += '        customInput.style.display = "none";\n';
-bodyHtml += '    }\n';
-bodyHtml += '}\n';
+// Removed handleLanguageSelectChange - no longer needed with text input
 bodyHtml += '\n';
 bodyHtml += 'async function saveGeneralSettings() {\n';
 bodyHtml += '    const fingerprintEnabled = document.getElementById("fingerprintEnabled").checked;\n';
@@ -655,16 +635,11 @@ bodyHtml += '    }\n';
 bodyHtml += '}\n';
 bodyHtml += '\n';
 bodyHtml += 'async function addLanguage() {\n';
-bodyHtml += '    const select = document.getElementById("newLanguageSelect");\n';
-bodyHtml += '    const customInput = document.getElementById("customLanguageInput");\n';
-bodyHtml += '    \n';
-bodyHtml += '    let newLang = select.value;\n';
-bodyHtml += '    if (select.value === "Other") {\n';
-bodyHtml += '        newLang = customInput.value.trim();\n';
-bodyHtml += '    }\n';
+bodyHtml += '    const input = document.getElementById("newLanguageInput");\n';
+bodyHtml += '    const newLang = input.value.trim();\n';
 bodyHtml += '    \n';
 bodyHtml += '    if (!newLang || newLang === "") {\n';
-bodyHtml += '        alert("Please select or enter a language");\n';
+bodyHtml += '        alert("Please enter a language name");\n';
 bodyHtml += '        return;\n';
 bodyHtml += '    }\n';
 bodyHtml += '    \n';
