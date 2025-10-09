@@ -5,7 +5,10 @@
     <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
             <h2>Lab Test Configuration</h2>
-            <a href="/admin/lab-tests/new" class="btn">Add New Test</a>
+            <div>
+                <a href="/lab-entry" class="btn" style="margin-right: 0.5rem;">Enter Lab Results</a>
+                <a href="/admin/lab-tests/new" class="btn">Add New Test</a>
+            </div>
         </div>
 
         <% if (success) { %>

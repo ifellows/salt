@@ -92,7 +92,7 @@ router.get('/facilities', requireAdmin, async (req, res) => {
 router.get('/uploads', requireAdmin, async (req, res) => {
     try {
         const uploads = await allAsync(`
-            SELECT u.*, f.name as facility_name 
+            SELECT u.*, f.name as facility_name
             FROM uploads u
             LEFT JOIN facilities f ON u.facility_id = f.id
             ORDER BY u.upload_time DESC
@@ -110,6 +110,33 @@ router.get('/uploads', requireAdmin, async (req, res) => {
             title: 'Error',
             message: 'Failed to load uploads'
         });
+    }
+});
+
+// Get upload JSON data
+router.get('/api/uploads/:surveyId', requireAdmin, async (req, res) => {
+    try {
+        const { surveyId } = req.params;
+        const fs = require('fs').promises;
+
+        // Get the file path from the database
+        const upload = await getAsync(
+            'SELECT file_path FROM uploads WHERE survey_response_id = ?',
+            [surveyId]
+        );
+
+        if (!upload || !upload.file_path) {
+            return res.status(404).json({ error: 'Upload not found' });
+        }
+
+        // Read the JSON file
+        const jsonData = await fs.readFile(upload.file_path, 'utf-8');
+        const data = JSON.parse(jsonData);
+
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching upload data:', error);
+        res.status(500).json({ error: 'Failed to load upload data' });
     }
 });
 
