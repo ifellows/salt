@@ -21,6 +21,7 @@ data class SurveyConfig(
     @PrimaryKey
     val id: Int = 1, // Single row for survey configuration
     @ColumnInfo(name = "survey_name") val surveyName: String? = null,
+    @ColumnInfo(name = "server_survey_id") val serverSurveyId: Long? = null,
     @ColumnInfo(name = "fingerprint_enabled") val fingerprintEnabled: Boolean = false,
     @ColumnInfo(name = "re_enrollment_days") val reEnrollmentDays: Int = 90,
     @ColumnInfo(name = "last_sync_time") val lastSyncTime: Long? = null,
@@ -675,7 +676,7 @@ interface AppServerConfigDao {
     fun hasServerConfig(): Boolean
 }
 
-@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class], version = 58, autoMigrations = [
+@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class], version = 59, autoMigrations = [
     AutoMigration(from = 52, to = 53)
 ])
 abstract class SurveyDatabase : RoomDatabase() {

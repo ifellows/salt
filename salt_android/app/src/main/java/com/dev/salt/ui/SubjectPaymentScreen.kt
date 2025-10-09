@@ -56,6 +56,7 @@ fun SubjectPaymentScreen(
     var facilityConfig by remember { mutableStateOf<com.dev.salt.data.FacilityConfig?>(null) }
     var survey by remember { mutableStateOf<com.dev.salt.data.Survey?>(null) }
     var paymentAmount by remember { mutableStateOf(0.0) }
+    var fingerprintEnabled by remember { mutableStateOf(true) }
     var isCapturingFingerprint by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var currentMediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
@@ -88,6 +89,10 @@ fun SubjectPaymentScreen(
         facilityConfig = database.facilityConfigDao().getFacilityConfig()
         survey = database.surveyDao().getSurveyById(surveyId)
 
+        // Load fingerprint setting from survey config
+        val surveyConfig = database.surveyConfigDao().getSurveyConfig()
+        fingerprintEnabled = surveyConfig?.fingerprintEnabled ?: false
+
         // Calculate payment amount
         facilityConfig?.let { config ->
             if (config.subjectPaymentType != "None") {
@@ -95,7 +100,7 @@ fun SubjectPaymentScreen(
             }
         }
 
-        Log.d("SubjectPaymentScreen", "Payment config: type=${facilityConfig?.subjectPaymentType}, amount=$paymentAmount")
+        Log.d("SubjectPaymentScreen", "Payment config: type=${facilityConfig?.subjectPaymentType}, amount=$paymentAmount, fingerprintEnabled=$fingerprintEnabled")
 
         // Load payment confirmation message from database
         scope.launch {
@@ -264,27 +269,29 @@ fun SubjectPaymentScreen(
             }
 
             // Instructions
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFFFF3CD)
-                )
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+            if (fingerprintEnabled) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFFFF3CD)
+                    )
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Fingerprint,
-                        contentDescription = null,
-                        tint = Color(0xFF856404),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = getConfirmationInstruction(survey?.language ?: "en"),
-                        color = Color(0xFF856404),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Fingerprint,
+                            contentDescription = null,
+                            tint = Color(0xFF856404),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = getConfirmationInstruction(survey?.language ?: "en"),
+                            color = Color(0xFF856404),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             }
 
@@ -330,7 +337,6 @@ fun SubjectPaymentScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Confirm payment button
             // Get error and upload messages outside onClick lambda
             val deviceInitError = stringResource(R.string.fingerprint_device_init_failed)
             val captureFailedError = stringResource(R.string.fingerprint_capture_failed)
@@ -339,7 +345,10 @@ fun SubjectPaymentScreen(
             val uploadFailedMsg = stringResource(R.string.payment_upload_failed)
             val uploadErrorMsg = stringResource(R.string.payment_upload_error)
 
-            Button(
+            // Show different buttons based on fingerprint setting
+            if (fingerprintEnabled) {
+                // Fingerprint enabled: Show fingerprint verification button
+                Button(
                 onClick = {
                     scope.launch {
                         isCapturingFingerprint = true
@@ -523,23 +532,97 @@ fun SubjectPaymentScreen(
                 }
             }
 
-            // Admin Override button - only shown when payment type is configured (not "None")
-            // Allows admin to confirm payment received without subject fingerprint
-            if (facilityConfig?.subjectPaymentType != "None" && !adminOverrideSuccess) {
-                OutlinedButton(
+                // Admin Override button - only shown when payment type is configured (not "None")
+                // Allows admin to confirm payment received without subject fingerprint
+                if (facilityConfig?.subjectPaymentType != "None" && !adminOverrideSuccess) {
+                    OutlinedButton(
+                        onClick = {
+                            showAdminOverrideDialog = true
+                            adminOverrideError = null
+                        },
+                        enabled = !isCapturingFingerprint && !isUploading && !isCapturingAdminFingerprint,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                    ) {
+                        Text(
+                            text = adminOverrideButton,
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                    }
+                }
+            } else {
+                // Fingerprint disabled: Show simple Continue button (no fingerprint capture)
+                Button(
                     onClick = {
-                        showAdminOverrideDialog = true
-                        adminOverrideError = null
+                        scope.launch {
+                            // Update survey with payment confirmation (no fingerprint)
+                            survey?.let { s ->
+                                val updatedSurvey = s.copy(
+                                    paymentConfirmed = true,
+                                    paymentAmount = paymentAmount,
+                                    paymentType = facilityConfig?.subjectPaymentType ?: "Cash",
+                                    paymentDate = System.currentTimeMillis(),
+                                    isCompleted = true
+                                )
+                                database.surveyDao().updateSurvey(updatedSurvey)
+                                Log.i("SubjectPaymentScreen", "Payment confirmed (no fingerprint) for survey $surveyId: amount=$paymentAmount")
+                            }
+
+                            // Upload survey after payment confirmation
+                            isUploading = true
+                            uploadMessage = uploadingMsg
+                            try {
+                                Log.i("SubjectPaymentScreen", "Starting upload for survey: $surveyId")
+                                val uploadManager = SurveyUploadManager(context, database)
+                                val uploadResult = uploadManager.uploadSurvey(surveyId)
+
+                                when (uploadResult) {
+                                    is UploadResult.Success -> {
+                                        Log.i("SubjectPaymentScreen", "Survey uploaded successfully: $surveyId")
+                                        uploadMessage = uploadSuccessMsg
+                                    }
+                                    else -> {
+                                        Log.e("SubjectPaymentScreen", "Upload failed: $uploadResult")
+                                        uploadMessage = uploadFailedMsg
+                                        // Schedule retry if failed
+                                        val uploadWorkManager = SurveyUploadWorkManager(context)
+                                        uploadWorkManager.scheduleImmediateRetry(surveyId)
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("SubjectPaymentScreen", "Error uploading survey", e)
+                                uploadMessage = uploadErrorMsg
+                            } finally {
+                                isUploading = false
+                                // Navigate to menu after a short delay to show the message
+                                delay(1500)
+                                navController.navigate(AppDestinations.MENU) {
+                                    popUpTo(AppDestinations.SURVEY) { inclusive = true }
+                                    popUpTo(AppDestinations.SUBJECT_PAYMENT) { inclusive = true }
+                                }
+                            }
+                        }
                     },
-                    enabled = !isCapturingFingerprint && !isUploading && !isCapturingAdminFingerprint,
+                    enabled = !isUploading,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
-                ) {
-                    Text(
-                        text = adminOverrideButton,
-                        style = MaterialTheme.typography.titleSmall
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
+                ) {
+                    if (isUploading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text(
+                            text = "Continue",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
                 }
             }
 

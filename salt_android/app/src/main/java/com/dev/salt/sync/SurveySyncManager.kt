@@ -239,8 +239,9 @@ class SurveySyncManager(private val context: Context) {
     private fun insertSurveyData(data: JSONObject) {
         database.runInTransaction {
             try {
-                // Parse survey metadata including eligibility script
+                // Parse survey metadata including eligibility script and server survey ID
                 var eligibilityScript: String? = null
+                var serverSurveyId: Long? = null
                 if (data.has("survey")) {
                     val surveyJson = data.getJSONObject("survey")
                     eligibilityScript = if (surveyJson.has("eligibility_script")) {
@@ -248,14 +249,20 @@ class SurveySyncManager(private val context: Context) {
                     } else {
                         null
                     }
-                    Log.d("SurveySyncManager", "Parsed eligibility script: $eligibilityScript")
+                    serverSurveyId = if (surveyJson.has("id") && !surveyJson.isNull("id")) {
+                        surveyJson.getLong("id")
+                    } else {
+                        null
+                    }
+                    Log.d("SurveySyncManager", "Parsed eligibility script: $eligibilityScript, serverSurveyId: $serverSurveyId")
                 }
 
-                // Parse survey configuration (including eligibility script)
+                // Parse survey configuration (including eligibility script and server survey ID)
                 if (data.has("survey_config")) {
                     val configJson = data.getJSONObject("survey_config")
                     val surveyConfig = SurveyConfig(
                         surveyName = configJson.optString("survey_name", null),
+                        serverSurveyId = serverSurveyId,  // Store server survey ID in SurveyConfig
                         fingerprintEnabled = configJson.optBoolean("fingerprint_enabled", false),
                         reEnrollmentDays = configJson.optInt("re_enrollment_days", 90),
                         lastSyncTime = System.currentTimeMillis(),
@@ -263,7 +270,7 @@ class SurveySyncManager(private val context: Context) {
                         hivRapidTestEnabled = configJson.optBoolean("hiv_rapid_test_enabled", false)
                     )
                     database.surveyConfigDao().insertSurveyConfig(surveyConfig)
-                    Log.d("SurveySyncManager", "Survey config updated: fingerprint=${surveyConfig.fingerprintEnabled}, reEnrollmentDays=${surveyConfig.reEnrollmentDays}, eligibilityScript=${surveyConfig.eligibilityScript}")
+                    Log.d("SurveySyncManager", "Survey config updated: serverSurveyId=${surveyConfig.serverSurveyId}, fingerprint=${surveyConfig.fingerprintEnabled}, reEnrollmentDays=${surveyConfig.reEnrollmentDays}, eligibilityScript=${surveyConfig.eligibilityScript}")
                 }
                 
                 // Parse and save sections

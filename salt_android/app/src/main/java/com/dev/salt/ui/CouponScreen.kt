@@ -156,18 +156,21 @@ fun CouponScreen(
                                     val surveyId = UUID.randomUUID().toString()
                                     val couponGenerator = com.dev.salt.util.CouponGenerator(database.couponDao(), database.surveyDao())
                                     val subjectId = couponGenerator.generateUniqueWalkInSubjectId() // Walk-in participant - unique ID with W prefix
+
+                                    // Load survey config to get server survey ID and fingerprint settings
+                                    val surveyConfig = database.surveyConfigDao().getSurveyConfig()
+                                    val fingerprintEnabled = surveyConfig?.fingerprintEnabled ?: false
+                                    val serverSurveyId = surveyConfig?.serverSurveyId
+
                                     val survey = com.dev.salt.data.Survey(
                                         id = surveyId,
                                         subjectId = subjectId,
                                         startDatetime = System.currentTimeMillis(),
                                         language = "en", // Will be updated in language selection
+                                        serverSurveyId = serverSurveyId,
                                         referralCouponCode = null
                                     )
                                     database.surveyDao().insertSurvey(survey)
-                                    
-                                    // Check if fingerprinting is enabled for this survey
-                                    val surveyConfig = database.surveyConfigDao().getSurveyConfig()
-                                    val fingerprintEnabled = surveyConfig?.fingerprintEnabled ?: false
                                     
                                     Log.d("CouponScreen", "Survey config: $surveyConfig")
                                     Log.d("CouponScreen", "Fingerprint enabled: $fingerprintEnabled")
@@ -245,18 +248,21 @@ fun CouponScreen(
                                     GlobalScope.launch(Dispatchers.IO) {
                                         val surveyId = UUID.randomUUID().toString()
                                         val subjectId = couponCode // Use coupon code as subject ID for recruited participants
+
+                                        // Load survey config to get server survey ID and fingerprint settings
+                                        val surveyConfig = database.surveyConfigDao().getSurveyConfig()
+                                        val fingerprintEnabled = surveyConfig?.fingerprintEnabled ?: false
+                                        val serverSurveyId = surveyConfig?.serverSurveyId
+
                                         val survey = com.dev.salt.data.Survey(
                                             id = surveyId,
                                             subjectId = subjectId,
                                             startDatetime = System.currentTimeMillis(),
                                             language = "en", // Will be updated in language selection
+                                            serverSurveyId = serverSurveyId,
                                             referralCouponCode = couponCode
                                         )
                                         database.surveyDao().insertSurvey(survey)
-                                        
-                                        // Check if fingerprinting is enabled for this survey
-                                        val surveyConfig = database.surveyConfigDao().getSurveyConfig()
-                                        val fingerprintEnabled = surveyConfig?.fingerprintEnabled ?: false
 
                                         Log.d("CouponScreen", "Survey config: $surveyConfig")
                                         Log.d("CouponScreen", "Fingerprint enabled: $fingerprintEnabled")
@@ -312,18 +318,21 @@ fun CouponScreen(
                                     GlobalScope.launch(Dispatchers.IO) {
                                         val surveyId = UUID.randomUUID().toString()
                                         val subjectId = couponCode // Use coupon code as subject ID for recruited participants
+
+                                        // Load survey config to get server survey ID and fingerprint settings
+                                        val surveyConfig = database.surveyConfigDao().getSurveyConfig()
+                                        val fingerprintEnabled = surveyConfig?.fingerprintEnabled ?: false
+                                        val serverSurveyId = surveyConfig?.serverSurveyId
+
                                         val survey = com.dev.salt.data.Survey(
                                             id = surveyId,
                                             subjectId = subjectId,
                                             startDatetime = System.currentTimeMillis(),
                                             language = "en", // Will be updated in language selection
+                                            serverSurveyId = serverSurveyId,
                                             referralCouponCode = couponCode
                                         )
                                         database.surveyDao().insertSurvey(survey)
-                                        
-                                        // Check if fingerprinting is enabled for this survey
-                                        val surveyConfig = database.surveyConfigDao().getSurveyConfig()
-                                        val fingerprintEnabled = surveyConfig?.fingerprintEnabled ?: false
 
                                         Log.d("CouponScreen", "Survey config: $surveyConfig")
                                         Log.d("CouponScreen", "Fingerprint enabled: $fingerprintEnabled")
