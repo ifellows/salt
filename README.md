@@ -6,9 +6,9 @@ A comprehensive survey system implementing the SALT methodology for monitoring k
 
 | Component | Setup Guide | Technical Details |
 |-----------|------------|------------------|
-| **Management Server** | [Server README](salt_management/README.md) | [CLAUDE.md](salt_management/CLAUDE.md) |
-| **Android Tablets** | [Android README](salt_android/README.md) | [CLAUDE.md](salt_android/CLAUDE.md) |
-| **SALT Methodology** | [SALT.pdf](SALT.pdf) | Research design and sampling theory |
+| **Management Server** | [Server README](salt_management/README.md) | |
+| **Android Tablets** | [Android README](salt_android/README.md) |  |
+| **SALT Methodology** | [SALT.pdf](SALT.pdf) | |
 
 ---
 
