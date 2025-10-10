@@ -1,3 +1,77 @@
+/**
+ * Survey Screen
+ *
+ * The main survey interview interface for the SALT Android application.
+ * This screen handles the core data collection workflow with audio-assisted
+ * questions (ACASI), multi-language support, and various question types.
+ *
+ * Key Features:
+ * - Audio-Computer Assisted Self-Interview (ACASI) with automatic playback
+ * - Multiple question types: multiple choice, multi-select, numeric, text
+ * - Sequential audio playback for questions and options with visual highlighting
+ * - Answer validation preventing incomplete submissions
+ * - Skip logic evaluation using JEXL expressions
+ * - Previous/Next navigation with answer persistence
+ * - Eligibility check integration with ineligibility handling
+ * - Survey state tracking to prevent accidental data loss
+ * - Automatic progression to payment confirmation on completion
+ *
+ * Question Types Supported:
+ * 1. multiple_choice: Single selection with button interface
+ * 2. multi_select: Multiple selections with checkboxes (min/max constraints)
+ * 3. numeric: Number input with validation
+ * 4. text: Free-form text input
+ *
+ * Audio Playback Flow:
+ * 1. Question audio plays first (with replay button)
+ * 2. Each option audio plays sequentially
+ * 3. Visual highlighting (yellow) shows which option is currently playing
+ * 4. Selected answer shows with green highlight
+ * 5. User can replay question/options at any time
+ *
+ * Answer Validation:
+ * - Next button only enabled when current question answered
+ * - Multi-select validates min/max selections
+ * - Numeric input validates format
+ * - Cannot skip required questions
+ *
+ * Navigation Flow:
+ * 1. Questions displayed one at a time
+ * 2. Previous button allows navigation back (answers preserved)
+ * 3. Next button advances (only if answered)
+ * 4. Skip logic may skip questions based on previous answers
+ * 5. Eligibility check may end survey early for ineligible participants
+ * 6. Survey completion triggers coupon generation and payment confirmation
+ *
+ * State Management:
+ * - Uses SurveyViewModel for business logic and data persistence
+ * - SurveyStateManager tracks active survey to prevent logout
+ * - Answers saved immediately to database on selection
+ * - Text inputs saved on navigation
+ * - Progress tracked for resume capability
+ *
+ * Related Components:
+ * - SurveyViewModel.kt: Business logic and database operations
+ * - EligibilityCheckScreen.kt: Handles ineligibility display
+ * - RapidTestScreen.kt: HIV rapid test after eligibility
+ * - SubjectPaymentScreen.kt: Payment confirmation after survey
+ * - SurveyStateManager.kt: Tracks survey session state
+ *
+ * Database:
+ * - Reads: questions, options, answers (for resuming)
+ * - Writes: answers, survey responses
+ *
+ * MediaPlayer Management:
+ * - Sequential playback with suspend functions
+ * - Automatic cleanup on completion
+ * - Stop and release on navigation
+ * - Replay functionality for accessibility
+ *
+ * @see SurveyViewModel
+ * @see EligibilityCheckScreen
+ * @see SurveyStateManagerInstance
+ */
+
 package com.dev.salt
 
 import android.media.MediaPlayer

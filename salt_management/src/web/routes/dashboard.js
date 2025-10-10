@@ -1,3 +1,39 @@
+/**
+ * Dashboard Routes
+ *
+ * Provides web interface routes for the SALT Management dashboard.
+ * Handles user authentication, dashboard statistics, facility management,
+ * survey uploads viewing, and JSON data retrieval.
+ *
+ * Key Responsibilities:
+ * - Render main dashboard with statistics
+ * - Display facilities list with upload counts
+ * - Show upload history with view capabilities
+ * - Serve uploaded survey JSON data via API
+ * - Handle user login/logout flows
+ *
+ * Authentication:
+ * - All routes require admin authentication via requireAdmin middleware
+ * - Session-based authentication with cookies
+ * - Login page accessible without authentication
+ *
+ * Database Tables Used:
+ * - facilities: Facility information and configuration
+ * - uploads: Survey upload tracking and status
+ * - facility_short_codes: Tablet registration codes
+ *
+ * Related Files:
+ * - /middleware/auth.js: Authentication middleware
+ * - /views/pages/dashboard.ejs: Dashboard view template
+ * - /views/pages/uploads.ejs: Uploads list view
+ * - /views/pages/facilities.ejs: Facilities list view
+ *
+ * API Endpoints:
+ * - GET /api/uploads/:surveyId: Fetch uploaded survey JSON data
+ *
+ * @module web/routes/dashboard
+ */
+
 const express = require('express');
 const { requireAdmin } = require('../../middleware/auth');
 const { allAsync, getAsync } = require('../../models/database');

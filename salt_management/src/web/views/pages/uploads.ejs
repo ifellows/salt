@@ -1,49 +1,98 @@
-<% var body = ` 
-<h2>Survey Uploads</h2>
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
 
-<div class="card">
-    <h3 style="margin-bottom: 1rem;">Upload History</h3>
-    
-    <table>
-        <thead>
-            <tr>
-                <th>Survey ID</th>
-                <th>Facility</th>
-                <th>Participant ID</th>
-                <th>Status</th>
-                <th>Upload Time</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${uploads.map(upload => `
+<div class="container">
+    <h2>Survey Uploads</h2>
+
+    <div class="card">
+        <h3 style="margin-bottom: 1rem;">Upload History</h3>
+
+        <table>
+            <thead>
                 <tr>
-                    <td>${upload.survey_response_id}</td>
-                    <td>${upload.facility_name || 'Unknown'}</td>
-                    <td>${upload.participant_id || '-'}</td>
-                    <td>
-                        <span style="color: ${upload.status === 'completed' ? 'green' : 'red'}">
-                            ${upload.status}
-                        </span>
-                    </td>
-                    <td>${new Date(upload.upload_time).toLocaleString()}</td>
-                    <td>
-                        ${upload.file_path ? 
-                            `<button onclick="viewData('${upload.survey_response_id}')" class="btn" style="padding: 0.25rem 0.5rem;">View</button>` : 
-                            '-'
-                        }
-                    </td>
+                    <th>Survey ID</th>
+                    <th>Facility</th>
+                    <th>Participant ID</th>
+                    <th>Status</th>
+                    <th>Upload Time</th>
+                    <th>Actions</th>
                 </tr>
-            `).join('')}
-            ${uploads.length === 0 ? '<tr><td colspan="6" style="text-align: center;">No uploads yet</td></tr>' : ''}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                <% uploads.forEach(upload => { %>
+                    <tr>
+                        <td><%= upload.survey_response_id %></td>
+                        <td><%= upload.facility_name || 'Unknown' %></td>
+                        <td><%= upload.participant_id || '-' %></td>
+                        <td>
+                            <span style="color: <%= upload.status === 'completed' ? 'green' : 'red' %>">
+                                <%= upload.status %>
+                            </span>
+                        </td>
+                        <td><%= new Date(upload.upload_time).toLocaleString() %></td>
+                        <td>
+                            <% if (upload.file_path) { %>
+                                <button onclick="viewData('<%= upload.survey_response_id %>')" class="btn" style="padding: 0.25rem 0.5rem;">View</button>
+                            <% } else { %>
+                                -
+                            <% } %>
+                        </td>
+                    </tr>
+                <% }); %>
+                <% if (uploads.length === 0) { %>
+                    <tr><td colspan="6" style="text-align: center;">No uploads yet</td></tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal for displaying JSON data -->
+<div id="jsonModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: relative; width: 80%; max-width: 1000px; height: 80%; margin: 5% auto; background: white; padding: 2rem; border-radius: 8px; overflow: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 id="modalTitle">Survey Data</h3>
+            <button onclick="closeModal()" class="btn" style="padding: 0.5rem 1rem;">Close</button>
+        </div>
+        <pre id="jsonContent" style="background: #1e1e1e; color: #d4d4d4; padding: 1.5rem; border-radius: 4px; overflow: auto; max-height: calc(80vh - 100px); font-family: 'Courier New', monospace; font-size: 0.875rem; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word;"></pre>
+    </div>
 </div>
 
 <script>
-function viewData(surveyId) {
-    alert('View functionality will be implemented to show survey data for: ' + surveyId);
+async function viewData(surveyId) {
+    try {
+        const response = await fetch('/api/uploads/' + surveyId);
+        if (!response.ok) {
+            throw new Error('Failed to fetch upload data');
+        }
+        const data = await response.json();
+
+        // Display the JSON data
+        document.getElementById('modalTitle').textContent = 'Survey Data: ' + surveyId;
+        document.getElementById('jsonContent').textContent = JSON.stringify(data, null, 2);
+        document.getElementById('jsonModal').style.display = 'block';
+    } catch (error) {
+        alert('Error loading upload data: ' + error.message);
+    }
 }
+
+function closeModal() {
+    document.getElementById('jsonModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+document.getElementById('jsonModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeModal();
+    }
+});
 </script>
-` %>
-<%- include('../layouts/main', { body: body }) %>
+
+<%- include('../partials/footer') %>

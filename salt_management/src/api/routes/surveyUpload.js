@@ -1,3 +1,66 @@
+/**
+ * Survey Upload Routes
+ *
+ * Handles survey data uploads from Android tablets. This is a critical component
+ * that processes completed survey submissions, stores data in multiple formats,
+ * and maintains recruitment chain tracking.
+ *
+ * Key Responsibilities:
+ * - Receive and validate survey data from tablets via API
+ * - Store survey JSON files to disk for archival
+ * - Insert structured data into relational database tables
+ * - Track coupon usage and recruitment chains
+ * - Record rapid test results and payment information
+ * - Prevent duplicate survey uploads
+ * - Provide upload statistics to facilities
+ *
+ * Data Flow:
+ * 1. Tablet sends POST request with survey JSON
+ * 2. Validate facility authentication via API key
+ * 3. Check for duplicate uploads (prevent re-processing)
+ * 4. Save complete JSON to /data/uploads/surveys/ directory
+ * 5. Begin database transaction
+ * 6. Insert into completed_surveys table (main survey record)
+ * 7. Insert answers into survey_responses table (one row per answer)
+ * 8. Insert rapid test results if present
+ * 9. Track coupon usage and issuance
+ * 10. Record payment and sample collection info
+ * 11. Commit transaction or rollback on error
+ * 12. Log audit trail
+ * 13. Return success response to tablet
+ *
+ * Authentication:
+ * - Requires facility API key via Bearer token
+ * - Key format: "salt_<uuid>"
+ * - Validated by requireFacilityApiKey middleware
+ *
+ * Database Tables Modified:
+ * - completed_surveys: Main survey record with metadata
+ * - survey_responses: Individual answer records
+ * - rapid_test_results: HIV rapid test results
+ * - coupon_usage: Tracks coupon issuance and redemption
+ * - survey_payments: Payment confirmation and sample collection
+ * - uploads: Upload tracking (legacy compatibility)
+ * - audit_log: Audit trail for uploads
+ *
+ * Error Handling:
+ * - Duplicate prevention: Returns success if already uploaded
+ * - Transaction rollback: Database changes reverted on error
+ * - File-based fallback: JSON saved even if database insert fails
+ * - Audit logging: All errors logged for investigation
+ *
+ * Related Files:
+ * - /middleware/auth.js: API key authentication
+ * - /models/database.js: Database connection utilities
+ * - Android: SurveyUploadManager.kt, SurveySerializer.kt
+ *
+ * API Endpoints:
+ * - POST /api/sync/survey/upload: Upload completed survey
+ * - GET /api/sync/survey/upload/stats: Get facility upload statistics
+ *
+ * @module api/routes/surveyUpload
+ */
+
 const express = require('express');
 const path = require('path');
 const fs = require('fs').promises;
