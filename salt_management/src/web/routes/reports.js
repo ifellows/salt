@@ -10,7 +10,7 @@ const { getAsync } = require('../../models/database');
 router.get('/reports', requireAdmin, (req, res) => {
     res.render('pages/reports', {
         title: 'Reports',
-        username: req.session.username
+        user: req.user
     });
 });
 
@@ -21,7 +21,7 @@ router.get('/reports', requireAdmin, (req, res) => {
 router.get('/reports/new', requireAdmin, (req, res) => {
     res.render('pages/reportEditor', {
         title: 'Create Report',
-        username: req.session.username,
+        user: req.user,
         id: null,
         report: null
     });
@@ -42,13 +42,13 @@ router.get('/reports/:id/edit', requireAdmin, async (req, res) => {
             return res.status(404).render('pages/error', {
                 title: 'Error',
                 message: 'Report not found',
-                username: req.session.username
+                user: req.user
             });
         }
 
         res.render('pages/reportEditor', {
             title: 'Edit Report',
-            username: req.session.username,
+            user: req.user,
             id: report.id,
             report: report
         });
@@ -57,7 +57,7 @@ router.get('/reports/:id/edit', requireAdmin, async (req, res) => {
         res.status(500).render('pages/error', {
             title: 'Error',
             message: 'Failed to load report',
-            username: req.session.username
+            user: req.user
         });
     }
 });
@@ -77,13 +77,13 @@ router.get('/reports/:id/history', requireAdmin, async (req, res) => {
             return res.status(404).render('pages/error', {
                 title: 'Error',
                 message: 'Report not found',
-                username: req.session.username
+                user: req.user
             });
         }
 
         res.render('pages/reportHistory', {
             title: 'Report History',
-            username: req.session.username,
+            user: req.user,
             id: req.params.id,
             name: report.name
         });
@@ -92,7 +92,7 @@ router.get('/reports/:id/history', requireAdmin, async (req, res) => {
         res.status(500).render('pages/error', {
             title: 'Error',
             message: 'Failed to load report history',
-            username: req.session.username
+            user: req.user
         });
     }
 });

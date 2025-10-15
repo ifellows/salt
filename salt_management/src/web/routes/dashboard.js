@@ -76,7 +76,7 @@ router.get('/', requireAdmin, async (req, res) => {
 
         res.render('pages/dashboard', {
             title: 'Dashboard',
-            username: req.session.username,
+            user: req.user,
             stats,
             recentUploads
         });
@@ -112,7 +112,7 @@ router.get('/facilities', requireAdmin, async (req, res) => {
 
         res.render('pages/facilities', {
             title: 'Facilities',
-            username: req.session.username,
+            user: req.user,
             facilities
         });
     } catch (error) {
@@ -137,7 +137,7 @@ router.get('/uploads', requireAdmin, async (req, res) => {
 
         res.render('pages/uploads', {
             title: 'Uploads',
-            username: req.session.username,
+            user: req.user,
             uploads
         });
     } catch (error) {
@@ -178,7 +178,12 @@ router.get('/api/uploads/:surveyId', requireAdmin, async (req, res) => {
 
 // Logout
 router.get('/logout', (req, res) => {
-    req.session.destroy(() => {
+    req.session.destroy((err) => {
+        if (err) {
+            console.error('Session destroy error:', err);
+        }
+        // Clear the session cookie
+        res.clearCookie('connect.sid');
         res.redirect('/login');
     });
 });

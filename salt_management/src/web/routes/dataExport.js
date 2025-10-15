@@ -9,7 +9,7 @@ const { requireAuth } = require('../../middleware/auth');
 router.get('/export', requireAuth, (req, res) => {
     res.render('pages/dataExport', {
         title: 'Data Export',
-        username: req.session.username
+        user: req.user
     });
 });
 

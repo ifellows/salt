@@ -17,7 +17,7 @@ router.get('/surveys', requireAdmin, async (req, res) => {
         
         res.render('pages/surveys', {
             title: 'Survey Configuration',
-            username: req.session.username,
+            user: req.user,
             surveys
         });
     } catch (error) {
@@ -67,7 +67,7 @@ router.get('/surveys/:id/edit', requireAdmin, async (req, res) => {
         
         res.render('pages/surveyEditorSimple', {
             title: `Edit Survey: ${survey.name}`,
-            username: req.session.username,
+            user: req.user,
             survey,
             sections,
             questions: questionsWithOptions
@@ -91,7 +91,7 @@ router.get('/surveys/new', requireAdmin, async (req, res) => {
         
         res.render('pages/newSurvey', {
             title: 'Create New Survey',
-            username: req.session.username,
+            user: req.user,
             existingSurveys: surveys
         });
     } catch (error) {
