@@ -31,7 +31,8 @@ data class SerializedSurvey(
     val paymentConfirmed: Boolean? = null,
     val paymentAmount: Double? = null,
     val paymentType: String? = null,
-    val paymentDate: String? = null
+    val paymentDate: String? = null,
+    val consentSignaturePath: String? = null // Hexadecimal string of signature PNG
 )
 
 data class SerializedQuestion(
@@ -154,7 +155,8 @@ class SurveySerializer {
             paymentConfirmed = survey.paymentConfirmed,
             paymentAmount = survey.paymentAmount,
             paymentType = survey.paymentType,
-            paymentDate = survey.paymentDate?.let { dateFormat.format(Date(it)) }
+            paymentDate = survey.paymentDate?.let { dateFormat.format(Date(it)) },
+            consentSignaturePath = survey.consentSignaturePath
         )
 
         return toJSON(serializedSurvey)
@@ -216,6 +218,13 @@ class SurveySerializer {
             survey.paymentAmount?.let { put("paymentAmount", it) }
             survey.paymentType?.let { put("paymentType", it) }
             survey.paymentDate?.let { put("paymentDate", it) }
+
+            // Consent signature (hexadecimal string)
+            if (survey.consentSignaturePath != null) {
+                put("consentSignaturePath", survey.consentSignaturePath)
+            } else {
+                put("consentSignaturePath", JSONObject.NULL)
+            }
 
             // Device info
             put("deviceInfo", JSONObject().apply {

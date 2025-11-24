@@ -97,6 +97,7 @@ data class Survey(
     @ColumnInfo(name = "payment_date") var paymentDate: Long? = null,
     @ColumnInfo(name = "eligibility_script") var eligibilityScript: String? = null, // JEXL script to determine eligibility
     @ColumnInfo(name = "hiv_rapid_test_result") var hivRapidTestResult: String? = null, // "positive", "negative", "indeterminate", "not_performed"
+    @ColumnInfo(name = "consent_signature_path") var consentSignaturePath: String? = null, // Path to signature PNG file
     @ColumnInfo(name = "is_completed") var isCompleted: Boolean = false
 ) {
     @Ignore
@@ -676,7 +677,7 @@ interface AppServerConfigDao {
     fun hasServerConfig(): Boolean
 }
 
-@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class], version = 62, autoMigrations = [
+@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class], version = 63, autoMigrations = [
     AutoMigration(from = 52, to = 53)
 ])
 abstract class SurveyDatabase : RoomDatabase() {

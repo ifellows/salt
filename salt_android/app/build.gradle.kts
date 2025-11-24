@@ -1,7 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("org.jetbrains.kotlin.kapt")
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.ksp)
 }
 
 android {
@@ -16,12 +17,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
 
-        javaCompileOptions {
-            annotationProcessorOptions {
-                argument("room.schemaLocation", "$projectDir/schemas")
-            }
-        }
+    // KSP configuration for Room schema export
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
     }
 
     buildTypes {
@@ -44,9 +44,6 @@ android {
         //viewBinding = true
         compose = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
-    }
 }
 
 dependencies {
@@ -66,8 +63,8 @@ dependencies {
     val room_version = "2.6.1"
 
     implementation("androidx.room:room-runtime:$room_version")
-    // To use Kotlin annotation processing tool (kapt)
-    kapt("androidx.room:room-compiler:$room_version")
+    // To use Kotlin Symbol Processing (KSP)
+    ksp("androidx.room:room-compiler:$room_version")
     // optional - Kotlin Extensions and Coroutines support for Room
     implementation("androidx.room:room-ktx:$room_version")
     
@@ -114,7 +111,10 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
 
     implementation("org.apache.commons:commons-jexl3:3.3")
-    
+
     // WorkManager for background upload retries
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // Signature capture for consent (sain library)
+    implementation("io.github.joelkanyi:sain:2.1.3")
 }

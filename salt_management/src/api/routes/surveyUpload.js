@@ -202,8 +202,9 @@ router.post('/survey/upload', requireFacilityApiKey, async (req, res) => {
                     app_version,
                     referral_coupon_code,
                     issued_coupons,
-                    json_file_path
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    json_file_path,
+                    consent_signature_path
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     surveyData.surveyId,
                     surveyData.subjectId || surveyData.participantId || 'UNKNOWN',
@@ -218,7 +219,8 @@ router.post('/survey/upload', requireFacilityApiKey, async (req, res) => {
                     surveyData.deviceInfo?.appVersion || null,
                     surveyData.referralCouponCode || null,
                     surveyData.issuedCoupons ? JSON.stringify(surveyData.issuedCoupons) : null,
-                    filepath
+                    filepath,
+                    surveyData.consentSignaturePath || null
                 ]
             );
 

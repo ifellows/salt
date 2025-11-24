@@ -91,6 +91,7 @@ object AppDestinations {
     const val UPLOAD_STATUS = "upload_status" // For upload status dashboard
     const val COUPON = "coupon" // For coupon validation
     const val COUPON_ISSUED = "coupon_issued" // For displaying issued coupons
+    const val CONSENT_SIGNATURE = "consent_signature" // For consent agreement signature capture
     const val CONTACT_CONSENT = "contact_consent" // For asking about future contact
     const val CONTACT_INFO = "contact_info" // For collecting contact information
     const val SEED_RECRUITMENT = "seed_recruitment" // For seed recruitment screen
@@ -585,6 +586,25 @@ class MainActivity : ComponentActivity() {
                                 // Go back to menu or survey completion
                                 navController.popBackStack()
                             }
+                        )
+                    }
+
+                    composable(
+                        route = "${AppDestinations.CONSENT_SIGNATURE}/{surveyId}?coupons={coupons}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType },
+                            navArgument("coupons") {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val coupons = backStackEntry.arguments?.getString("coupons") ?: ""
+                        com.dev.salt.ui.ConsentSignatureScreen(
+                            navController = navController,
+                            surveyId = surveyId,
+                            coupons = coupons
                         )
                     }
 

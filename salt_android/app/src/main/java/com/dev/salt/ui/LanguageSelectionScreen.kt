@@ -163,8 +163,8 @@ fun LanguageSelectionScreen(
                                         android.util.Log.e("LanguageSelection", "Survey $surveyId not found in database!")
                                     }
                                     
-                                    // Navigate to staff instruction screen
-                                    navController.navigate("${AppDestinations.STAFF_INSTRUCTION}/$surveyId") {
+                                    // Navigate to consent signature screen
+                                    navController.navigate("${AppDestinations.CONSENT_SIGNATURE}/$surveyId?coupons=$couponCode") {
                                         popUpTo(AppDestinations.LANGUAGE_SELECTION) { inclusive = true }
                                     }
                                 } catch (e: Exception) {
