@@ -271,7 +271,9 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
             survey_config: {
                 survey_name: survey.name,
                 fingerprint_enabled: Boolean(survey.fingerprint_enabled),
-                re_enrollment_days: survey.re_enrollment_days || 90
+                re_enrollment_days: survey.re_enrollment_days || 90,
+                contact_info_enabled: Boolean(survey.contact_info_enabled),
+                staff_eligibility_screening: Boolean(survey.staff_eligibility_screening)
             },
             sections: sections,
             questions: questionsWithParsedJson,

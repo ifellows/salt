@@ -267,10 +267,12 @@ class SurveySyncManager(private val context: Context) {
                         reEnrollmentDays = configJson.optInt("re_enrollment_days", 90),
                         lastSyncTime = System.currentTimeMillis(),
                         eligibilityScript = eligibilityScript,  // Store eligibility script in SurveyConfig
-                        hivRapidTestEnabled = configJson.optBoolean("hiv_rapid_test_enabled", false)
+                        hivRapidTestEnabled = configJson.optBoolean("hiv_rapid_test_enabled", false),
+                        contactInfoEnabled = configJson.optBoolean("contact_info_enabled", false),
+                        staffEligibilityScreening = configJson.optBoolean("staff_eligibility_screening", false)
                     )
                     database.surveyConfigDao().insertSurveyConfig(surveyConfig)
-                    Log.d("SurveySyncManager", "Survey config updated: serverSurveyId=${surveyConfig.serverSurveyId}, fingerprint=${surveyConfig.fingerprintEnabled}, reEnrollmentDays=${surveyConfig.reEnrollmentDays}, eligibilityScript=${surveyConfig.eligibilityScript}")
+                    Log.d("SurveySyncManager", "Survey config updated: serverSurveyId=${surveyConfig.serverSurveyId}, fingerprint=${surveyConfig.fingerprintEnabled}, reEnrollmentDays=${surveyConfig.reEnrollmentDays}, eligibilityScript=${surveyConfig.eligibilityScript}, contactInfoEnabled=${surveyConfig.contactInfoEnabled}, staffEligibilityScreening=${surveyConfig.staffEligibilityScreening}")
                 }
                 
                 // Parse and save sections

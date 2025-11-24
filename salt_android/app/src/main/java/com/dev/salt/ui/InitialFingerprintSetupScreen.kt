@@ -131,8 +131,8 @@ fun InitialFingerprintSetupScreen(
         }
     }
 
-    fun completeSetup() {
-        if (fingerprintTemplate == null) {
+    fun completeSetup(skipFingerprint: Boolean = false) {
+        if (!skipFingerprint && fingerprintTemplate == null) {
             captureStatus = context.getString(R.string.error_fingerprint_not_captured)
             return
         }
@@ -154,8 +154,8 @@ fun InitialFingerprintSetupScreen(
                     fullName = fullName,
                     hashedPassword = hashedPassword,
                     role = "ADMINISTRATOR",
-                    fingerprintTemplate = fingerprintTemplate,
-                    biometricEnabled = true,
+                    fingerprintTemplate = if (skipFingerprint) null else fingerprintTemplate,
+                    biometricEnabled = !skipFingerprint && fingerprintTemplate != null,
                     sessionTimeoutMinutes = 30,
                     lastLoginTime = System.currentTimeMillis(),
                     lastActivityTime = System.currentTimeMillis()
@@ -163,7 +163,7 @@ fun InitialFingerprintSetupScreen(
 
                 // Insert user into database
                 database.userDao().insertUser(adminUser)
-                Log.d("FingerprintSetup", "Admin user created: $username")
+                Log.d("FingerprintSetup", "Admin user created: $username (fingerprint ${if (skipFingerprint) "skipped" else "enrolled"})")
 
                 // Navigate to facility setup
                 onSetupComplete()
@@ -295,24 +295,46 @@ fun InitialFingerprintSetupScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Complete setup button
-            Button(
-                onClick = { completeSetup() },
+            // Action buttons
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                enabled = fingerprintTemplate != null && !isCapturing && !isCreatingUser
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (isCreatingUser) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.status_creating_account))
-                } else {
-                    Text(stringResource(R.string.button_complete_setup))
+                // Skip fingerprint button
+                OutlinedButton(
+                    onClick = { completeSetup(skipFingerprint = true) },
+                    modifier = Modifier.weight(1f),
+                    enabled = !isCapturing && !isCreatingUser
+                ) {
+                    Text("Skip")
+                }
+
+                // Complete setup button
+                Button(
+                    onClick = { completeSetup(skipFingerprint = false) },
+                    modifier = Modifier.weight(1f),
+                    enabled = fingerprintTemplate != null && !isCapturing && !isCreatingUser
+                ) {
+                    if (isCreatingUser) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.status_creating_account))
+                    } else {
+                        Text("Continue")
+                    }
                 }
             }
+
+            // Info text about skipping
+            Text(
+                text = "You can skip fingerprint setup and use password-only authentication. Fingerprint can be enabled later in settings.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

@@ -120,7 +120,9 @@ router.put('/:id', [
     body('create_version').optional().isBoolean(),
     body('fingerprint_enabled').optional().isInt({ min: 0, max: 1 }),
     body('re_enrollment_days').optional().isInt({ min: 1, max: 365 }),
-    body('staff_validation_message_json').optional()
+    body('staff_validation_message_json').optional(),
+    body('contact_info_enabled').optional().isInt({ min: 0, max: 1 }),
+    body('staff_eligibility_screening').optional().isInt({ min: 0, max: 1 })
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -128,7 +130,7 @@ router.put('/:id', [
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, description, languages, eligibility_script, eligibility_message_json, create_version = false, fingerprint_enabled, re_enrollment_days, staff_validation_message_json } = req.body;
+    const { name, description, languages, eligibility_script, eligibility_message_json, create_version = false, fingerprint_enabled, re_enrollment_days, staff_validation_message_json, contact_info_enabled, staff_eligibility_screening } = req.body;
     const surveyId = req.params.id;
     
     console.log('Update survey request:', {
@@ -274,6 +276,14 @@ router.put('/:id', [
                 updates.push('staff_validation_message_json = ?');
                 params.push(typeof staff_validation_message_json === 'object' ?
                     JSON.stringify(staff_validation_message_json) : staff_validation_message_json);
+            }
+            if (contact_info_enabled !== undefined) {
+                updates.push('contact_info_enabled = ?');
+                params.push(contact_info_enabled);
+            }
+            if (staff_eligibility_screening !== undefined) {
+                updates.push('staff_eligibility_screening = ?');
+                params.push(staff_eligibility_screening);
             }
 
             if (updates.length > 0) {

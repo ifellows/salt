@@ -577,9 +577,42 @@ class MainActivity : ComponentActivity() {
                         com.dev.salt.StaffValidationScreen(
                             surveyId = surveyId,
                             onValidationSuccess = {
-                                // Navigate to contact consent after successful validation
-                                navController.navigate("${AppDestinations.CONTACT_CONSENT}/$surveyId?coupons=$coupons") {
-                                    popUpTo("${AppDestinations.STAFF_VALIDATION}/$surveyId") { inclusive = true }
+                                // Check if contact info collection is enabled
+                                scope.launch(Dispatchers.IO) {
+                                    val surveyConfig = database.surveyConfigDao().getSurveyConfig()
+                                    val contactInfoEnabled = surveyConfig?.contactInfoEnabled ?: false
+
+                                    withContext(Dispatchers.Main) {
+                                        if (contactInfoEnabled) {
+                                            // Navigate to contact consent if enabled
+                                            navController.navigate("${AppDestinations.CONTACT_CONSENT}/$surveyId?coupons=$coupons") {
+                                                popUpTo("${AppDestinations.STAFF_VALIDATION}/$surveyId") { inclusive = true }
+                                            }
+                                        } else {
+                                            // Skip contact consent - check if tests are enabled
+                                            scope.launch(Dispatchers.IO) {
+                                                // Get the actual survey ID from sections
+                                                val sections = database.sectionDao().getAllSections()
+                                                val actualSurveyId = sections.firstOrNull()?.surveyId?.toLong() ?: -1L
+                                                val tests = database.testConfigurationDao().getEnabledTestConfigurations(actualSurveyId)
+                                                val testsEnabled = tests.size
+
+                                                withContext(Dispatchers.Main) {
+                                                    if (testsEnabled > 0) {
+                                                        // Navigate to first test result entry
+                                                        navController.navigate("${AppDestinations.RAPID_TEST_RESULT}/$surveyId/0?coupons=$coupons") {
+                                                            popUpTo("${AppDestinations.STAFF_VALIDATION}/$surveyId") { inclusive = true }
+                                                        }
+                                                    } else {
+                                                        // No tests, go directly to lab collection
+                                                        navController.navigate("${AppDestinations.LAB_COLLECTION}/$surveyId?coupons=$coupons") {
+                                                            popUpTo("${AppDestinations.STAFF_VALIDATION}/$surveyId") { inclusive = true }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             },
                             onCancel = {
