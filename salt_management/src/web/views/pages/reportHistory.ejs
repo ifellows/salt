@@ -1,6 +1,5 @@
 <%
 var pageTitle = typeof title !== 'undefined' ? title : 'Report History';
-var pageUsername = typeof username !== 'undefined' ? username : '';
 var reportId = typeof id !== 'undefined' ? id : null;
 var reportName = typeof name !== 'undefined' ? name : 'Report';
 var body = `
@@ -317,4 +316,4 @@ document.addEventListener('keydown', function(e) {
 });
 </script>
 ` %>
-<%- include('../layouts/main', { body: body, title: pageTitle, username: pageUsername }) %>
+<%- include('../layouts/main', { body: body, title: pageTitle, user: user }) %>

@@ -11,6 +11,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Security middleware
+// In development, disable headers that require HTTPS to allow access via IP address
+// In production, all security headers are enabled
+const isProduction = process.env.NODE_ENV === 'production';
+
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -21,8 +25,13 @@ app.use(helmet({
             mediaSrc: ["'self'", "blob:", "data:"],
             connectSrc: ["'self'", "blob:", "data:"],
             workerSrc: ["'self'", "blob:"],
+            // Only upgrade insecure requests in production
+            ...(isProduction ? { upgradeInsecureRequests: [] } : { upgradeInsecureRequests: null }),
         },
     },
+    crossOriginOpenerPolicy: isProduction,
+    crossOriginEmbedderPolicy: isProduction,
+    hsts: isProduction,
 }));
 
 // CORS configuration

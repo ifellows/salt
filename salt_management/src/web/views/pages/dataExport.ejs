@@ -1,6 +1,5 @@
 <%
 var pageTitle = typeof title !== 'undefined' ? title : 'Data Export';
-var pageUsername = typeof username !== 'undefined' ? username : '';
 var body = `
 <h2>Data Export</h2>
 
@@ -221,4 +220,4 @@ var body = `
     });
 </script>
 ` %>
-<%- include('../layouts/main', { body: body, title: pageTitle, username: pageUsername }) %>
+<%- include('../layouts/main', { body: body, title: pageTitle, user: user }) %>

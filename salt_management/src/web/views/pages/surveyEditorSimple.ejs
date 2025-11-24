@@ -167,6 +167,7 @@ function addQuestionHtml(q) {
     bodyHtml += '                    <span class="question-type-badge">' + q.question_type.replace('_', ' ') + '</span>\n';
     bodyHtml += '                </div>\n';
     bodyHtml += '                <button onclick="editQuestion(' + q.id + ')" class="btn btn-sm">Edit</button>\n';
+    bodyHtml += '                <button onclick="deleteQuestion(' + q.id + ')" class="btn btn-sm btn-danger" style="margin-left: 0.5rem;">Delete</button>\n';
     bodyHtml += '            </div>\n';
     bodyHtml += '            <div style="margin-left: 2rem;">\n';
     // Get the first language text (use first survey language)
@@ -323,6 +324,8 @@ bodyHtml += '</div>\n';
 // Add CSS styles
 bodyHtml += '<style>\n';
 bodyHtml += '.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.9rem; }\n';
+bodyHtml += '.btn-danger { background: #e74c3c; color: white; border: none; }\n';
+bodyHtml += '.btn-danger:hover { background: #c0392b; }\n';
 bodyHtml += '.question-item { background: #f8f8f8; padding: 1rem; margin-bottom: 0.5rem; border-radius: 4px; cursor: move; }\n';
 bodyHtml += '.question-item.dragging { opacity: 0.5; }\n';
 bodyHtml += '.question-item.drag-over { border-top: 3px solid #3498db; }\n';
@@ -917,6 +920,40 @@ bodyHtml += '    }\n';
 bodyHtml += '    \n';
 bodyHtml += '    toggleOptionsSection();\n';
 bodyHtml += '    document.getElementById("editModal").style.display = "block";\n';
+bodyHtml += '}\n';
+bodyHtml += '\n';
+bodyHtml += 'async function deleteQuestion(questionId) {\n';
+bodyHtml += '    const question = questionsData.find(q => q.id === questionId);\n';
+bodyHtml += '    if (!question) return;\n';
+bodyHtml += '    \n';
+bodyHtml += '    const confirmMessage = "Are you sure you want to delete the question \\\"" + question.short_name + "\\\"?\\n\\nThis action cannot be undone.";\n';
+bodyHtml += '    if (!confirm(confirmMessage)) return;\n';
+bodyHtml += '    \n';
+bodyHtml += '    try {\n';
+bodyHtml += '        const response = await fetch("/api/admin/survey-config/" + surveyId + "/questions/" + questionId, {\n';
+bodyHtml += '            method: "DELETE",\n';
+bodyHtml += '            credentials: "same-origin"\n';
+bodyHtml += '        });\n';
+bodyHtml += '        \n';
+bodyHtml += '        if (response.ok) {\n';
+bodyHtml += '            // Remove from questionsData array\n';
+bodyHtml += '            questionsData = questionsData.filter(q => q.id !== questionId);\n';
+bodyHtml += '            \n';
+bodyHtml += '            // Remove from DOM\n';
+bodyHtml += '            const questionElement = document.querySelector("[data-question-id=\'" + questionId + "\']");\n';
+bodyHtml += '            if (questionElement) {\n';
+bodyHtml += '                questionElement.remove();\n';
+bodyHtml += '            }\n';
+bodyHtml += '            \n';
+bodyHtml += '            alert("Question deleted successfully");\n';
+bodyHtml += '        } else {\n';
+bodyHtml += '            const error = await response.json();\n';
+bodyHtml += '            alert("Failed to delete question: " + (error.error || "Unknown error"));\n';
+bodyHtml += '        }\n';
+bodyHtml += '    } catch (error) {\n';
+bodyHtml += '        console.error("Error deleting question:", error);\n';
+bodyHtml += '        alert("Error deleting question: " + error.message);\n';
+bodyHtml += '    }\n';
 bodyHtml += '}\n';
 bodyHtml += '\n';
 bodyHtml += 'function loadOptions(options) {\n';
@@ -1645,4 +1682,4 @@ bodyHtml += '</script>\n';
 
 var body = bodyHtml;
 %>
-<%- include('../layouts/main', { title: 'Edit Survey: ' + survey.name, username: username, body: body }) %>
+<%- include('../layouts/main', { title: 'Edit Survey: ' + survey.name, user: user, body: body }) %>

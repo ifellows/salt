@@ -1,6 +1,5 @@
 <%
 var pageTitle = typeof title !== 'undefined' ? title : 'Reports';
-var pageUsername = typeof username !== 'undefined' ? username : '';
 var body = `
 <h2>Reports Management</h2>
 
@@ -409,4 +408,4 @@ function showError(message) {
 }
 </script>
 ` %>
-<%- include('../layouts/main', { body: body, title: pageTitle, username: pageUsername }) %>
+<%- include('../layouts/main', { body: body, title: pageTitle, user: user }) %>
