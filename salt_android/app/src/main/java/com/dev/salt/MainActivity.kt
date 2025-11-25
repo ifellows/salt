@@ -539,11 +539,27 @@ class MainActivity : ComponentActivity() {
                                     viewModel.markHivTestCompleted()
                                 },
                                 onNavigateToRapidTests = {
-                                    // Navigate to rapid test flow - start with staff validation
+                                    // Check if staff eligibility screening is enabled
                                     val currentSurveyId = viewModel.survey?.id ?: ""
-                                    Log.d("MainActivity", "Navigating to sample collection staff validation after eligibility for survey: $currentSurveyId")
-                                    navController.navigate("${AppDestinations.SAMPLE_COLLECTION_STAFF_VALIDATION}/$currentSurveyId") {
-                                        launchSingleTop = true
+                                    coroutineScope.launch(Dispatchers.IO) {
+                                        val surveyConfig = database.surveyConfigDao().getSurveyConfig()
+                                        val staffEligibilityScreening = surveyConfig?.staffEligibilityScreening ?: false
+
+                                        withContext(Dispatchers.Main) {
+                                            if (staffEligibilityScreening) {
+                                                // Staff already validated during eligibility - skip staff validation screen
+                                                Log.d("MainActivity", "Staff eligibility screening enabled - skipping staff validation, going directly to biological sample collection for survey: $currentSurveyId")
+                                                navController.navigate("${AppDestinations.BIOLOGICAL_SAMPLE_COLLECTION}/$currentSurveyId") {
+                                                    launchSingleTop = true
+                                                }
+                                            } else {
+                                                // Need staff validation before sample collection
+                                                Log.d("MainActivity", "Navigating to sample collection staff validation after eligibility for survey: $currentSurveyId")
+                                                navController.navigate("${AppDestinations.SAMPLE_COLLECTION_STAFF_VALIDATION}/$currentSurveyId") {
+                                                    launchSingleTop = true
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             )
