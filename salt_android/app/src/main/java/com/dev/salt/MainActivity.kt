@@ -91,15 +91,18 @@ object AppDestinations {
     const val UPLOAD_STATUS = "upload_status" // For upload status dashboard
     const val COUPON = "coupon" // For coupon validation
     const val COUPON_ISSUED = "coupon_issued" // For displaying issued coupons
+    const val CONSENT_INSTRUCTION = "consent_instruction" // For staff instruction before consent
     const val CONSENT_SIGNATURE = "consent_signature" // For consent agreement signature capture
     const val CONTACT_CONSENT = "contact_consent" // For asking about future contact
     const val CONTACT_INFO = "contact_info" // For collecting contact information
     const val SEED_RECRUITMENT = "seed_recruitment" // For seed recruitment screen
     const val LANGUAGE_SELECTION = "language_selection" // For language selection screen
     const val FINGERPRINT_SCREENING = "fingerprint_screening" // For fingerprint screening
+    const val MANUAL_DUPLICATE_CHECK = "manual_duplicate_check" // For manual duplicate check when fingerprinting disabled
     const val STAFF_VALIDATION = "staff_validation" // For staff validation/handoff
     const val LAB_COLLECTION = "lab_collection" // For lab sample collection
     const val STAFF_INSTRUCTION = "staff_instruction" // For staff instructions before giving tablet to participant
+    const val SURVEY_START_INSTRUCTION = "survey_start_instruction" // For pre-survey instructions (staff vs participant)
     const val SUBJECT_PAYMENT = "subject_payment" // For subject payment confirmation
     const val LANGUAGE_SETTINGS = "language_settings" // For app language settings
     const val STAFF_FINGERPRINT_ENROLLMENT = "staff_fingerprint_enrollment" // For staff fingerprint enrollment
@@ -112,6 +115,7 @@ object AppDestinations {
     const val RAPID_TEST_RESULT = "rapid_test_result" // For generic rapid test result entry
     const val SAMPLE_COLLECTION_STAFF_VALIDATION = "sample_collection_staff_validation" // Staff validation before sample collection
     const val BIOLOGICAL_SAMPLE_COLLECTION = "biological_sample_collection" // Biological sample collection confirmation
+    const val TABLET_HANDOFF = "tablet_handoff" // For handoff to participant after sample collection
     const val INITIAL_SERVER_CONFIG = "initial_server_config" // For initial server setup wizard
     const val INITIAL_ADMIN_SETUP = "initial_admin_setup" // For initial admin user creation
     const val INITIAL_FINGERPRINT_SETUP = "initial_fingerprint_setup" // For initial admin fingerprint enrollment
@@ -427,7 +431,32 @@ class MainActivity : ComponentActivity() {
                             database = database
                         )
                     }
-                    
+
+                    composable(
+                        route = "${AppDestinations.SURVEY_START_INSTRUCTION}?surveyId={surveyId}&couponCode={couponCode}",
+                        arguments = listOf(
+                            navArgument("surveyId") {
+                                type = NavType.StringType
+                                nullable = false
+                            },
+                            navArgument("couponCode") {
+                                type = NavType.StringType
+                                nullable = false
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val couponCode = backStackEntry.arguments?.getString("couponCode") ?: ""
+                        val context: Context = LocalContext.current
+                        val database = SurveyDatabase.getInstance(context)
+                        com.dev.salt.ui.SurveyStartInstructionScreen(
+                            navController = navController,
+                            database = database,
+                            surveyId = surveyId,
+                            couponCode = couponCode
+                        )
+                    }
+
                     composable(
                         route = AppDestinations.SURVEY_SCREEN + "?couponCode={couponCode}",
                         arguments = listOf(
@@ -578,17 +607,30 @@ class MainActivity : ComponentActivity() {
                             surveyId = surveyId,
                             onValidationSuccess = {
                                 // Check if contact info collection is enabled
+                                Log.d("MainActivity", "=== CONTACT INFO DECISION DEBUG ===")
                                 scope.launch(Dispatchers.IO) {
+                                    Log.d("MainActivity", "Querying survey config from database...")
                                     val surveyConfig = database.surveyConfigDao().getSurveyConfig()
+                                    Log.d("MainActivity", "Survey config retrieved: $surveyConfig")
+                                    Log.d("MainActivity", "Survey config details: " +
+                                        "surveyName=${surveyConfig?.surveyName}, " +
+                                        "serverSurveyId=${surveyConfig?.serverSurveyId}, " +
+                                        "fingerprintEnabled=${surveyConfig?.fingerprintEnabled}, " +
+                                        "contactInfoEnabled=${surveyConfig?.contactInfoEnabled}, " +
+                                        "staffEligibilityScreening=${surveyConfig?.staffEligibilityScreening}")
+
                                     val contactInfoEnabled = surveyConfig?.contactInfoEnabled ?: false
+                                    Log.d("MainActivity", "Extracted contactInfoEnabled value: $contactInfoEnabled (raw: ${surveyConfig?.contactInfoEnabled})")
 
                                     withContext(Dispatchers.Main) {
                                         if (contactInfoEnabled) {
+                                            Log.d("MainActivity", "✓ Contact info IS enabled - navigating to CONTACT_CONSENT screen")
                                             // Navigate to contact consent if enabled
                                             navController.navigate("${AppDestinations.CONTACT_CONSENT}/$surveyId?coupons=$coupons") {
                                                 popUpTo("${AppDestinations.STAFF_VALIDATION}/$surveyId") { inclusive = true }
                                             }
                                         } else {
+                                            Log.d("MainActivity", "✗ Contact info NOT enabled - SKIPPING contact consent screen")
                                             // Skip contact consent - check if tests are enabled
                                             scope.launch(Dispatchers.IO) {
                                                 // Get the actual survey ID from sections
@@ -619,6 +661,25 @@ class MainActivity : ComponentActivity() {
                                 // Go back to menu or survey completion
                                 navController.popBackStack()
                             }
+                        )
+                    }
+
+                    composable(
+                        route = "${AppDestinations.CONSENT_INSTRUCTION}/{surveyId}?coupons={coupons}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType },
+                            navArgument("coupons") {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val coupons = backStackEntry.arguments?.getString("coupons") ?: ""
+                        com.dev.salt.ui.ConsentInstructionScreen(
+                            navController = navController,
+                            surveyId = surveyId,
+                            coupons = coupons
                         )
                     }
 
@@ -813,7 +874,7 @@ class MainActivity : ComponentActivity() {
                         route = "${AppDestinations.FINGERPRINT_SCREENING}/{surveyId}?couponCode={couponCode}",
                         arguments = listOf(
                             navArgument("surveyId") { type = NavType.StringType },
-                            navArgument("couponCode") { 
+                            navArgument("couponCode") {
                                 type = NavType.StringType
                                 nullable = true
                                 defaultValue = null
@@ -828,7 +889,30 @@ class MainActivity : ComponentActivity() {
                             couponCode = couponCode
                         )
                     }
-                    
+
+                    composable(
+                        route = "${AppDestinations.MANUAL_DUPLICATE_CHECK}/{surveyId}?couponCode={couponCode}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType },
+                            navArgument("couponCode") {
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = null
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val couponCode = backStackEntry.arguments?.getString("couponCode") ?: ""
+                        val context: Context = LocalContext.current
+                        val database = SurveyDatabase.getInstance(context)
+                        com.dev.salt.ui.ManualDuplicateCheckScreen(
+                            navController = navController,
+                            database = database,
+                            surveyId = surveyId,
+                            couponCode = couponCode
+                        )
+                    }
+
                     composable(
                         route = "${AppDestinations.LANGUAGE_SELECTION}/{surveyId}?couponCode={couponCode}",
                         arguments = listOf(
@@ -1029,21 +1113,45 @@ class MainActivity : ComponentActivity() {
                         com.dev.salt.ui.BiologicalSampleCollectionScreen(
                             surveyId = surveyId,
                             onSamplesConfirmed = {
-                                // Mark rapid tests as completed so survey doesn't retrigger navigation
-                                surveyViewModel?.let { vm ->
-                                    vm.markRapidTestsCompleted()
-                                    // Advance to next question since we prevented it earlier
-                                    vm.jumpToQuestion(vm.getTheCurrentQuestionIndex())
-                                    Log.d("MainActivity", "Samples collected, marked rapid tests handled and advanced to question ${vm.getTheCurrentQuestionIndex()}")
+                                // Navigate to tablet handoff screen
+                                navController.navigate("${AppDestinations.TABLET_HANDOFF}/$surveyId") {
+                                    popUpTo(AppDestinations.BIOLOGICAL_SAMPLE_COLLECTION) { inclusive = true }
                                 }
-
-                                // Return to survey - only pop once since staff validation already removed itself
-                                navController.popBackStack()
                             },
                             onCancel = {
                                 navController.navigate(AppDestinations.MENU_SCREEN) {
                                     popUpTo(AppDestinations.BIOLOGICAL_SAMPLE_COLLECTION) { inclusive = true }
                                 }
+                            }
+                        )
+                    }
+
+                    // Tablet Handoff Screen - shown after biological sample collection
+                    composable(
+                        route = "${AppDestinations.TABLET_HANDOFF}/{surveyId}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+
+                        // Get the existing survey viewmodel from the shared map
+                        val surveyViewModel: SurveyViewModel? = surveyViewModels[surveyId]
+
+                        com.dev.salt.ui.TabletHandoffScreen(
+                            navController = navController,
+                            surveyId = surveyId,
+                            onContinue = {
+                                // Mark rapid tests as completed and advance to question
+                                surveyViewModel?.let { vm ->
+                                    vm.markRapidTestsCompleted()
+                                    vm.jumpToQuestion(vm.getTheCurrentQuestionIndex())
+                                    Log.d("MainActivity", "Tablet handed off, marked rapid tests handled and advanced to question ${vm.getTheCurrentQuestionIndex()}")
+                                }
+
+                                // Return to survey - pop twice to remove both tablet handoff and biological sample screens
+                                navController.popBackStack()
+                                navController.popBackStack()
                             }
                         )
                     }

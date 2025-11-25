@@ -6,16 +6,18 @@ const router = express.Router();
 
 /**
  * Calculate checksum for survey content
- * @param {Object} survey - Survey data including questions and options
+ * @param {Object} survey - Survey data including questions, options, and config
  * @returns {String} SHA256 hash of the content
  */
 function calculateChecksum(survey) {
     const content = JSON.stringify({
         survey: survey.survey,
+        survey_config: survey.survey_config,  // Include survey configuration in checksum
         sections: survey.sections,
         questions: survey.questions,
         options: survey.options,
-        messages: survey.messages || []  // Include messages in checksum
+        messages: survey.messages || [],
+        test_configurations: survey.testConfigurations || []
     });
 
 
@@ -85,6 +87,13 @@ router.get('/survey/version', requireFacilityApiKey, async (req, res) => {
         // Calculate checksum from actual content (same as download endpoint)
         const contentForChecksum = {
             survey: activeSurvey,  // Use full survey object
+            survey_config: {
+                survey_name: activeSurvey.name,
+                fingerprint_enabled: activeSurvey.fingerprint_enabled === 1 || activeSurvey.fingerprint_enabled === true,
+                re_enrollment_days: activeSurvey.re_enrollment_days || 90,
+                contact_info_enabled: activeSurvey.contact_info_enabled === 1 || activeSurvey.contact_info_enabled === true,
+                staff_eligibility_screening: activeSurvey.staff_eligibility_screening === 1 || activeSurvey.staff_eligibility_screening === true
+            },
             sections: sections,
             questions: questions,
             options: options,
@@ -270,10 +279,10 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
             },
             survey_config: {
                 survey_name: survey.name,
-                fingerprint_enabled: Boolean(survey.fingerprint_enabled),
+                fingerprint_enabled: survey.fingerprint_enabled === 1 || survey.fingerprint_enabled === true,
                 re_enrollment_days: survey.re_enrollment_days || 90,
-                contact_info_enabled: Boolean(survey.contact_info_enabled),
-                staff_eligibility_screening: Boolean(survey.staff_eligibility_screening)
+                contact_info_enabled: survey.contact_info_enabled === 1 || survey.contact_info_enabled === true,
+                staff_eligibility_screening: survey.staff_eligibility_screening === 1 || survey.staff_eligibility_screening === true
             },
             sections: sections,
             questions: questionsWithParsedJson,
@@ -281,7 +290,13 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
             messages: messagesWithParsedJson,
             test_configurations: testConfigurations
         };
-        
+
+        // DEBUG: Log what we're sending
+        console.log('=== SURVEY SYNC DEBUG ===');
+        console.log('Survey from DB - contact_info_enabled:', survey.contact_info_enabled, '(type:', typeof survey.contact_info_enabled, ')');
+        console.log('Survey from DB - staff_eligibility_screening:', survey.staff_eligibility_screening, '(type:', typeof survey.staff_eligibility_screening, ')');
+        console.log('Response survey_config:', JSON.stringify(responseData.survey_config));
+
         // Get raw survey for checksum calculation (re-fetch to ensure no mutations)
         const rawSurvey = await getAsync(
             `SELECT * FROM surveys
@@ -292,6 +307,13 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
         // Calculate checksum using raw survey data (to match version endpoint)
         const checksumData = {
             survey: rawSurvey,  // Use raw survey object (before JSON parsing)
+            survey_config: {
+                survey_name: rawSurvey.name,
+                fingerprint_enabled: rawSurvey.fingerprint_enabled === 1 || rawSurvey.fingerprint_enabled === true,
+                re_enrollment_days: rawSurvey.re_enrollment_days || 90,
+                contact_info_enabled: rawSurvey.contact_info_enabled === 1 || rawSurvey.contact_info_enabled === true,
+                staff_eligibility_screening: rawSurvey.staff_eligibility_screening === 1 || rawSurvey.staff_eligibility_screening === true
+            },
             sections: sections,
             questions: questions,  // Use raw questions, not parsed
             options: options,

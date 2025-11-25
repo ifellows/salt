@@ -27,8 +27,8 @@ data class SurveyConfig(
     @ColumnInfo(name = "last_sync_time") val lastSyncTime: Long? = null,
     @ColumnInfo(name = "eligibility_script") val eligibilityScript: String? = null,
     @ColumnInfo(name = "hiv_rapid_test_enabled") val hivRapidTestEnabled: Boolean = false,
-    @ColumnInfo(name = "contact_info_enabled") val contactInfoEnabled: Boolean = false,
-    @ColumnInfo(name = "staff_eligibility_screening") val staffEligibilityScreening: Boolean = false
+    @ColumnInfo(name = "contact_info_enabled", defaultValue = "0") val contactInfoEnabled: Boolean = false,
+    @ColumnInfo(name = "staff_eligibility_screening", defaultValue = "0") val staffEligibilityScreening: Boolean = false
 )
 
 @Entity(tableName = "system_messages", primaryKeys = ["messageKey", "language"])
@@ -679,7 +679,7 @@ interface AppServerConfigDao {
     fun hasServerConfig(): Boolean
 }
 
-@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class], version = 64, autoMigrations = [
+@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class], version = 65, autoMigrations = [
     AutoMigration(from = 52, to = 53)
 ])
 abstract class SurveyDatabase : RoomDatabase() {

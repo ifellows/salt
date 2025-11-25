@@ -180,8 +180,8 @@ fun CouponScreen(
                                             Log.d("CouponScreen", "Navigating to fingerprint screening")
                                             "${AppDestinations.FINGERPRINT_SCREENING}/$surveyId?couponCode="
                                         } else {
-                                            Log.d("CouponScreen", "Navigating to language selection")
-                                            "${AppDestinations.LANGUAGE_SELECTION}/$surveyId?couponCode="
+                                            Log.d("CouponScreen", "Navigating to manual duplicate check")
+                                            "${AppDestinations.MANUAL_DUPLICATE_CHECK}/$surveyId?couponCode="
                                         }
                                         
                                         navController.navigate(destination) {

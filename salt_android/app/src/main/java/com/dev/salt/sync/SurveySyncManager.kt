@@ -260,16 +260,44 @@ class SurveySyncManager(private val context: Context) {
                 // Parse survey configuration (including eligibility script and server survey ID)
                 if (data.has("survey_config")) {
                     val configJson = data.getJSONObject("survey_config")
+                    Log.d("SurveySyncManager", "=== RAW SURVEY_CONFIG FROM SERVER ===")
+                    Log.d("SurveySyncManager", "Full survey_config JSON: ${configJson.toString()}")
+                    Log.d("SurveySyncManager", "Has 'contact_info_enabled' key: ${configJson.has("contact_info_enabled")}")
+                    if (configJson.has("contact_info_enabled")) {
+                        Log.d("SurveySyncManager", "Raw contact_info_enabled value: ${configJson.get("contact_info_enabled")} (type: ${configJson.get("contact_info_enabled")?.javaClass?.simpleName})")
+                    }
+                    Log.d("SurveySyncManager", "Has 'staff_eligibility_screening' key: ${configJson.has("staff_eligibility_screening")}")
+                    if (configJson.has("staff_eligibility_screening")) {
+                        Log.d("SurveySyncManager", "Raw staff_eligibility_screening value: ${configJson.get("staff_eligibility_screening")} (type: ${configJson.get("staff_eligibility_screening")?.javaClass?.simpleName})")
+                    }
+
+                    // Helper function to parse boolean values that might come as int (0/1) or boolean (true/false)
+                    fun parseBoolean(json: org.json.JSONObject, key: String, default: Boolean = false): Boolean {
+                        return when {
+                            !json.has(key) -> default
+                            json.isNull(key) -> default
+                            else -> {
+                                val value = json.get(key)
+                                when (value) {
+                                    is Boolean -> value
+                                    is Int -> value == 1
+                                    is String -> value.equals("true", ignoreCase = true) || value == "1"
+                                    else -> default
+                                }
+                            }
+                        }
+                    }
+
                     val surveyConfig = SurveyConfig(
                         surveyName = configJson.optString("survey_name", null),
                         serverSurveyId = serverSurveyId,  // Store server survey ID in SurveyConfig
-                        fingerprintEnabled = configJson.optBoolean("fingerprint_enabled", false),
+                        fingerprintEnabled = parseBoolean(configJson, "fingerprint_enabled"),
                         reEnrollmentDays = configJson.optInt("re_enrollment_days", 90),
                         lastSyncTime = System.currentTimeMillis(),
                         eligibilityScript = eligibilityScript,  // Store eligibility script in SurveyConfig
-                        hivRapidTestEnabled = configJson.optBoolean("hiv_rapid_test_enabled", false),
-                        contactInfoEnabled = configJson.optBoolean("contact_info_enabled", false),
-                        staffEligibilityScreening = configJson.optBoolean("staff_eligibility_screening", false)
+                        hivRapidTestEnabled = parseBoolean(configJson, "hiv_rapid_test_enabled"),
+                        contactInfoEnabled = parseBoolean(configJson, "contact_info_enabled"),
+                        staffEligibilityScreening = parseBoolean(configJson, "staff_eligibility_screening")
                     )
                     database.surveyConfigDao().insertSurveyConfig(surveyConfig)
                     Log.d("SurveySyncManager", "Survey config updated: serverSurveyId=${surveyConfig.serverSurveyId}, fingerprint=${surveyConfig.fingerprintEnabled}, reEnrollmentDays=${surveyConfig.reEnrollmentDays}, eligibilityScript=${surveyConfig.eligibilityScript}, contactInfoEnabled=${surveyConfig.contactInfoEnabled}, staffEligibilityScreening=${surveyConfig.staffEligibilityScreening}")
