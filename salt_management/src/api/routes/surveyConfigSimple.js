@@ -122,7 +122,8 @@ router.put('/:id', [
     body('re_enrollment_days').optional().isInt({ min: 1, max: 365 }),
     body('staff_validation_message_json').optional(),
     body('contact_info_enabled').optional().isInt({ min: 0, max: 1 }),
-    body('staff_eligibility_screening').optional().isInt({ min: 0, max: 1 })
+    body('staff_eligibility_screening').optional().isInt({ min: 0, max: 1 }),
+    body('rapid_test_samples_after_eligibility').optional().isInt({ min: 0, max: 1 })
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -130,7 +131,7 @@ router.put('/:id', [
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, description, languages, eligibility_script, eligibility_message_json, create_version = false, fingerprint_enabled, re_enrollment_days, staff_validation_message_json, contact_info_enabled, staff_eligibility_screening } = req.body;
+    const { name, description, languages, eligibility_script, eligibility_message_json, create_version = false, fingerprint_enabled, re_enrollment_days, staff_validation_message_json, contact_info_enabled, staff_eligibility_screening, rapid_test_samples_after_eligibility } = req.body;
     const surveyId = req.params.id;
     
     console.log('Update survey request:', {
@@ -284,6 +285,10 @@ router.put('/:id', [
             if (staff_eligibility_screening !== undefined) {
                 updates.push('staff_eligibility_screening = ?');
                 params.push(staff_eligibility_screening);
+            }
+            if (rapid_test_samples_after_eligibility !== undefined) {
+                updates.push('rapid_test_samples_after_eligibility = ?');
+                params.push(rapid_test_samples_after_eligibility);
             }
 
             if (updates.length > 0) {

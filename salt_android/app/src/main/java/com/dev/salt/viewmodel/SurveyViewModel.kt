@@ -643,21 +643,31 @@ class SurveyViewModel(
                         Log.e("SurveyViewModel", "Please ensure survey is properly downloaded from server")
                     }
 
-                    // Check if any tests are enabled for the actual survey
-                    val enabledTests = database.testConfigurationDao().getEnabledTestConfigurations(actualSurveyId)
-                    if (enabledTests.isNotEmpty()) {
-                        Log.d("SurveyViewModel", "${enabledTests.size} rapid tests enabled for survey ID $actualSurveyId - will need to perform tests")
-                        _needsRapidTestsAfterEligibility.value = true
+                    // Check if rapid test samples should be collected after eligibility
+                    val surveyConfig = database.surveyConfigDao().getSurveyConfig()
+                    val rapidTestSamplesAfterEligibility = surveyConfig?.rapidTestSamplesAfterEligibility ?: true
 
-                        // Emit navigation event if we haven't already
-                        if (!hasNavigatedToRapidTests) {
-                            hasNavigatedToRapidTests = true
-                            returnValue = 2
-                            viewModelScope.launch {
-                                _navigationEvent.emit(SurveyNavigationEvent.NavigateToRapidTests)
+                    if (!rapidTestSamplesAfterEligibility) {
+                        // Skip biological sample collection after eligibility - it will happen at end of survey
+                        Log.d("SurveyViewModel", "Rapid test samples after eligibility disabled - skipping biological sample collection after eligibility")
+                        _needsRapidTestsAfterEligibility.value = false
+                    } else {
+                        // Check if any tests are enabled for the actual survey
+                        val enabledTests = database.testConfigurationDao().getEnabledTestConfigurations(actualSurveyId)
+                        if (enabledTests.isNotEmpty()) {
+                            Log.d("SurveyViewModel", "${enabledTests.size} rapid tests enabled for survey ID $actualSurveyId - will need to perform tests")
+                            _needsRapidTestsAfterEligibility.value = true
+
+                            // Emit navigation event if we haven't already
+                            if (!hasNavigatedToRapidTests) {
+                                hasNavigatedToRapidTests = true
+                                returnValue = 2
+                                viewModelScope.launch {
+                                    _navigationEvent.emit(SurveyNavigationEvent.NavigateToRapidTests)
+                                }
+                                //_navigationEvent.emit(SurveyNavigationEvent.NavigateToRapidTests)
+                                Log.d("SurveyViewModel", "Emitting NavigateToRapidTests event")
                             }
-                            //_navigationEvent.emit(SurveyNavigationEvent.NavigateToRapidTests)
-                            Log.d("SurveyViewModel", "Emitting NavigateToRapidTests event")
                         }
                     }
                 //}

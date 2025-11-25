@@ -514,16 +514,37 @@ class MainActivity : ComponentActivity() {
                                             popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = true }
                                         }
                                     } else {
-                                        // Normal survey completion - navigate to staff validation
-                                        val couponsParam = if (generatedCoupons.isNotEmpty()) {
-                                            generatedCoupons.joinToString(",")
-                                        } else {
-                                            ""
-                                        }
+                                        // Normal survey completion - check if we need to collect biological samples first
+                                        coroutineScope.launch(Dispatchers.IO) {
+                                            val surveyConfig = database.surveyConfigDao().getSurveyConfig()
+                                            val rapidTestSamplesAfterEligibility = surveyConfig?.rapidTestSamplesAfterEligibility ?: true
 
-                                        Log.d("MainActivity", "Navigating to staff validation with coupons: $couponsParam")
-                                        navController.navigate("${AppDestinations.STAFF_VALIDATION}/$innerSurveyId?coupons=$couponsParam") {
-                                            popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
+                                            // Check if there are any enabled tests
+                                            val sections = database.sectionDao().getAllSections()
+                                            val configSurveyId = if (sections.isNotEmpty()) sections.first().surveyId.toLong() else -1L
+                                            val enabledTests = database.testConfigurationDao().getEnabledTestConfigurations(configSurveyId)
+
+                                            withContext(Dispatchers.Main) {
+                                                if (!rapidTestSamplesAfterEligibility && enabledTests.isNotEmpty()) {
+                                                    // Navigate to biological sample collection before rapid test results
+                                                    Log.d("MainActivity", "Survey completed - navigating to biological sample collection (samples not taken after eligibility)")
+                                                    navController.navigate("${AppDestinations.BIOLOGICAL_SAMPLE_COLLECTION}/$innerSurveyId") {
+                                                        popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
+                                                    }
+                                                } else {
+                                                    // Normal flow - navigate to staff validation then rapid test results
+                                                    val couponsParam = if (generatedCoupons.isNotEmpty()) {
+                                                        generatedCoupons.joinToString(",")
+                                                    } else {
+                                                        ""
+                                                    }
+
+                                                    Log.d("MainActivity", "Navigating to staff validation with coupons: $couponsParam")
+                                                    navController.navigate("${AppDestinations.STAFF_VALIDATION}/$innerSurveyId?coupons=$couponsParam") {
+                                                        popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 },
@@ -1122,6 +1143,9 @@ class MainActivity : ComponentActivity() {
                         )
                     ) { backStackEntry ->
                         val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val context: Context = LocalContext.current
+                        val database = SurveyDatabase.getInstance(context)
+                        val scope = rememberCoroutineScope()
 
                         // Get the existing survey viewmodel from the shared map
                         val surveyViewModel: SurveyViewModel? = surveyViewModels[surveyId]
@@ -1129,9 +1153,26 @@ class MainActivity : ComponentActivity() {
                         com.dev.salt.ui.BiologicalSampleCollectionScreen(
                             surveyId = surveyId,
                             onSamplesConfirmed = {
-                                // Navigate to tablet handoff screen
-                                navController.navigate("${AppDestinations.TABLET_HANDOFF}/$surveyId") {
-                                    popUpTo(AppDestinations.BIOLOGICAL_SAMPLE_COLLECTION) { inclusive = true }
+                                // Check if rapid test samples are after eligibility to determine next screen
+                                scope.launch(Dispatchers.IO) {
+                                    val surveyConfig = database.surveyConfigDao().getSurveyConfig()
+                                    val rapidTestSamplesAfterEligibility = surveyConfig?.rapidTestSamplesAfterEligibility ?: true
+
+                                    withContext(Dispatchers.Main) {
+                                        if (rapidTestSamplesAfterEligibility) {
+                                            // Normal flow after eligibility - navigate to tablet handoff screen
+                                            Log.d("MainActivity", "Samples collected after eligibility - navigating to tablet handoff")
+                                            navController.navigate("${AppDestinations.TABLET_HANDOFF}/$surveyId") {
+                                                popUpTo(AppDestinations.BIOLOGICAL_SAMPLE_COLLECTION) { inclusive = true }
+                                            }
+                                        } else {
+                                            // Samples collected at end of survey - navigate directly to rapid test results
+                                            Log.d("MainActivity", "Samples collected at end of survey - navigating to rapid test results")
+                                            navController.navigate("${AppDestinations.RAPID_TEST_RESULT}/$surveyId/0") {
+                                                popUpTo(AppDestinations.BIOLOGICAL_SAMPLE_COLLECTION) { inclusive = true }
+                                            }
+                                        }
+                                    }
                                 }
                             },
                             onCancel = {
