@@ -17,7 +17,8 @@ function calculateChecksum(survey) {
         questions: survey.questions,
         options: survey.options,
         messages: survey.messages || [],
-        test_configurations: survey.testConfigurations || []
+        test_configurations: survey.testConfigurations || [],
+        lab_tests: survey.labTests || []
     });
 
 
@@ -84,6 +85,16 @@ router.get('/survey/version', requireFacilityApiKey, async (req, res) => {
             [activeSurvey.id]
         );
 
+        // Get lab test configurations
+        const labTests = await allAsync(
+            `SELECT id, test_name, test_code, test_type, options,
+                    min_value, max_value, unit, jexl_condition,
+                    is_active, display_order
+             FROM lab_test_configurations
+             WHERE is_active = 1
+             ORDER BY display_order`
+        );
+
         // Calculate checksum from actual content (same as download endpoint)
         const contentForChecksum = {
             survey: activeSurvey,  // Use full survey object
@@ -99,7 +110,8 @@ router.get('/survey/version', requireFacilityApiKey, async (req, res) => {
             questions: questions,
             options: options,
             messages: messages,
-            testConfigurations: testConfigurations
+            testConfigurations: testConfigurations,
+            labTests: labTests
         };
 
         const checksum = calculateChecksum(contentForChecksum);
@@ -253,6 +265,22 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
             [survey.id]
         );
 
+        // Get lab test configurations
+        const labTests = await allAsync(
+            `SELECT id, test_name, test_code, test_type, options,
+                    min_value, max_value, unit, jexl_condition,
+                    is_active, display_order
+             FROM lab_test_configurations
+             WHERE is_active = 1
+             ORDER BY display_order`
+        );
+
+        // Parse JSON options for lab tests
+        const labTestsWithParsedJson = labTests.map(lt => ({
+            ...lt,
+            options: lt.options ? JSON.parse(lt.options) : null
+        }));
+
         // Log the messages being sent
         console.log('Survey sync - messages found:', messages.length);
         if (messages.length > 0) {
@@ -290,7 +318,8 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
             questions: questionsWithParsedJson,
             options: optionsWithParsedJson,
             messages: messagesWithParsedJson,
-            test_configurations: testConfigurations
+            test_configurations: testConfigurations,
+            lab_tests: labTestsWithParsedJson
         };
 
         // DEBUG: Log what we're sending
@@ -321,7 +350,8 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
             questions: questions,  // Use raw questions, not parsed
             options: options,
             messages: messages,  // Use raw messages, not parsed
-            testConfigurations: testConfigurations
+            testConfigurations: testConfigurations,
+            labTests: labTests  // Use raw lab tests, not parsed
         };
         const checksum = calculateChecksum(checksumData);
         

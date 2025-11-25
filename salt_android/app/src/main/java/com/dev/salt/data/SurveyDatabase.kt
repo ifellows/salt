@@ -680,9 +680,10 @@ interface AppServerConfigDao {
     fun hasServerConfig(): Boolean
 }
 
-@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class], version = 66, autoMigrations = [
+@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class, LabTestConfiguration::class], version = 67, autoMigrations = [
     AutoMigration(from = 52, to = 53),
-    AutoMigration(from = 65, to = 66)
+    AutoMigration(from = 65, to = 66),
+    AutoMigration(from = 66, to = 67)
 ])
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
@@ -699,6 +700,7 @@ abstract class SurveyDatabase : RoomDatabase() {
     abstract fun appServerConfigDao(): AppServerConfigDao
     abstract fun testConfigurationDao(): TestConfigurationDao
     abstract fun testResultDao(): TestResultDao
+    abstract fun labTestConfigurationDao(): LabTestConfigurationDao
     companion object {
         private var instance: SurveyDatabase? = null
 

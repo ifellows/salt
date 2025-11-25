@@ -867,6 +867,7 @@ class MainActivity : ComponentActivity() {
                             else -> {
                                 // Show the lab collection screen
                                 com.dev.salt.ui.LabCollectionScreen(
+                                    surveyId = surveyId,
                                     subjectId = subjectId!!,
                                     onSamplesCollected = {
                                         // Update survey to record samples were collected, then navigate

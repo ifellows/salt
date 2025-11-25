@@ -569,6 +569,45 @@ class SurveySyncManager(private val context: Context) {
                     Log.d("SurveySyncManager", "Inserted ${testConfigsArray.length()} test configurations")
                 }
 
+                // Parse lab test configurations
+                if (data.has("lab_tests")) {
+                    val labTestsArray = data.getJSONArray("lab_tests")
+                    val labTestConfigDao = database.labTestConfigurationDao()
+
+                    // Clear existing lab test configurations
+                    labTestConfigDao.deleteAllLabTestConfigurations()
+
+                    for (i in 0 until labTestsArray.length()) {
+                        val labTestJson = labTestsArray.getJSONObject(i)
+
+                        // Parse options array to JSON string if present
+                        val optionsString = if (labTestJson.has("options") && !labTestJson.isNull("options")) {
+                            labTestJson.getJSONArray("options").toString()
+                        } else {
+                            null
+                        }
+
+                        val labTestConfiguration = LabTestConfiguration(
+                            id = labTestJson.getLong("id"),
+                            testName = labTestJson.getString("test_name"),
+                            testCode = labTestJson.optString("test_code", null),
+                            testType = labTestJson.getString("test_type"),
+                            options = optionsString,
+                            minValue = if (labTestJson.has("min_value") && !labTestJson.isNull("min_value"))
+                                labTestJson.getDouble("min_value") else null,
+                            maxValue = if (labTestJson.has("max_value") && !labTestJson.isNull("max_value"))
+                                labTestJson.getDouble("max_value") else null,
+                            unit = labTestJson.optString("unit", null),
+                            jexlCondition = labTestJson.optString("jexl_condition", null),
+                            isActive = labTestJson.optInt("is_active", 1) == 1,
+                            displayOrder = labTestJson.optInt("display_order", 0)
+                        )
+                        labTestConfigDao.insertLabTestConfiguration(labTestConfiguration)
+                        Log.d("SurveySyncManager", "Inserted lab test configuration: ${labTestConfiguration.testName} (jexl: ${labTestConfiguration.jexlCondition})")
+                    }
+                    Log.d("SurveySyncManager", "Inserted ${labTestsArray.length()} lab test configurations")
+                }
+
                 Log.d("SurveySyncManager", "Inserted ${questionsArray.length()} questions and ${optionsArray.length()} options")
             } catch (e: Exception) {
                 Log.e("SurveySyncManager", "Error parsing survey data", e)

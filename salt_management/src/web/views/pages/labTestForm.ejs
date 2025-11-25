@@ -104,6 +104,15 @@
             </div>
 
             <div class="form-group">
+                <label for="jexl_condition">JEXL Condition (Optional)</label>
+                <textarea id="jexl_condition"
+                          name="jexl_condition"
+                          rows="2"
+                          placeholder="e.g., hiv_test_1 == 'positive'"><%= editTest ? (editTest.jexl_condition || '') : '' %></textarea>
+                <small>Enter a JEXL expression to conditionally show this test. Available variables: survey question short names, rapid test IDs (e.g., hiv_test_1). Leave blank to always show.</small>
+            </div>
+
+            <div class="form-group">
                 <label for="display_order">Display Order</label>
                 <input type="number"
                        id="display_order"
@@ -214,7 +223,8 @@ document.getElementById('testForm').addEventListener('submit', async function(e)
         test_code: document.getElementById('test_code').value || null,
         description: document.getElementById('description').value || null,
         test_type: testType,
-        display_order: parseInt(document.getElementById('display_order').value) || 0
+        display_order: parseInt(document.getElementById('display_order').value) || 0,
+        jexl_condition: document.getElementById('jexl_condition').value || null
     };
 
     // Add type-specific fields

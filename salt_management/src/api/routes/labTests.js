@@ -131,7 +131,10 @@ router.post('/lab-tests',
         body('display_order')
             .optional()
             .isInt()
-            .withMessage('Display order must be an integer')
+            .withMessage('Display order must be an integer'),
+        body('jexl_condition')
+            .optional()
+            .trim()
     ],
     async (req, res) => {
         const errors = validationResult(req);
@@ -149,7 +152,8 @@ router.post('/lab-tests',
                 max_value,
                 unit,
                 description,
-                display_order
+                display_order,
+                jexl_condition
             } = req.body;
 
             // Check if test name already exists
@@ -190,8 +194,8 @@ router.post('/lab-tests',
 
             const result = await runAsync(
                 `INSERT INTO lab_test_configurations
-                (test_name, test_code, test_type, options, min_value, max_value, unit, description, display_order)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                (test_name, test_code, test_type, options, min_value, max_value, unit, description, display_order, jexl_condition)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     test_name,
                     test_code || null,
@@ -201,7 +205,8 @@ router.post('/lab-tests',
                     finalMaxValue,
                     finalUnit,
                     description || null,
-                    display_order || 0
+                    display_order || 0,
+                    jexl_condition || null
                 ]
             );
 
@@ -246,7 +251,10 @@ router.put('/lab-tests/:id',
         body('is_active')
             .optional()
             .isBoolean()
-            .withMessage('Active status must be boolean')
+            .withMessage('Active status must be boolean'),
+        body('jexl_condition')
+            .optional()
+            .trim()
     ],
     async (req, res) => {
         const errors = validationResult(req);
@@ -333,6 +341,11 @@ router.put('/lab-tests/:id',
             if (updates.is_active !== undefined) {
                 updateFields.push('is_active = ?');
                 params.push(updates.is_active ? 1 : 0);
+            }
+
+            if (updates.jexl_condition !== undefined) {
+                updateFields.push('jexl_condition = ?');
+                params.push(updates.jexl_condition || null);
             }
 
             if (updateFields.length === 0) {
