@@ -38,6 +38,28 @@ fun CouponIssuedScreen(
     val context = LocalContext.current
     val actualDatabase = database ?: com.dev.salt.data.SurveyDatabase.getInstance(context)
 
+    // State for actual coupons - use parameter if available, otherwise load from database
+    var actualCoupons by remember { mutableStateOf(generatedCoupons) }
+
+    // Load coupons from database if parameter is empty
+    LaunchedEffect(surveyId, generatedCoupons) {
+        Log.d("CouponIssuedScreen", "=== COUPON ISSUED SCREEN LOADED ===")
+        Log.d("CouponIssuedScreen", "surveyId: $surveyId")
+        Log.d("CouponIssuedScreen", "generatedCoupons parameter: $generatedCoupons")
+
+        if (generatedCoupons.isEmpty() && !surveyId.isNullOrBlank()) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val dbCoupons = actualDatabase.couponDao().getCouponsIssuedToSurvey(surveyId)
+                Log.d("CouponIssuedScreen", "Loading from database - found ${dbCoupons.size} coupons: ${dbCoupons.map { it.couponCode }}")
+                if (dbCoupons.isNotEmpty()) {
+                    actualCoupons = dbCoupons.map { it.couponCode }
+                }
+            }
+        } else {
+            actualCoupons = generatedCoupons
+        }
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -82,7 +104,7 @@ fun CouponIssuedScreen(
             )
             
             // Coupons section
-            if (generatedCoupons.isNotEmpty()) {
+            if (actualCoupons.isNotEmpty()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -103,13 +125,13 @@ fun CouponIssuedScreen(
                         )
                         
                         Text(
-                            text = stringResource(R.string.coupon_issued_instructions, generatedCoupons.size),
+                            text = stringResource(R.string.coupon_issued_instructions, actualCoupons.size),
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center
                         )
                         
                         // Display each coupon with a number
-                        generatedCoupons.forEachIndexed { index, couponCode ->
+                        actualCoupons.forEachIndexed { index, couponCode ->
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalAlignment = Alignment.CenterHorizontally
@@ -174,7 +196,7 @@ fun CouponIssuedScreen(
                                 }
                             } else {
                                 // Navigate to payment screen
-                                navController.navigate("${AppDestinations.SUBJECT_PAYMENT}/$surveyId?coupons=${generatedCoupons.joinToString(",")}") {
+                                navController.navigate("${AppDestinations.SUBJECT_PAYMENT}/$surveyId?coupons=${actualCoupons.joinToString(",")}") {
                                     popUpTo(AppDestinations.COUPON_ISSUED) { inclusive = true }
                                 }
                             }

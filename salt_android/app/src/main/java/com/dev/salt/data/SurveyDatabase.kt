@@ -214,7 +214,9 @@ data class Coupon(
     @ColumnInfo(name = "used_by_survey_id") val usedBySurveyId: String? = null,
     @ColumnInfo(name = "used_date") val usedDate: Long? = null,
     @ColumnInfo(name = "status") val status: String = "UNUSED", // UNUSED, ISSUED, USED
-    @ColumnInfo(name = "created_date") val createdDate: Long = System.currentTimeMillis()
+    @ColumnInfo(name = "created_date") val createdDate: Long = System.currentTimeMillis(),
+    @ColumnInfo(name = "recruitment_payment_date") val recruitmentPaymentDate: Long? = null, // When recruitment payment was made
+    @ColumnInfo(name = "recruitment_payment_signature") val recruitmentPaymentSignature: String? = null // Hex PNG signature for non-fingerprint confirmation
 )
 
 @Entity(tableName = "facility_config")
@@ -501,27 +503,37 @@ interface UploadStateDao {
 interface CouponDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertCoupon(coupon: Coupon)
-    
+
     @Query("SELECT * FROM coupons WHERE couponCode = :code LIMIT 1")
     fun getCouponByCode(code: String): Coupon?
-    
+
     @Query("SELECT * FROM coupons WHERE issued_to_survey_id = :surveyId")
     fun getCouponsIssuedToSurvey(surveyId: String): List<Coupon>
-    
+
     @Query("SELECT * FROM coupons WHERE status = :status")
     fun getCouponsByStatus(status: String): List<Coupon>
-    
+
     @Query("UPDATE coupons SET status = 'ISSUED', issued_to_survey_id = :surveyId, issued_date = :issuedDate WHERE couponCode = :code")
     fun markCouponIssued(code: String, surveyId: String, issuedDate: Long)
-    
+
     @Query("UPDATE coupons SET status = 'USED', used_by_survey_id = :surveyId, used_date = :usedDate WHERE couponCode = :code")
     fun markCouponUsed(code: String, surveyId: String, usedDate: Long)
-    
+
     @Query("SELECT COUNT(*) FROM coupons WHERE status = 'UNUSED'")
     fun getUnusedCouponCount(): Int
-    
+
     @Query("DELETE FROM coupons WHERE couponCode = :code")
     fun deleteCoupon(code: String)
+
+    // Recruitment payment methods
+    @Query("UPDATE coupons SET recruitment_payment_date = :paymentDate, recruitment_payment_signature = :signature WHERE couponCode = :code")
+    fun markRecruitmentPaymentMade(code: String, paymentDate: Long, signature: String?)
+
+    @Query("SELECT * FROM coupons WHERE issued_to_survey_id = :surveyId AND status = 'USED' AND recruitment_payment_date IS NULL")
+    fun getUnpaidUsedCoupons(surveyId: String): List<Coupon>
+
+    @Query("SELECT * FROM coupons WHERE issued_to_survey_id = :surveyId AND status = 'USED'")
+    fun getUsedCouponsForSurvey(surveyId: String): List<Coupon>
 }
 
 @Dao
@@ -680,10 +692,11 @@ interface AppServerConfigDao {
     fun hasServerConfig(): Boolean
 }
 
-@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class, LabTestConfiguration::class], version = 67, autoMigrations = [
+@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class, LabTestConfiguration::class], version = 68, autoMigrations = [
     AutoMigration(from = 52, to = 53),
     AutoMigration(from = 65, to = 66),
-    AutoMigration(from = 66, to = 67)
+    AutoMigration(from = 66, to = 67),
+    AutoMigration(from = 67, to = 68)
 ])
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao

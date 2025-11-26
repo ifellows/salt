@@ -491,4 +491,39 @@
     <string name="payment_admin_override_error_no_match">Fingerprint does not match any administrator</string>
     <string name="payment_admin_override_success">✓ Admin override logged. %1$s confirmed payment given.</string>
     <string name="payment_admin_override_payment_type">%1$s (Admin Override: %2$s)</string>
+
+    <!-- Recruitment Payment -->
+    <string name="menu_recruitment_payment">Recruitment Payment</string>
+    <string name="recruitment_lookup_title">Recruitment Payment</string>
+    <string name="recruitment_lookup_instruction">Enter your coupon code or scan your fingerprint to look up your recruitment payments.</string>
+    <string name="recruitment_lookup_instruction_no_fingerprint">Enter the coupon code to look up recruitment payment.</string>
+    <string name="recruitment_lookup_instruction_fingerprint">Scan the participant\'s fingerprint to look up their recruitment payment.</string>
+    <string name="recruitment_lookup_coupon_label">Your Coupon Code</string>
+    <string name="recruitment_lookup_button">Look Up</string>
+    <string name="recruitment_lookup_fingerprint">Scan Fingerprint</string>
+    <string name="recruitment_lookup_or">OR</string>
+    <string name="recruitment_coupon_not_found">Coupon code not found. Please check and try again.</string>
+    <string name="recruitment_fingerprint_not_found">Fingerprint not found. Please try again or use your coupon code.</string>
+    <string name="recruitment_payment_title">Recruitment Payment</string>
+    <string name="recruitment_payment_welcome">Welcome back!</string>
+    <string name="recruitment_payment_your_coupons">Your Coupons</string>
+    <string name="recruitment_payment_used">Used</string>
+    <string name="recruitment_payment_not_used">Not Used</string>
+    <string name="recruitment_payment_pending">Available for payment</string>
+    <string name="recruitment_payment_already_paid">Paid on %1$s</string>
+    <string name="recruitment_payment_eligible">%1$d coupon code(s) have been used and are eligible for payment.</string>
+    <string name="recruitment_payment_none_eligible">No coupon codes are eligible for payment at this time.</string>
+    <string name="recruitment_payment_total">Total payment amount: %1$s%2$.2f %3$s</string>
+    <string name="recruitment_payment_confirm_fingerprint">Confirm with Fingerprint</string>
+    <string name="recruitment_payment_confirm_signature">Sign below to confirm receipt</string>
+    <string name="recruitment_payment_confirm_button">Confirm Payment Received</string>
+    <string name="recruitment_payment_cancel">Cancel</string>
+    <string name="recruitment_payment_success">Payment confirmed successfully!</string>
+
+    <!-- Admin Override for Coupon Lookup (when fingerprint enabled) -->
+    <string name="recruitment_admin_override_required">Administrator Verification Required</string>
+    <string name="recruitment_admin_override_message">Coupon-based lookup requires administrator verification when fingerprinting is enabled. Please have an administrator scan their fingerprint.</string>
+    <string name="recruitment_admin_override_scan">Scan Admin Fingerprint</string>
+    <string name="recruitment_admin_override_success">Administrator verified: %1$s</string>
+    <string name="recruitment_admin_override_no_match">No administrator fingerprint match found.</string>
 </resources>

@@ -119,6 +119,8 @@ object AppDestinations {
     const val INITIAL_SERVER_CONFIG = "initial_server_config" // For initial server setup wizard
     const val INITIAL_ADMIN_SETUP = "initial_admin_setup" // For initial admin user creation
     const val INITIAL_FINGERPRINT_SETUP = "initial_fingerprint_setup" // For initial admin fingerprint enrollment
+    const val RECRUITMENT_LOOKUP = "recruitment_lookup" // For recruitment payment lookup
+    const val RECRUITMENT_PAYMENT = "recruitment_payment" // For recruitment payment confirmation
 
     // Compatibility aliases for existing code
     const val WELCOME_SCREEN = WELCOME
@@ -505,7 +507,11 @@ class MainActivity : ComponentActivity() {
                                     val innerSurveyId = viewModel.survey?.id ?: ""
                                     val wasIneligible = viewModel.needsEligibilityCheck.value && viewModel.isEligible.value == false
 
-                                    Log.d("MainActivity", "Survey navigation back. Survey ID: $innerSurveyId, Was ineligible: $wasIneligible, Coupons: ${generatedCoupons.size}")
+                                    Log.d("MainActivity", "=== SURVEY COMPLETION - onNavigateBack ===")
+                                    Log.d("MainActivity", "Survey ID: $innerSurveyId")
+                                    Log.d("MainActivity", "Was ineligible: $wasIneligible")
+                                    Log.d("MainActivity", "generatedCoupons from viewModel.value: $generatedCoupons")
+                                    Log.d("MainActivity", "generatedCoupons count: ${generatedCoupons.size}")
 
                                     if (wasIneligible) {
                                         // Ineligible participant - go back to main menu
@@ -881,6 +887,9 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                             // Navigate to coupon issued screen after database update completes
+                                            Log.d("MainActivity", "=== LAB_COLLECTION -> COUPON_ISSUED Navigation ===")
+                                            Log.d("MainActivity", "coupons parameter: '$coupons'")
+                                            Log.d("MainActivity", "surveyId: $surveyId")
                                             navController.navigate("${AppDestinations.COUPON_ISSUED}?coupons=$coupons&surveyId=$surveyId") {
                                                 popUpTo("${AppDestinations.LAB_COLLECTION}/$surveyId") { inclusive = true }
                                             }
@@ -925,6 +934,32 @@ class MainActivity : ComponentActivity() {
                             navController = navController,
                             surveyId = surveyId,
                             couponCode = couponCode
+                        )
+                    }
+
+                    // Recruitment Payment screens
+                    composable(AppDestinations.RECRUITMENT_LOOKUP) {
+                        com.dev.salt.ui.RecruitmentLookupScreen(
+                            navController = navController
+                        )
+                    }
+
+                    composable(
+                        route = "${AppDestinations.RECRUITMENT_PAYMENT}/{surveyId}?lookupMethod={lookupMethod}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType },
+                            navArgument("lookupMethod") {
+                                type = NavType.StringType
+                                defaultValue = "coupon_admin_override"
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        val lookupMethod = backStackEntry.arguments?.getString("lookupMethod") ?: "coupon_admin_override"
+                        com.dev.salt.ui.RecruitmentPaymentScreen(
+                            navController = navController,
+                            surveyId = surveyId,
+                            lookupMethod = lookupMethod
                         )
                     }
 
@@ -1423,12 +1458,18 @@ fun MenuScreen(
     val recruitmentManager = remember { com.dev.salt.util.SeedRecruitmentManager(database) }
     val scope = rememberCoroutineScope()
     var showSeedRecruitment by remember { mutableStateOf(false) }
-    
-    // Check if seed recruitment is allowed (recheck each time screen is shown)
+    var showRecruitmentPayment by remember { mutableStateOf(false) }
+
+    // Check if seed recruitment and recruitment payment are allowed
     LaunchedEffect(navController.currentBackStackEntry) {
         Log.d("MenuScreen", "Checking seed recruitment availability...")
         showSeedRecruitment = recruitmentManager.isRecruitmentAllowed()
         Log.d("MenuScreen", "Show seed recruitment button: $showSeedRecruitment")
+
+        // Check if recruitment payment is enabled (amount > 0)
+        val facilityConfig = database.facilityConfigDao().getFacilityConfig()
+        showRecruitmentPayment = (facilityConfig?.recruitmentPaymentAmount ?: 0.0) > 0
+        Log.d("MenuScreen", "Show recruitment payment button: $showRecruitmentPayment (amount=${facilityConfig?.recruitmentPaymentAmount})")
     }
     
     Scaffold(
@@ -1473,6 +1514,19 @@ fun MenuScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(R.string.menu_recruit_participant))
+                }
+            }
+
+            // Show recruitment payment button if enabled
+            if (showRecruitmentPayment) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        navController.navigate(AppDestinations.RECRUITMENT_LOOKUP)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.menu_recruitment_payment))
                 }
             }
             // Add other menu items
