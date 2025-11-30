@@ -700,6 +700,7 @@
 
     <!-- Tablet Handoff Screen strings -->
     <string name="tablet_handoff_title">Tablet Handoff</string>
+    <string name="tablet_handoff_instruction">Hand the tablet to the participant. They will complete the survey by themselves and be directed to hand it back to you when completed.</string>
 
     <!-- Participant Check Screen strings -->
     <string name="participant_check_title">Participant Check</string>

@@ -646,14 +646,24 @@ class SurveyViewModel(
                     // Check if rapid test samples should be collected after eligibility
                     val surveyConfig = database.surveyConfigDao().getSurveyConfig()
                     val rapidTestSamplesAfterEligibility = surveyConfig?.rapidTestSamplesAfterEligibility ?: true
+                    val enabledTests = database.testConfigurationDao().getEnabledTestConfigurations(actualSurveyId)
 
                     if (!rapidTestSamplesAfterEligibility) {
-                        // Skip biological sample collection after eligibility - it will happen at end of survey
-                        Log.d("SurveyViewModel", "Rapid test samples after eligibility disabled - skipping biological sample collection after eligibility")
+                        // Samples will be collected at end of survey - but still need to show tablet handoff
+                        Log.d("SurveyViewModel", "Rapid test samples after eligibility disabled - will show tablet handoff screen")
                         _needsRapidTestsAfterEligibility.value = false
+
+                        // Emit navigation event to show tablet handoff screen
+                        if (!hasNavigatedToRapidTests) {
+                            hasNavigatedToRapidTests = true
+                            returnValue = 2
+                            viewModelScope.launch {
+                                _navigationEvent.emit(SurveyNavigationEvent.NavigateToRapidTests)
+                            }
+                            Log.d("SurveyViewModel", "Emitting NavigateToRapidTests event for tablet handoff")
+                        }
                     } else {
                         // Check if any tests are enabled for the actual survey
-                        val enabledTests = database.testConfigurationDao().getEnabledTestConfigurations(actualSurveyId)
                         if (enabledTests.isNotEmpty()) {
                             Log.d("SurveyViewModel", "${enabledTests.size} rapid tests enabled for survey ID $actualSurveyId - will need to perform tests")
                             _needsRapidTestsAfterEligibility.value = true

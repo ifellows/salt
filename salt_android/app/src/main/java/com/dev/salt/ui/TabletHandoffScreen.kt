@@ -9,6 +9,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.compose.ui.res.stringResource
+import com.dev.salt.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,7 +22,7 @@ fun TabletHandoffScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Tablet Handoff") },
+                title = { Text(stringResource(R.string.tablet_handoff_title)) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -67,7 +69,7 @@ fun TabletHandoffScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Hand the tablet to the participant. They will complete the survey by themselves and be directed to hand it back to you when completed.",
+                        text = stringResource(R.string.tablet_handoff_instruction),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
@@ -87,7 +89,7 @@ fun TabletHandoffScreen(
                 )
             ) {
                 Text(
-                    text = "Continue",
+                    text = stringResource(R.string.common_continue),
                     style = MaterialTheme.typography.titleLarge
                 )
             }

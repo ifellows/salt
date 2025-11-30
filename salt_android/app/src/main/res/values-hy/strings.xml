@@ -602,6 +602,7 @@
     <string name="cd_fingerprint_scanner_instruction">Մատնահետքի սկաների հրահանգ</string>
     <!-- Tablet Handoff Screen -->
     <string name="tablet_handoff_title">Պլանշետի հանձնում</string>
+    <string name="tablet_handoff_instruction">Հանձնեք պլանշետը մասնակցին։ Նրանք կլրացնեն հարցումը ինքնուրույն և ավարտելուց հետո կուղղորդվեն այն հետ ձեզ վերադարձնել։</string>
     
     <!-- Participant Check Screen -->
     <string name="participant_check_title">Մասնակցի ստուգում</string>

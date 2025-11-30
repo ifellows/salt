@@ -566,14 +566,21 @@ class MainActivity : ComponentActivity() {
                                     viewModel.markHivTestCompleted()
                                 },
                                 onNavigateToRapidTests = {
-                                    // Check if staff eligibility screening is enabled
+                                    // Check if staff eligibility screening is enabled and sample collection timing
                                     val currentSurveyId = viewModel.survey?.id ?: ""
                                     coroutineScope.launch(Dispatchers.IO) {
                                         val surveyConfig = database.surveyConfigDao().getSurveyConfig()
                                         val staffEligibilityScreening = surveyConfig?.staffEligibilityScreening ?: false
+                                        val rapidTestSamplesAfterEligibility = surveyConfig?.rapidTestSamplesAfterEligibility ?: true
 
                                         withContext(Dispatchers.Main) {
-                                            if (staffEligibilityScreening) {
+                                            if (!rapidTestSamplesAfterEligibility) {
+                                                // Samples will be collected at end of survey - show tablet handoff screen
+                                                Log.d("MainActivity", "Samples NOT collected after eligibility - navigating to tablet handoff screen")
+                                                navController.navigate("${AppDestinations.TABLET_HANDOFF}/$currentSurveyId") {
+                                                    launchSingleTop = true
+                                                }
+                                            } else if (staffEligibilityScreening) {
                                                 // Staff already validated during eligibility - skip staff validation screen
                                                 Log.d("MainActivity", "Staff eligibility screening enabled - skipping staff validation, going directly to biological sample collection for survey: $currentSurveyId")
                                                 navController.navigate("${AppDestinations.BIOLOGICAL_SAMPLE_COLLECTION}/$currentSurveyId") {
@@ -1239,12 +1246,26 @@ class MainActivity : ComponentActivity() {
                                 surveyViewModel?.let { vm ->
                                     vm.markRapidTestsCompleted()
                                     vm.jumpToQuestion(vm.getTheCurrentQuestionIndex())
-                                    Log.d("MainActivity", "Tablet handed off, marked rapid tests handled and advanced to question ${vm.getTheCurrentQuestionIndex()}")
+                                    Log.d("MainActivity", "Tablet handed off, marked rapid tests handled and advancing to question ${vm.getTheCurrentQuestionIndex()}")
                                 }
 
-                                // Return to survey - pop twice to remove both tablet handoff and biological sample screens
-                                navController.popBackStack()
-                                navController.popBackStack()
+                                // Check if we need to pop twice (after biological sample collection) or once (direct from survey)
+                                // We came from biological sample collection if rapidTestSamplesAfterEligibility is true
+                                val context = navController.context
+                                val database = SurveyDatabase.getInstance(context)
+                                val surveyConfig = database.surveyConfigDao().getSurveyConfig()
+                                val rapidTestSamplesAfterEligibility = surveyConfig?.rapidTestSamplesAfterEligibility ?: true
+
+                                if (rapidTestSamplesAfterEligibility) {
+                                    // Pop twice: tablet handoff + biological sample collection
+                                    Log.d("MainActivity", "Popping twice (tablet handoff + biological sample collection)")
+                                    navController.popBackStack()
+                                    navController.popBackStack()
+                                } else {
+                                    // Pop once: just tablet handoff
+                                    Log.d("MainActivity", "Popping once (just tablet handoff)")
+                                    navController.popBackStack()
+                                }
                             }
                         )
                     }
