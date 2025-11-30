@@ -10,6 +10,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.dev.salt.AppDestinations
+import androidx.compose.ui.res.stringResource
+import com.dev.salt.R
 import com.dev.salt.data.SurveyDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,7 +44,7 @@ fun ManualDuplicateCheckScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Participant Check") },
+                title = { Text(stringResource(R.string.participant_check_title)) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -69,7 +71,7 @@ fun ManualDuplicateCheckScreen(
             ) {
                 // Main question
                 Text(
-                    text = "Has this person participated in this survey within the last $reEnrollmentDays days?",
+                    text = stringResource(R.string.participant_check_question, reEnrollmentDays),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -78,7 +80,7 @@ fun ManualDuplicateCheckScreen(
 
                 // Instruction text
                 Text(
-                    text = "If you are unsure, check with other staff members.",
+                    text = stringResource(R.string.participant_check_instruction),
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -106,7 +108,7 @@ fun ManualDuplicateCheckScreen(
                         )
                     ) {
                         Text(
-                            text = "Participated or Unsure",
+                            text = stringResource(R.string.participant_check_participated),
                             style = MaterialTheme.typography.titleLarge,
                             textAlign = TextAlign.Center
                         )
@@ -128,7 +130,7 @@ fun ManualDuplicateCheckScreen(
                         )
                     ) {
                         Text(
-                            text = "Never Participated",
+                            text = stringResource(R.string.participant_check_never),
                             style = MaterialTheme.typography.titleLarge,
                             textAlign = TextAlign.Center
                         )

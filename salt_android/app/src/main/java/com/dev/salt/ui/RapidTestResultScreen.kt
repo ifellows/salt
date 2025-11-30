@@ -19,6 +19,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.util.Log
+import androidx.compose.ui.res.stringResource
+import com.dev.salt.R
 import com.dev.salt.data.SurveyDatabase
 import com.dev.salt.data.TestResult
 import kotlinx.coroutines.Dispatchers
@@ -51,11 +53,12 @@ fun RapidTestResultScreen(
         }
     }
 
+    // Note: These values are stored in database, display labels need stringResource which requires @Composable
     val testResultOptions = listOf(
-        "negative" to "Negative",
-        "positive" to "Positive",
-        "indeterminate" to "Indeterminate",
-        "not_performed" to "Test Not Performed"
+        "negative",
+        "positive",
+        "indeterminate",
+        "not_performed"
     )
 
     val handleSubmit = {
@@ -81,7 +84,7 @@ fun RapidTestResultScreen(
                     onResultSubmitted()
                 } catch (e: Exception) {
                     Log.e("RapidTestResult", "Error saving test result", e)
-                    errorMessage = "Failed to save test result: ${e.message}"
+                    errorMessage = context.getString(R.string.test_result_save_error, e.message)
                     isProcessing = false
                 }
             }
@@ -116,7 +119,7 @@ fun RapidTestResultScreen(
                     // Icon
                     Icon(
                         Icons.Filled.Science,
-                        contentDescription = "$testName Test",
+                        contentDescription = stringResource(R.string.cd_test_icon, testName),
                         modifier = Modifier
                             .size(64.dp)
                             .padding(bottom = 16.dp),
@@ -125,7 +128,7 @@ fun RapidTestResultScreen(
 
                     // Title
                     Text(
-                        text = "$testName Result",
+                        text = stringResource(R.string.test_title_format, testName),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
@@ -134,7 +137,7 @@ fun RapidTestResultScreen(
 
                     // Instructions
                     Text(
-                        text = "Please record the result of the $testName",
+                        text = stringResource(R.string.test_instruction_format, testName),
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -146,7 +149,14 @@ fun RapidTestResultScreen(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        testResultOptions.forEach { (value, label) ->
+                        testResultOptions.forEach { value ->
+                            val label = when (value) {
+                                "negative" -> stringResource(R.string.test_result_negative)
+                                "positive" -> stringResource(R.string.test_result_positive)
+                                "indeterminate" -> stringResource(R.string.test_result_indeterminate)
+                                "not_performed" -> stringResource(R.string.test_result_not_performed)
+                                else -> value
+                            }
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -183,13 +193,13 @@ fun RapidTestResultScreen(
                                         )
                                         if (value == "indeterminate") {
                                             Text(
-                                                text = "Invalid or unclear test result",
+                                                text = stringResource(R.string.test_indeterminate_description),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         } else if (value == "not_performed") {
                                             Text(
-                                                text = "Test was not conducted",
+                                                text = stringResource(R.string.test_not_performed_description),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -230,7 +240,7 @@ fun RapidTestResultScreen(
                             )
                         } else {
                             Text(
-                                text = "Submit Result",
+                                text = stringResource(R.string.test_submit_result),
                                 style = MaterialTheme.typography.labelLarge
                             )
                         }
@@ -242,7 +252,7 @@ fun RapidTestResultScreen(
                         modifier = Modifier.padding(top = 8.dp),
                         enabled = !isProcessing
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.common_cancel))
                     }
                 }
             }

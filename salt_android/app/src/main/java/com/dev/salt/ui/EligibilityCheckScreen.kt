@@ -88,8 +88,7 @@ fun EligibilityCheckScreen(
                 }
 
                 // Use default message if still not found
-                message = systemMessage?.messageText
-                    ?: "Thank you for your interest. Unfortunately, you do not meet the eligibility criteria for this survey."
+                message = systemMessage?.messageText ?: ""
 
                 // Set audio path if available
                 audioPath = systemMessage?.audioFileName
@@ -110,7 +109,7 @@ fun EligibilityCheckScreen(
                 }
             } catch (e: Exception) {
                 Log.e("EligibilityCheck", "Error loading message", e)
-                message = "Thank you for your interest. Unfortunately, you do not meet the eligibility criteria for this survey."
+                message = ""
             }
         }
     }
@@ -146,7 +145,7 @@ fun EligibilityCheckScreen(
             ) {
                 // Title - No warning icon, more respectful tone
                 Text(
-                    text = "Thank You",
+                    text = stringResource(R.string.eligibility_title),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF1976D2),
@@ -155,7 +154,7 @@ fun EligibilityCheckScreen(
 
                 // Message
                 Text(
-                    text = message,
+                    text = message.ifEmpty { stringResource(R.string.eligibility_not_eligible_default) },
                     fontSize = 18.sp,
                     color = Color.DarkGray,
                     textAlign = TextAlign.Center,
@@ -183,11 +182,11 @@ fun EligibilityCheckScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Replay",
+                            contentDescription = stringResource(R.string.cd_replay),
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Replay Audio Message", fontSize = 14.sp)
+                        Text(stringResource(R.string.eligibility_replay_audio), fontSize = 14.sp)
                     }
                 }
 
@@ -210,7 +209,7 @@ fun EligibilityCheckScreen(
                 // Attempts remaining
                 if (attemptsRemaining < 10) {
                     Text(
-                        text = "Attempts remaining: $attemptsRemaining",
+                        text = stringResource(R.string.eligibility_attempts_remaining, attemptsRemaining),
                         fontSize = 14.sp,
                         color = if (attemptsRemaining <= 3) Color.Red else Color.Gray
                     )
@@ -220,7 +219,7 @@ fun EligibilityCheckScreen(
 
                 // Staff validation message
                 Text(
-                    text = "Please hand the tablet back to the staff member",
+                    text = stringResource(R.string.eligibility_hand_back),
                     fontSize = 16.sp,
                     color = Color.Gray,
                     textAlign = TextAlign.Center
@@ -246,7 +245,7 @@ fun EligibilityCheckScreen(
                                 }
 
                                 if (staffUsers.isEmpty()) {
-                                    errorMessage = "No staff members have enrolled fingerprints"
+                                    errorMessage = context.getString(R.string.error_no_fingerprints_enrolled)
                                     showPasswordDialog = true
                                     isAuthenticating = false
                                 } else {
@@ -265,7 +264,7 @@ fun EligibilityCheckScreen(
                                     }
 
                                     if (secugenDevice == null) {
-                                        errorMessage = "Fingerprint scanner not connected"
+                                        errorMessage = context.getString(R.string.error_fingerprint_scanner_not_connected)
                                         isAuthenticating = false
                                         return@launch
                                     }
@@ -285,7 +284,7 @@ fun EligibilityCheckScreen(
                                             }
                                         )
                                         usbManager.requestPermission(secugenDevice, permissionIntent)
-                                        errorMessage = "Please grant USB permission and try again"
+                                        errorMessage = context.getString(R.string.error_fingerprint_usb_permission)
                                         isAuthenticating = false
                                         return@launch
                                     }
@@ -306,7 +305,7 @@ fun EligibilityCheckScreen(
 
                                     // Initialize device
                                     if (!fingerprintImpl.initializeDevice()) {
-                                        errorMessage = "Failed to initialize fingerprint scanner"
+                                        errorMessage = context.getString(R.string.error_fingerprint_init_failed)
                                         isAuthenticating = false
                                         return@launch
                                     }
@@ -316,7 +315,7 @@ fun EligibilityCheckScreen(
 
                                     if (capturedTemplate == null) {
                                         fingerprintImpl.closeDevice()
-                                        errorMessage = "Failed to capture fingerprint"
+                                        errorMessage = context.getString(R.string.error_fingerprint_capture_failed)
                                         isAuthenticating = false
                                         attemptsRemaining--
                                         return@launch
@@ -356,9 +355,9 @@ fun EligibilityCheckScreen(
                                     } else {
                                         attemptsRemaining--
                                         errorMessage = if (attemptsRemaining <= 0) {
-                                            "Maximum attempts exceeded"
+                                            context.getString(R.string.error_fingerprint_max_attempts)
                                         } else {
-                                            "Fingerprint not recognized. Please try again."
+                                            context.getString(R.string.error_fingerprint_not_recognized)
                                         }
                                     }
                                 }
@@ -384,7 +383,7 @@ fun EligibilityCheckScreen(
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            if (isAuthenticating) "Scanning..." else "Authenticate with Fingerprint",
+                            if (isAuthenticating) stringResource(R.string.eligibility_scanning) else stringResource(R.string.eligibility_fingerprint_button),
                             fontSize = 16.sp
                         )
                     }
@@ -404,7 +403,7 @@ fun EligibilityCheckScreen(
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Use Password", fontSize = 16.sp)
+                        Text(stringResource(R.string.eligibility_password_button), fontSize = 16.sp)
                     }
                 }
             }
@@ -415,7 +414,7 @@ fun EligibilityCheckScreen(
     if (showPasswordDialog) {
         AlertDialog(
             onDismissRequest = { showPasswordDialog = false },
-            title = { Text("Staff Login") },
+            title = { Text(stringResource(R.string.staff_validation_login)) },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -423,7 +422,7 @@ fun EligibilityCheckScreen(
                     OutlinedTextField(
                         value = username,
                         onValueChange = { username = it },
-                        label = { Text("Username") },
+                        label = { Text(stringResource(R.string.label_username)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -431,7 +430,7 @@ fun EligibilityCheckScreen(
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("Password") },
+                        label = { Text(stringResource(R.string.label_password)) },
                         modifier = Modifier.fillMaxWidth(),
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -440,7 +439,7 @@ fun EligibilityCheckScreen(
 
                     // Show hint for testing
                     Text(
-                        text = "Test accounts: admin/123 or staff/123",
+                        text = stringResource(R.string.eligibility_test_hint),
                         fontSize = 12.sp,
                         color = Color.Gray
                     )
@@ -481,10 +480,10 @@ fun EligibilityCheckScreen(
                             } else {
                                 attemptsRemaining--
                                 if (attemptsRemaining <= 0) {
-                                    errorMessage = "Maximum attempts exceeded"
+                                    errorMessage = context.getString(R.string.error_fingerprint_max_attempts)
                                     showPasswordDialog = false
                                 } else {
-                                    errorMessage = "Invalid credentials"
+                                    errorMessage = context.getString(R.string.error_invalid_credentials)
                                 }
                                 password = ""
                             }
@@ -492,12 +491,12 @@ fun EligibilityCheckScreen(
                     },
                     enabled = username.isNotBlank() && password.isNotBlank() && attemptsRemaining > 0
                 ) {
-                    Text("Login")
+                    Text(stringResource(R.string.common_login))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showPasswordDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )

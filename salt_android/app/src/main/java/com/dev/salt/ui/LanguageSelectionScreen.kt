@@ -82,14 +82,6 @@ fun LanguageSelectionScreen(
                 text = stringResource(R.string.language_selection_prompt),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            
-            Text(
-                text = stringResource(R.string.language_selection_prompt_spanish),
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 24.dp)
             )
             

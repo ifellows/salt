@@ -10,6 +10,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.dev.salt.AppDestinations
+import androidx.compose.ui.res.stringResource
+import com.dev.salt.R
 import com.dev.salt.data.SurveyDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,7 +44,7 @@ fun SurveyStartInstructionScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Survey Instructions") },
+                title = { Text(stringResource(R.string.survey_instructions_title)) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -100,9 +102,9 @@ fun SurveyStartInstructionScreen(
                     ) {
                         Text(
                             text = if (staffEligibilityScreening) {
-                                "In a private area, the staff member will ask a few initial questions."
+                                stringResource(R.string.survey_instructions_staff_screening)
                             } else {
-                                "In a private area, hand the tablet to the participant to begin the survey."
+                                stringResource(R.string.survey_instructions_hand_tablet)
                             },
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
@@ -127,7 +129,7 @@ fun SurveyStartInstructionScreen(
                     )
                 ) {
                     Text(
-                        text = "Continue",
+                        text = stringResource(R.string.common_continue),
                         style = MaterialTheme.typography.titleLarge
                     )
                 }

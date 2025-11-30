@@ -526,4 +526,214 @@
     <string name="recruitment_admin_override_scan">Scan Admin Fingerprint</string>
     <string name="recruitment_admin_override_success">Administrator verified: %1$s</string>
     <string name="recruitment_admin_override_no_match">No administrator fingerprint match found.</string>
+
+    <!-- Common/Shared strings -->
+    <string name="common_clear">Clear</string>
+    <string name="common_done">Done</string>
+    <string name="common_login">Login</string>
+    <string name="common_none">(none)</string>
+    <string name="common_selected">Selected</string>
+    <string name="cd_search">Search</string>
+    <string name="cd_usb_permission">USB Permission</string>
+    <string name="cd_device_not_connected">Device Not Connected</string>
+    <string name="cd_quality_issue">Quality Issue</string>
+    <string name="cd_biometric_login">Biometric Login</string>
+
+    <!-- Consent Screen strings -->
+    <string name="consent_title">Consent Agreement</string>
+    <string name="consent_go_back">Go Back</string>
+    <string name="consent_read_instruction">Please read the consent agreement below:</string>
+    <string name="consent_replay_audio">Replay Audio</string>
+    <string name="consent_text_unavailable">Consent text not available</string>
+    <string name="consent_sign_instruction">Please sign below to indicate your consent:</string>
+    <string name="consent_i_agree">I Agree</string>
+    <string name="consent_no_agreement_error">No consent agreement configured. Please contact administrator.</string>
+    <string name="consent_load_error">Error loading consent: %1$s</string>
+    <string name="cd_clear_signature">Clear signature</string>
+    <string name="cd_replay_audio">Replay audio</string>
+
+    <!-- Consent Instruction Screen strings -->
+    <string name="consent_instruction_title">Staff Instructions</string>
+    <string name="consent_instruction_intro">Next we will obtain the participant\'s consent to participate in the study.</string>
+    <string name="consent_instruction_step1">Show the tablet to the participant and let them read the terms of participation.</string>
+    <string name="consent_instruction_step2">They will then be asked to sign and agree to continue.</string>
+    <string name="consent_instruction_step3">Please ensure that they understand.</string>
+
+    <!-- Eligibility Check Screen strings -->
+    <string name="eligibility_title">Thank You</string>
+    <string name="eligibility_not_eligible_default">Thank you for your interest. Unfortunately, you do not meet the eligibility criteria for this survey.</string>
+    <string name="eligibility_replay_audio">Replay Audio Message</string>
+    <string name="eligibility_attempts_remaining">Attempts remaining: %1$d</string>
+    <string name="eligibility_hand_back">Please hand the tablet back to the staff member</string>
+    <string name="eligibility_fingerprint_button">Authenticate with Fingerprint</string>
+    <string name="eligibility_password_button">Use Password</string>
+    <string name="eligibility_scanning">Scanning...</string>
+    <string name="eligibility_test_hint">Test accounts: admin/123 or staff/123</string>
+
+    <!-- Fingerprint Error strings -->
+    <string name="error_no_fingerprints_enrolled">No staff members have enrolled fingerprints</string>
+    <string name="error_fingerprint_scanner_not_connected">Fingerprint scanner not connected</string>
+    <string name="error_fingerprint_usb_permission">Please grant USB permission and try again</string>
+    <string name="error_fingerprint_init_failed">Failed to initialize fingerprint scanner</string>
+    <string name="error_fingerprint_capture_failed">Failed to capture fingerprint</string>
+    <string name="error_fingerprint_max_attempts">Maximum attempts exceeded</string>
+    <string name="error_fingerprint_not_recognized">Fingerprint not recognized. Please try again.</string>
+    <string name="error_invalid_credentials">Invalid credentials</string>
+
+    <!-- USB Permission Dialog strings -->
+    <string name="usb_permission_title">USB Permission Required</string>
+    <string name="usb_permission_message">Please grant USB permission to use the fingerprint scanner.</string>
+    <string name="usb_permission_message_full">Please grant USB permission to use the fingerprint scanner. When prompted, tap \'OK\' to allow access to the device.</string>
+
+    <!-- Scanner Not Connected Dialog strings -->
+    <string name="scanner_not_connected_title">Scanner Not Connected</string>
+    <string name="scanner_not_connected_message">The fingerprint scanner is not connected. Please:</string>
+    <string name="scanner_not_connected_step1">1. Connect the SecuGen scanner to the USB port</string>
+    <string name="scanner_not_connected_step2">2. Use a USB OTG adapter if needed</string>
+    <string name="scanner_not_connected_step3">3. Ensure the device is powered on</string>
+    <string name="scanner_not_connected_step4">4. Try again</string>
+
+    <!-- Low Quality Scan Dialog strings -->
+    <string name="low_quality_title">Low Quality Scan</string>
+    <string name="low_quality_message">The fingerprint quality is too low. Please:</string>
+    <string name="low_quality_step1">Ensure your finger is clean and dry</string>
+    <string name="low_quality_step2">Place your finger flat on the scanner</string>
+    <string name="low_quality_step3">Press firmly but not too hard</string>
+    <string name="low_quality_step4">Make sure the scanner glass is clean</string>
+    <string name="low_quality_try_again">Try Again</string>
+
+    <!-- Lab Collection Screen strings -->
+    <string name="lab_toggle_debug">Toggle Debug</string>
+    <string name="lab_required_tests">Required Lab Tests (%1$d)</string>
+    <string name="lab_no_tests_message">No lab tests required for this participant.</string>
+    <string name="lab_test_code">Code: %1$s</string>
+    <string name="lab_test_type_numeric">Type: Numeric%1$s</string>
+    <string name="lab_test_type_dropdown">Type: Dropdown</string>
+    <string name="lab_test_type_generic">Type: %1$s</string>
+    <string name="lab_debug_title">JEXL Debug Information</string>
+    <string name="lab_debug_survey_answers">Survey Answers:</string>
+    <string name="lab_debug_rapid_test_results">Rapid Test Results:</string>
+    <string name="lab_debug_lab_test_evaluations">Lab Test Evaluations:</string>
+    <string name="lab_debug_condition">Condition: %1$s</string>
+    <string name="lab_debug_result">Result: %1$s =&gt; %2$s</string>
+    <string name="lab_debug_none">(none - always show)</string>
+    <string name="lab_debug_show">SHOW</string>
+    <string name="lab_debug_hide">HIDE</string>
+    <string name="lab_debug_na">N/A</string>
+
+    <!-- Survey Screen strings -->
+    <string name="survey_error_icon">Error</string>
+    <string name="survey_error_default">An error occurred.</string>
+    <string name="survey_multiselect_exact">Select exactly %1$d options</string>
+    <string name="survey_multiselect_range">Select %1$d to %2$d options</string>
+    <string name="survey_multiselect_min">Select at least %1$d options</string>
+    <string name="survey_multiselect_max">Select up to %1$d options</string>
+    <string name="survey_completed">Survey completed!</string>
+
+    <!-- Staff Validation Screen strings -->
+    <string name="staff_validation_default">Please hand the tablet back to the staff member who gave it to you</string>
+
+    <!-- Rapid Test Result Screen strings -->
+    <string name="test_result_negative">Negative</string>
+    <string name="test_result_positive">Positive</string>
+    <string name="test_result_indeterminate">Indeterminate</string>
+    <string name="test_result_not_performed">Test Not Performed</string>
+    <string name="test_result_save_error">Failed to save test result: %1$s</string>
+    <string name="test_title_format">%1$s Result</string>
+    <string name="test_instruction_format">Please record the result of the %1$s</string>
+    <string name="test_indeterminate_description">Invalid or unclear test result</string>
+    <string name="test_not_performed_description">Test was not conducted</string>
+    <string name="test_submit_result">Submit Result</string>
+    <string name="cd_test_icon">%1$s Test</string>
+
+    <!-- HIV Rapid Test Instruction Screen strings -->
+    <string name="hiv_test_replay_instructions">Replay Instructions</string>
+    <string name="hiv_test_auth_fingerprint">Authenticate with Fingerprint</string>
+    <string name="hiv_test_use_password">Use Password Instead</string>
+    <string name="hiv_test_password_label">Staff Password</string>
+    <string name="hiv_test_authenticate">Authenticate</string>
+    <string name="hiv_test_use_fingerprint">Use Fingerprint Instead</string>
+
+    <!-- Recruitment Lookup Screen strings -->
+    <string name="recruitment_lookup_placeholder">XXXXXX</string>
+    <string name="cd_fingerprint_instruction">Place right index finger on scanner</string>
+
+    <!-- Recruitment Payment Screen strings -->
+    <string name="recruitment_payment_subject_id_label">Subject ID</string>
+    <string name="recruitment_payment_no_coupons">No coupons issued to this participant.</string>
+    <string name="recruitment_payment_error_no_fingerprint">No fingerprint on file for this participant.</string>
+
+    <!-- Biological Sample Collection Screen strings -->
+    <string name="sample_collection_title">Biological Sample Collection</string>
+    <string name="sample_collection_instruction">Please take biological samples to perform each of the following tests. Check each one to confirm that they will be performed.</string>
+    <string name="sample_collection_no_tests">No rapid tests configured</string>
+    <string name="sample_collection_continue">Continue to Survey</string>
+    <string name="sample_collection_check_all">Please check all tests to continue</string>
+    <string name="cd_sample_collection">Sample Collection</string>
+
+    <!-- Contact Info Screen strings -->
+    <string name="contact_info_invalid_phone">Please enter a valid phone number</string>
+    <string name="contact_info_invalid_email">Please enter a valid email address</string>
+
+    <!-- Language Settings Screen strings -->
+    <string name="language_settings_app_language">App Language</string>
+    <string name="language_settings_description">Select the language for the app interface. This setting applies to all users and staff members.</string>
+    <string name="language_settings_note">Note: This only affects the app interface. Survey content languages are managed separately.</string>
+
+    <!-- Fingerprint Enrollment Screen strings -->
+    <string name="fingerprint_enrollment_title">Fingerprint Enrollment</string>
+    <string name="fingerprint_enrollment_header">Enroll Fingerprint</string>
+    <string name="fingerprint_enrollment_instructions_label">Instructions:</string>
+    <string name="fingerprint_enrollment_step1">Clean your RIGHT INDEX finger</string>
+    <string name="fingerprint_enrollment_step2">Place finger flat on scanner</string>
+    <string name="fingerprint_enrollment_step3">Press gently - not too hard</string>
+    <string name="fingerprint_enrollment_step4">Hold still until scan completes</string>
+    <string name="fingerprint_enrollment_button">Enroll Fingerprint</string>
+    <string name="fingerprint_enrollment_success">Fingerprint Enrolled Successfully!</string>
+    <string name="fingerprint_enrollment_ready">%1$s can now login using their fingerprint</string>
+    <string name="fingerprint_enrollment_skip_title">Skip Fingerprint Enrollment?</string>
+    <string name="fingerprint_enrollment_skip_message">The user will need to use their password to login. You can enroll their fingerprint later from User Management.</string>
+
+    <!-- Initial Fingerprint Setup Screen strings -->
+    <string name="fingerprint_setup_skip_info">You can skip fingerprint setup and use password-only authentication. Fingerprint can be enabled later in settings.</string>
+    <string name="cd_fingerprint_scanner_instruction">Fingerprint scanner instruction</string>
+
+    <!-- Tablet Handoff Screen strings -->
+    <string name="tablet_handoff_title">Tablet Handoff</string>
+
+    <!-- Participant Check Screen strings -->
+    <string name="participant_check_title">Participant Check</string>
+    <string name="participant_check_question">Has this person participated in this survey within the last %1$d days?</string>
+    <string name="participant_check_instruction">If you are unsure, check with other staff members.</string>
+    <string name="participant_check_participated">Participated or Unsure</string>
+    <string name="participant_check_never">Never Participated</string>
+
+    <!-- Survey Instructions Screen strings -->
+    <string name="survey_instructions_title">Survey Instructions</string>
+    <string name="survey_instructions_staff_screening">In a private area, the staff member will ask a few initial questions.</string>
+    <string name="survey_instructions_hand_tablet">In a private area, hand the tablet to the participant to begin the survey.</string>
+
+    <!-- Rapid Test Instruction Screen strings -->
+    <string name="rapid_test_replay_instructions">Replay Instructions</string>
+    <string name="rapid_test_auth_fingerprint">Authenticate with Fingerprint</string>
+    <string name="rapid_test_use_password">Use Password Instead</string>
+    <string name="rapid_test_password_label">Staff Password</string>
+    <string name="rapid_test_authenticate">Authenticate</string>
+    <string name="rapid_test_use_fingerprint">Use Fingerprint Instead</string>
+
+    <!-- Server Settings Screen strings -->
+    <string name="server_settings_test_connection">Test Connection</string>
+    <string name="server_settings_save_url">Save URL</string>
+    <string name="server_settings_url_placeholder">http://10.0.2.2:3000</string>
+    <string name="server_settings_error_indicator">Error: </string>
+
+    <!-- Session Timeout Dialog strings -->
+    <string name="session_timeout_expired">Session Expired</string>
+    <string name="session_timeout_login_again">Login Again</string>
+
+    <!-- Additional fingerprint strings -->
+    <string name="fingerprint_instruction_step2">Place your RIGHT INDEX finger flat on the scanner</string>
+    <string name="fingerprint_attempt_of">Attempt %1$d of %2$d</string>
+
+    <!-- Additional label strings (label_username, label_password, staff_validation_login already exist) -->
 </resources>

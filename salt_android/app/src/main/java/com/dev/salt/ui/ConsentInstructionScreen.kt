@@ -7,9 +7,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.dev.salt.AppDestinations
+import com.dev.salt.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,7 +23,7 @@ fun ConsentInstructionScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Staff Instructions") },
+                title = { Text(stringResource(R.string.consent_instruction_title)) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -56,7 +58,7 @@ fun ConsentInstructionScreen(
 
             // Main instruction text
             Text(
-                text = "Next we will obtain the participant's consent to participate in the study.",
+                text = stringResource(R.string.consent_instruction_intro),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -76,7 +78,7 @@ fun ConsentInstructionScreen(
                     modifier = Modifier.padding(24.dp)
                 ) {
                     Text(
-                        text = "Show the tablet to the participant and let them read the terms of participation.",
+                        text = stringResource(R.string.consent_instruction_step1),
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
@@ -90,7 +92,7 @@ fun ConsentInstructionScreen(
                     )
 
                     Text(
-                        text = "They will then be asked to sign and agree to continue.",
+                        text = stringResource(R.string.consent_instruction_step2),
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
@@ -104,7 +106,7 @@ fun ConsentInstructionScreen(
                     )
 
                     Text(
-                        text = "Please ensure that they understand.",
+                        text = stringResource(R.string.consent_instruction_step3),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
                         textAlign = TextAlign.Center,
@@ -129,7 +131,7 @@ fun ConsentInstructionScreen(
                 )
             ) {
                 Text(
-                    text = "Continue",
+                    text = stringResource(R.string.common_continue),
                     style = MaterialTheme.typography.titleLarge
                 )
             }

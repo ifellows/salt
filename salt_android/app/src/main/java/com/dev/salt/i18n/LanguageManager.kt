@@ -1,7 +1,6 @@
 package com.dev.salt.i18n
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.os.Build
 import java.util.Locale
@@ -15,18 +14,88 @@ object LanguageManager {
     private const val KEY_LANGUAGE_CODE = "app_language_code"
     private const val DEFAULT_LANGUAGE = "system" // Use system language by default
 
-    // Available languages in the app
-    val availableLanguages = listOf(
-        LanguageOption("system", "System Default", "Idioma del sistema"),
-        LanguageOption("en", "English", "English"),
-        LanguageOption("es", "Español", "Spanish")
-    )
-
     data class LanguageOption(
         val code: String,
         val displayName: String,
         val nativeName: String
     )
+
+    /**
+     * Get the list of available languages by detecting which resource directories exist.
+     * This dynamically discovers languages based on values-XX folders with strings.xml
+     */
+    fun getAvailableLanguages(context: Context): List<LanguageOption> {
+        val languages = mutableListOf(
+            LanguageOption("system", "System Default", "")
+        )
+
+        // English is always available (default values folder)
+        languages.add(LanguageOption("en", "English", "English"))
+
+        // Detect available locales from the app's resources
+        val configuration = Configuration(context.resources.configuration)
+
+        // Check for known language codes by attempting to load a string resource
+        // with that locale and seeing if it differs from default
+        val knownLanguages = listOf(
+            Triple("es", "Spanish", "Espa\u00F1ol"),
+            Triple("hy", "Armenian", "\u0540\u0561\u0575\u0565\u0580\u0565\u0576"),
+            Triple("fr", "French", "Fran\u00E7ais"),
+            Triple("ru", "Russian", "\u0420\u0443\u0441\u0441\u043A\u0438\u0439"),
+            Triple("pt", "Portuguese", "Portugu\u00EAs"),
+            Triple("zh", "Chinese", "\u4E2D\u6587"),
+            Triple("ar", "Arabic", "\u0627\u0644\u0639\u0631\u0628\u064A\u0629"),
+            Triple("hi", "Hindi", "\u0939\u093F\u0928\u094D\u0926\u0940"),
+            Triple("sw", "Swahili", "Kiswahili"),
+            Triple("am", "Amharic", "\u12A0\u121B\u122D\u129B")
+        )
+
+        for ((code, englishName, nativeName) in knownLanguages) {
+            if (isLanguageAvailable(context, code)) {
+                languages.add(LanguageOption(code, englishName, nativeName))
+            }
+        }
+
+        return languages
+    }
+
+    /**
+     * Check if a language is available by testing if the app has resources for that locale.
+     * We do this by checking if a known string differs when we switch locales.
+     */
+    private fun isLanguageAvailable(context: Context, languageCode: String): Boolean {
+        try {
+            val locale = Locale(languageCode)
+            val config = Configuration(context.resources.configuration)
+            config.setLocale(locale)
+
+            val localizedContext = context.createConfigurationContext(config)
+            val localizedResources = localizedContext.resources
+
+            // Get app_name in the target locale - this string exists in all translations
+            val testStringId = context.resources.getIdentifier("app_name", "string", context.packageName)
+            if (testStringId == 0) return false
+
+            // Get a string that should be translated - common_ok is a good test
+            val commonOkId = context.resources.getIdentifier("common_ok", "string", context.packageName)
+            if (commonOkId == 0) return false
+
+            // Get the English version
+            val englishConfig = Configuration(context.resources.configuration)
+            englishConfig.setLocale(Locale.ENGLISH)
+            val englishContext = context.createConfigurationContext(englishConfig)
+            val englishString = englishContext.resources.getString(commonOkId)
+
+            // Get the localized version
+            val localizedString = localizedResources.getString(commonOkId)
+
+            // If they differ, the language is available
+            // Special case: English will match, so we skip it (already added)
+            return localizedString != englishString
+        } catch (e: Exception) {
+            return false
+        }
+    }
 
     /**
      * Get the current language code from preferences
@@ -58,12 +127,7 @@ object LanguageManager {
             return context
         }
 
-        val locale = when (languageCode) {
-            "en" -> Locale.ENGLISH
-            "es" -> Locale("es")
-            else -> Locale.getDefault()
-        }
-
+        val locale = Locale(languageCode)
         return updateResources(context, locale)
     }
 
@@ -99,7 +163,8 @@ object LanguageManager {
      */
     fun getCurrentLanguageDisplayName(context: Context): String {
         val currentCode = getCurrentLanguageCode(context)
-        return availableLanguages.find { it.code == currentCode }?.displayName ?: "System Default"
+        val languages = getAvailableLanguages(context)
+        return languages.find { it.code == currentCode }?.displayName ?: "System Default"
     }
 
     /**

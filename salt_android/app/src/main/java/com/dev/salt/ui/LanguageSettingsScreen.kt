@@ -90,7 +90,7 @@ fun LanguageSettingsScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                items(LanguageManager.availableLanguages) { language ->
+                items(LanguageManager.getAvailableLanguages(context)) { language ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()

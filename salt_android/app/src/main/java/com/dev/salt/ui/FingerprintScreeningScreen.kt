@@ -134,21 +134,21 @@ fun FingerprintScreeningScreen(
             // Visual Diagram showing fingerprint placement
             Image(
                 painter = painterResource(id = R.drawable.fingerprint_instruction),
-                contentDescription = "Place right index finger on scanner",
+                contentDescription = stringResource(R.string.cd_fingerprint_instruction),
                 modifier = Modifier
                     .fillMaxWidth(0.5f) // Scale to 50% width
                     .padding(vertical = 16.dp)
             )
-            
+
             // Instructions
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                InstructionStep(1, "Clean your RIGHT INDEX finger")
-                InstructionStep(2, "Place your RIGHT INDEX finger flat on the scanner")
-                InstructionStep(3, "Press gently - not too hard")
-                InstructionStep(4, "Hold still until scan completes")
+                InstructionStep(1, stringResource(R.string.fingerprint_enrollment_step1))
+                InstructionStep(2, stringResource(R.string.fingerprint_instruction_step2))
+                InstructionStep(3, stringResource(R.string.fingerprint_enrollment_step3))
+                InstructionStep(4, stringResource(R.string.fingerprint_enrollment_step4))
             }
             
             // Error message
@@ -375,20 +375,20 @@ fun FingerprintScreeningScreen(
             icon = {
                 Icon(
                     imageVector = Icons.Default.Fingerprint,
-                    contentDescription = "USB Permission",
+                    contentDescription = stringResource(R.string.cd_usb_permission),
                     tint = MaterialTheme.colorScheme.primary
                 )
             },
             title = {
                 Text(
-                    "USB Permission Required",
+                    stringResource(R.string.usb_permission_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Text(
-                    "Please grant USB permission to use the fingerprint scanner. When prompted, tap 'OK' to allow access to the device.",
+                    stringResource(R.string.usb_permission_message_full),
                     style = MaterialTheme.typography.bodyLarge
                 )
             },
@@ -396,7 +396,7 @@ fun FingerprintScreeningScreen(
                 Button(
                     onClick = { showUsbPermissionDialog = false }
                 ) {
-                    Text("OK")
+                    Text(stringResource(R.string.common_ok))
                 }
             }
         )
@@ -409,13 +409,13 @@ fun FingerprintScreeningScreen(
             icon = {
                 Icon(
                     imageVector = Icons.Default.Warning,
-                    contentDescription = "Device Not Connected",
+                    contentDescription = stringResource(R.string.cd_device_not_connected),
                     tint = MaterialTheme.colorScheme.error
                 )
             },
             title = {
                 Text(
-                    "Scanner Not Connected",
+                    stringResource(R.string.scanner_not_connected_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -423,21 +423,21 @@ fun FingerprintScreeningScreen(
             text = {
                 Column {
                     Text(
-                        "The fingerprint scanner is not connected. Please:",
+                        stringResource(R.string.scanner_not_connected_message),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    Text("1. Connect the SecuGen scanner to the USB port")
-                    Text("2. Use a USB OTG adapter if needed")
-                    Text("3. Ensure the device is powered on")
-                    Text("4. Try again")
+                    Text(stringResource(R.string.scanner_not_connected_step1))
+                    Text(stringResource(R.string.scanner_not_connected_step2))
+                    Text(stringResource(R.string.scanner_not_connected_step3))
+                    Text(stringResource(R.string.scanner_not_connected_step4))
                 }
             },
             confirmButton = {
                 Button(
                     onClick = { showDeviceNotConnectedDialog = false }
                 ) {
-                    Text("OK")
+                    Text(stringResource(R.string.common_ok))
                 }
             }
         )
@@ -450,13 +450,13 @@ fun FingerprintScreeningScreen(
             icon = {
                 Icon(
                     imageVector = Icons.Default.Fingerprint,
-                    contentDescription = "Quality Issue",
+                    contentDescription = stringResource(R.string.cd_quality_issue),
                     tint = MaterialTheme.colorScheme.primary
                 )
             },
             title = {
                 Text(
-                    "Low Quality Scan",
+                    stringResource(R.string.low_quality_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -464,17 +464,17 @@ fun FingerprintScreeningScreen(
             text = {
                 Column {
                     Text(
-                        "The fingerprint quality is too low. Please:",
+                        stringResource(R.string.low_quality_message),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    Text("• Ensure your finger is clean and dry")
-                    Text("• Place your finger flat on the scanner")
-                    Text("• Press firmly but not too hard")
-                    Text("• Make sure the scanner glass is clean")
+                    Text("• " + stringResource(R.string.low_quality_step1))
+                    Text("• " + stringResource(R.string.low_quality_step2))
+                    Text("• " + stringResource(R.string.low_quality_step3))
+                    Text("• " + stringResource(R.string.low_quality_step4))
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "Attempt ${retryCount} of 3",
+                        stringResource(R.string.fingerprint_attempt_of, retryCount, 3),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -484,7 +484,7 @@ fun FingerprintScreeningScreen(
                 Button(
                     onClick = { showQualityDialog = false }
                 ) {
-                    Text("Try Again")
+                    Text(stringResource(R.string.low_quality_try_again))
                 }
             }
         )

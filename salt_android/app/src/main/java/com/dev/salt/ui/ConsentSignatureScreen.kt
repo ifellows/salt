@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.dev.salt.AppDestinations
 import com.dev.salt.data.SurveyDatabase
+import androidx.compose.ui.res.stringResource
+import com.dev.salt.R
 import io.github.joelkanyi.sain.Sain
 import io.github.joelkanyi.sain.SignatureAction
 import kotlinx.coroutines.Dispatchers
@@ -141,7 +143,7 @@ fun ConsentSignatureScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Consent Agreement") },
+                title = { Text(stringResource(R.string.consent_title)) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -174,7 +176,7 @@ fun ConsentSignatureScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = { navController.popBackStack() }) {
-                        Text("Go Back")
+                        Text(stringResource(R.string.consent_go_back))
                     }
                 }
             }
@@ -202,7 +204,7 @@ fun ConsentSignatureScreen(
                             .padding(16.dp)
                     ) {
                         Text(
-                            text = "Please read the consent agreement below:",
+                            text = stringResource(R.string.consent_read_instruction),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -231,17 +233,17 @@ fun ConsentSignatureScreen(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         imageVector = Icons.Default.Replay,
-                                        contentDescription = "Replay audio"
+                                        contentDescription = stringResource(R.string.cd_replay_audio)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Replay Audio", style = MaterialTheme.typography.bodySmall)
+                                    Text(stringResource(R.string.consent_replay_audio), style = MaterialTheme.typography.bodySmall)
                                 }
                             }
                         }
 
                         // Scrollable consent text
                         Text(
-                            text = consentText ?: "Consent text not available",
+                            text = consentText ?: stringResource(R.string.consent_text_unavailable),
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -253,7 +255,7 @@ fun ConsentSignatureScreen(
 
                 // Signature instructions
                 Text(
-                    text = "Please sign below to indicate your consent:",
+                    text = stringResource(R.string.consent_sign_instruction),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -298,11 +300,11 @@ fun ConsentSignatureScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Clear,
-                            contentDescription = "Clear signature",
+                            contentDescription = stringResource(R.string.cd_clear_signature),
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Clear")
+                        Text(stringResource(R.string.common_clear))
                     }
 
                     // I Agree button
@@ -358,7 +360,7 @@ fun ConsentSignatureScreen(
                                 color = MaterialTheme.colorScheme.onPrimary
                             )
                         } else {
-                            Text("I Agree")
+                            Text(stringResource(R.string.consent_i_agree))
                         }
                     }
                 }

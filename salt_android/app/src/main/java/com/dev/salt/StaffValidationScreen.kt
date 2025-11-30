@@ -64,7 +64,7 @@ fun StaffValidationScreen(
     var authenticatedUser by remember { mutableStateOf<String?>(null) }
 
     // Load staff validation message from database
-    var validationMessage by remember { mutableStateOf("Please hand the tablet back to the staff member who gave it to you") }
+    var validationMessage by remember { mutableStateOf("") }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
 
     LaunchedEffect(Unit) {
@@ -153,7 +153,7 @@ fun StaffValidationScreen(
 
                 // Message
                 Text(
-                    text = validationMessage,
+                    text = validationMessage.ifEmpty { stringResource(R.string.staff_validation_default) },
                     fontSize = 18.sp,
                     color = Color.DarkGray,
                     textAlign = TextAlign.Center,
@@ -180,7 +180,7 @@ fun StaffValidationScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Replay",
+                            contentDescription = stringResource(R.string.cd_replay),
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -233,7 +233,7 @@ fun StaffValidationScreen(
                                 }
 
                                 if (staffUsers.isEmpty()) {
-                                    errorMessage = "No staff members have enrolled fingerprints"
+                                    errorMessage = context.getString(R.string.error_no_fingerprints_enrolled)
                                     showPasswordDialog = true
                                     isAuthenticating = false
                                 } else {
@@ -252,7 +252,7 @@ fun StaffValidationScreen(
                                     }
 
                                     if (secugenDevice == null) {
-                                        errorMessage = "Fingerprint scanner not connected"
+                                        errorMessage = context.getString(R.string.error_fingerprint_scanner_not_connected)
                                         isAuthenticating = false
                                         return@launch
                                     }
@@ -272,7 +272,7 @@ fun StaffValidationScreen(
                                             }
                                         )
                                         usbManager.requestPermission(secugenDevice, permissionIntent)
-                                        errorMessage = "Please grant USB permission and try again"
+                                        errorMessage = context.getString(R.string.error_fingerprint_usb_permission)
                                         isAuthenticating = false
                                         return@launch
                                     }
@@ -293,7 +293,7 @@ fun StaffValidationScreen(
 
                                     // Initialize device
                                     if (!fingerprintImpl.initializeDevice()) {
-                                        errorMessage = "Failed to initialize fingerprint scanner"
+                                        errorMessage = context.getString(R.string.error_fingerprint_init_failed)
                                         isAuthenticating = false
                                         return@launch
                                     }
@@ -303,7 +303,7 @@ fun StaffValidationScreen(
 
                                     if (capturedTemplate == null) {
                                         fingerprintImpl.closeDevice()
-                                        errorMessage = "Failed to capture fingerprint"
+                                        errorMessage = context.getString(R.string.error_fingerprint_capture_failed)
                                         isAuthenticating = false
                                         attemptsRemaining--
                                         return@launch
@@ -335,9 +335,9 @@ fun StaffValidationScreen(
                                     } else {
                                         attemptsRemaining--
                                         errorMessage = if (attemptsRemaining <= 0) {
-                                            "Maximum attempts exceeded"
+                                            context.getString(R.string.error_fingerprint_max_attempts)
                                         } else {
-                                            "Fingerprint not recognized. Please try again."
+                                            context.getString(R.string.error_fingerprint_not_recognized)
                                         }
                                     }
                                 }
@@ -363,7 +363,7 @@ fun StaffValidationScreen(
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            if (isAuthenticating) "Scanning..." else stringResource(R.string.staff_validation_authenticate_fingerprint),
+                            if (isAuthenticating) stringResource(R.string.eligibility_scanning) else stringResource(R.string.staff_validation_authenticate_fingerprint),
                             fontSize = 16.sp
                         )
                     }

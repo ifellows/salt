@@ -127,6 +127,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import com.dev.salt.ui.EligibilityCheckScreen
+import androidx.compose.ui.res.stringResource
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -288,8 +289,8 @@ fun SurveyScreen(
                 showDialog = false
                 errorMessageForDialog = null // Clear the error when dialog is dismissed
             },
-            title = { Text("❌") }, // Or a more dynamic title
-            text = { Text(errorMessageForDialog ?: "An error occurred.") }, // Use the state variable
+            title = { Text(stringResource(R.string.survey_error_icon)) }, // Or a more dynamic title
+            text = { Text(errorMessageForDialog ?: stringResource(R.string.survey_error_default)) }, // Use the state variable
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -297,7 +298,7 @@ fun SurveyScreen(
                         errorMessageForDialog = null // Clear the error
                     }
                 ) {
-                    Text("OK")
+                    Text(stringResource(R.string.common_ok))
                 }
             }
         )
@@ -356,10 +357,10 @@ fun SurveyScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("SALT Survey") },
+                title = { Text(stringResource(R.string.survey_title)) },
                 actions = {
                     IconButton(onClick = { /* Handle exit action */ }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Exit")
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.cd_exit))
                     }
                 }
             )
@@ -383,7 +384,7 @@ fun SurveyScreen(
                     }
                     viewModel.loadPreviousQuestion()
                 }, enabled = viewModel.hasPreviousQuestion.value) {
-                    Text("Previous")
+                    Text(stringResource(R.string.common_previous))
                 }
                 Button(onClick = {
                     currentQuestion?.let { (question, _, _) ->
@@ -401,7 +402,7 @@ fun SurveyScreen(
                     //currentQuestion = viewModel.currentQuestion
 
                 }, enabled = isQuestionAnswered) {
-                    Text("Next")
+                    Text(stringResource(R.string.common_next))
                 }
             }
         }
@@ -424,7 +425,7 @@ fun SurveyScreen(
                     //currentMediaPlayer?.seekTo(0)
                     //currentMediaPlayer?.start()
                 }) { // Replay logic
-                    Icon(Icons.Filled.Replay, contentDescription = "Replay")
+                    Icon(Icons.Filled.Replay, contentDescription = stringResource(R.string.cd_replay))
                 }
                 if (question.questionType == "multiple_choice") {
                     options.forEach { option ->
@@ -463,17 +464,19 @@ fun SurveyScreen(
                     }
                     
                     // Show min/max selection info if applicable
-                    if (question.minSelections != null || question.maxSelections != null) {
+                    val minSel = question.minSelections
+                    val maxSel = question.maxSelections
+                    if (minSel != null || maxSel != null) {
                         Text(
                             text = when {
-                                question.minSelections == question.maxSelections -> 
-                                    "Select exactly ${question.minSelections} options"
-                                question.minSelections != null && question.maxSelections != null ->
-                                    "Select ${question.minSelections} to ${question.maxSelections} options"
-                                question.minSelections != null ->
-                                    "Select at least ${question.minSelections} options"
-                                question.maxSelections != null ->
-                                    "Select up to ${question.maxSelections} options"
+                                minSel == maxSel && minSel != null ->
+                                    stringResource(R.string.survey_multiselect_exact, minSel)
+                                minSel != null && maxSel != null ->
+                                    stringResource(R.string.survey_multiselect_range, minSel, maxSel)
+                                minSel != null ->
+                                    stringResource(R.string.survey_multiselect_min, minSel)
+                                maxSel != null ->
+                                    stringResource(R.string.survey_multiselect_max, maxSel)
                                 else -> ""
                             },
                             style = MaterialTheme.typography.bodyMedium,
@@ -542,7 +545,7 @@ fun SurveyScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
-            } ?: Text("Survey completed!", style = MaterialTheme.typography.headlineMedium)
+            } ?: Text(stringResource(R.string.survey_completed), style = MaterialTheme.typography.headlineMedium)
         }
     }
 }

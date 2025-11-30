@@ -95,7 +95,7 @@ fun LabCollectionScreen(
                     IconButton(onClick = { showDebugPanel = !showDebugPanel }) {
                         Icon(
                             imageVector = Icons.Default.BugReport,
-                            contentDescription = "Toggle Debug",
+                            contentDescription = stringResource(R.string.lab_toggle_debug),
                             tint = if (showDebugPanel) Color.Yellow else Color.White
                         )
                     }
@@ -185,7 +185,7 @@ fun LabCollectionScreen(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            text = "Required Lab Tests (${qualifyingTests.size})",
+                            text = stringResource(R.string.lab_required_tests, qualifyingTests.size),
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
                             color = Color(0xFF1565C0)
@@ -194,7 +194,7 @@ fun LabCollectionScreen(
 
                         if (qualifyingTests.isEmpty()) {
                             Text(
-                                text = "No lab tests required for this participant.",
+                                text = stringResource(R.string.lab_no_tests_message),
                                 fontSize = 14.sp,
                                 color = Color.Gray,
                                 fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
@@ -222,16 +222,16 @@ fun LabCollectionScreen(
                                         )
                                         if (labTest.testCode != null) {
                                             Text(
-                                                text = "Code: ${labTest.testCode}",
+                                                text = stringResource(R.string.lab_test_code, labTest.testCode),
                                                 fontSize = 12.sp,
                                                 color = Color.Gray
                                             )
                                         }
                                         Text(
                                             text = when (labTest.testType) {
-                                                "numeric" -> "Type: Numeric${labTest.unit?.let { " ($it)" } ?: ""}"
-                                                "dropdown" -> "Type: Dropdown"
-                                                else -> "Type: ${labTest.testType}"
+                                                "numeric" -> stringResource(R.string.lab_test_type_numeric, labTest.unit?.let { " ($it)" } ?: "")
+                                                "dropdown" -> stringResource(R.string.lab_test_type_dropdown)
+                                                else -> stringResource(R.string.lab_test_type_generic, labTest.testType)
                                             },
                                             fontSize = 12.sp,
                                             color = Color.Gray
@@ -259,7 +259,7 @@ fun LabCollectionScreen(
                             modifier = Modifier.padding(16.dp)
                         ) {
                             Text(
-                                text = "JEXL Debug Information",
+                                text = stringResource(R.string.lab_debug_title),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                                 color = Color(0xFFE65100)
@@ -268,14 +268,14 @@ fun LabCollectionScreen(
 
                             // Context Variables
                             Text(
-                                text = "Survey Answers:",
+                                text = stringResource(R.string.lab_debug_survey_answers),
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 14.sp
                             )
                             val contextInfo = debugInfo!!.first
                             if (contextInfo.surveyAnswers.isEmpty()) {
                                 Text(
-                                    text = "  (none)",
+                                    text = "  " + stringResource(R.string.common_none),
                                     fontSize = 12.sp,
                                     fontFamily = FontFamily.Monospace,
                                     color = Color.Gray
@@ -292,13 +292,13 @@ fun LabCollectionScreen(
 
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Rapid Test Results:",
+                                text = stringResource(R.string.lab_debug_rapid_test_results),
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 14.sp
                             )
                             if (contextInfo.rapidTestResults.isEmpty()) {
                                 Text(
-                                    text = "  (none)",
+                                    text = "  " + stringResource(R.string.common_none),
                                     fontSize = 12.sp,
                                     fontFamily = FontFamily.Monospace,
                                     color = Color.Gray
@@ -319,7 +319,7 @@ fun LabCollectionScreen(
 
                             // Lab Test Evaluations
                             Text(
-                                text = "Lab Test Evaluations:",
+                                text = stringResource(R.string.lab_debug_lab_test_evaluations),
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 14.sp
                             )
@@ -341,12 +341,12 @@ fun LabCollectionScreen(
                                             fontSize = 14.sp
                                         )
                                         Text(
-                                            text = "Condition: ${result.jexlCondition ?: "(none - always show)"}",
+                                            text = stringResource(R.string.lab_debug_condition, result.jexlCondition ?: stringResource(R.string.lab_debug_none)),
                                             fontSize = 11.sp,
                                             fontFamily = FontFamily.Monospace
                                         )
                                         Text(
-                                            text = "Result: ${result.evaluationResult ?: "N/A"} => ${if (result.shouldShow) "SHOW" else "HIDE"}",
+                                            text = stringResource(R.string.lab_debug_result, result.evaluationResult ?: stringResource(R.string.lab_debug_na), if (result.shouldShow) stringResource(R.string.lab_debug_show) else stringResource(R.string.lab_debug_hide)),
                                             fontSize = 11.sp,
                                             fontFamily = FontFamily.Monospace,
                                             fontWeight = FontWeight.Bold,

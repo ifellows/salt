@@ -15,6 +15,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import android.util.Log
+import androidx.compose.ui.res.stringResource
+import com.dev.salt.R
 import com.dev.salt.data.SurveyDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -92,7 +94,7 @@ fun BiologicalSampleCollectionScreen(
                     // Icon
                     Icon(
                         Icons.Filled.Science,
-                        contentDescription = "Sample Collection",
+                        contentDescription = stringResource(R.string.cd_sample_collection),
                         modifier = Modifier
                             .size(64.dp)
                             .padding(bottom = 16.dp),
@@ -101,7 +103,7 @@ fun BiologicalSampleCollectionScreen(
 
                     // Title
                     Text(
-                        text = "Biological Sample Collection",
+                        text = stringResource(R.string.sample_collection_title),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
@@ -110,7 +112,7 @@ fun BiologicalSampleCollectionScreen(
 
                     // Instructions
                     Text(
-                        text = "Please take biological samples to perform each of the following tests. Check each one to confirm that they will be performed.",
+                        text = stringResource(R.string.sample_collection_instruction),
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -121,7 +123,7 @@ fun BiologicalSampleCollectionScreen(
                         CircularProgressIndicator()
                     } else if (enabledTests.isEmpty()) {
                         Text(
-                            text = "No rapid tests configured",
+                            text = stringResource(R.string.sample_collection_no_tests),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -187,14 +189,14 @@ fun BiologicalSampleCollectionScreen(
                             )
                         ) {
                             Text(
-                                text = "Continue to Survey",
+                                text = stringResource(R.string.sample_collection_continue),
                                 style = MaterialTheme.typography.labelLarge
                             )
                         }
 
                         if (!allChecked && enabledTests.isNotEmpty()) {
                             Text(
-                                text = "Please check all tests to continue",
+                                text = stringResource(R.string.sample_collection_check_all),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                                 textAlign = TextAlign.Center,
@@ -208,7 +210,7 @@ fun BiologicalSampleCollectionScreen(
                         onClick = onCancel,
                         modifier = Modifier.padding(top = 8.dp)
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.common_cancel))
                     }
                 }
             }
