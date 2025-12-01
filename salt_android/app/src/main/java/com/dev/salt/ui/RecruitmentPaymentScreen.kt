@@ -19,7 +19,10 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +47,8 @@ import com.dev.salt.fingerprint.IFingerprintCapture
 import com.dev.salt.fingerprint.MockFingerprintImpl
 import com.dev.salt.fingerprint.SecuGenFingerprintImpl
 import com.dev.salt.util.EmulatorDetector
+import com.dev.salt.data.RecruitmentPaymentUploadState
+import com.dev.salt.upload.RecruitmentPaymentUploadManager
 import io.github.joelkanyi.sain.Sain
 import io.github.joelkanyi.sain.SignatureAction
 import kotlinx.coroutines.Dispatchers
@@ -86,6 +91,11 @@ fun RecruitmentPaymentScreen(
     var showDeviceNotConnectedDialog by remember { mutableStateOf(false) }
     var showUsbPermissionDialog by remember { mutableStateOf(false) }
 
+    // Phone input state for payment audit
+    var paymentAuditPhoneEnabled by remember { mutableStateOf(false) }
+    var paymentPhone by remember { mutableStateOf("") }
+    var phoneError by remember { mutableStateOf<String?>(null) }
+
     // Error strings
     val deviceInitError = stringResource(R.string.fingerprint_device_init_failed)
     val captureFailedError = stringResource(R.string.fingerprint_capture_failed)
@@ -93,6 +103,10 @@ fun RecruitmentPaymentScreen(
     val scannerNotConnectedError = stringResource(R.string.payment_error_scanner_not_connected)
     val usbPermissionError = stringResource(R.string.payment_error_usb_permission)
     val paymentSuccessMsg = stringResource(R.string.recruitment_payment_success)
+    val phoneLabel = stringResource(R.string.payment_phone_label)
+    val phonePlaceholder = stringResource(R.string.payment_phone_placeholder)
+    val phoneRequiredError = stringResource(R.string.payment_phone_required)
+    val phoneAuditNote = stringResource(R.string.payment_phone_audit_note)
 
     // Date formatter
     val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
@@ -104,6 +118,11 @@ fun RecruitmentPaymentScreen(
             facilityConfig = database.facilityConfigDao().getFacilityConfig()
             allCoupons = database.couponDao().getCouponsIssuedToSurvey(surveyId)
             eligibleCoupons = database.couponDao().getUnpaidUsedCoupons(surveyId)
+
+            // Load payment audit phone config
+            val surveyConfig = database.surveyConfigDao().getSurveyConfig()
+            paymentAuditPhoneEnabled = surveyConfig?.paymentAuditPhoneEnabled ?: false
+
             isLoading = false
         }
     }
@@ -141,8 +160,14 @@ fun RecruitmentPaymentScreen(
     val currency = facilityConfig?.paymentCurrency ?: "USD"
 
     // Function to process payment
-    fun processPayment(signature: String?) {
+    fun processPayment(signature: String?, confirmationMethod: String) {
         scope.launch {
+            // Validate phone if required
+            if (paymentAuditPhoneEnabled && paymentPhone.isBlank()) {
+                phoneError = phoneRequiredError
+                return@launch
+            }
+
             isProcessing = true
             errorMessage = null
 
@@ -156,6 +181,26 @@ fun RecruitmentPaymentScreen(
                             signature = signature
                         )
                     }
+
+                    // Create upload state and attempt upload
+                    val paymentId = java.util.UUID.randomUUID().toString()
+                    val uploadState = RecruitmentPaymentUploadState(
+                        paymentId = paymentId,
+                        surveyId = surveyId,
+                        subjectId = survey?.subjectId ?: "",
+                        couponCodes = eligibleCoupons.map { it.couponCode }.joinToString(","),
+                        paymentAmount = paymentAmount,
+                        paymentPhone = if (paymentAuditPhoneEnabled) paymentPhone else null,
+                        signatureHex = signature,
+                        confirmationMethod = confirmationMethod,
+                        uploadStatus = "PENDING"
+                    )
+                    database.recruitmentPaymentUploadStateDao().insert(uploadState)
+                    Log.i("RecruitmentPayment", "Created upload state: $paymentId")
+
+                    // Attempt upload in background
+                    val uploadManager = RecruitmentPaymentUploadManager(context, database)
+                    uploadManager.uploadPayment(paymentId)
                 }
 
                 successMessage = paymentSuccessMsg
@@ -385,6 +430,56 @@ fun RecruitmentPaymentScreen(
                     }
                 }
 
+                // Phone input for payment audit (only when enabled and there are eligible coupons)
+                if (paymentAuditPhoneEnabled && eligibleCoupons.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = paymentPhone,
+                                onValueChange = { newValue ->
+                                    paymentPhone = newValue.filter { it.isDigit() }
+                                    phoneError = null
+                                },
+                                label = { Text("$phoneLabel *") },
+                                placeholder = { Text(phonePlaceholder) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                isError = phoneError != null,
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Phone,
+                                        contentDescription = null,
+                                        tint = if (phoneError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            if (phoneError != null) {
+                                Text(
+                                    text = phoneError!!,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            Text(
+                                text = phoneAuditNote,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+
                 // Confirmation Section (only if there are eligible coupons)
                 if (eligibleCoupons.isNotEmpty()) {
                     if (lookupMethod == "fingerprint") {
@@ -497,7 +592,7 @@ fun RecruitmentPaymentScreen(
                                     }
 
                                     isCapturingFingerprint = false
-                                    processPayment(null) // No signature needed for fingerprint confirmation
+                                    processPayment(null, "fingerprint") // No signature needed for fingerprint confirmation
                                 }
                             },
                             enabled = !isCapturingFingerprint && !isProcessing,
@@ -580,7 +675,7 @@ fun RecruitmentPaymentScreen(
                                     scope.launch {
                                         kotlinx.coroutines.delay(100)
                                         val signature = signatureBitmap?.let { bitmapToHexString(it) }
-                                        processPayment(signature)
+                                        processPayment(signature, "signature")
                                     }
                                 },
                                 enabled = hasDrawnSignature && !isProcessing,

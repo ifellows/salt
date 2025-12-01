@@ -104,7 +104,8 @@ router.get('/survey/version', requireFacilityApiKey, async (req, res) => {
                 re_enrollment_days: activeSurvey.re_enrollment_days || 90,
                 contact_info_enabled: activeSurvey.contact_info_enabled === 1 || activeSurvey.contact_info_enabled === true,
                 staff_eligibility_screening: activeSurvey.staff_eligibility_screening === 1 || activeSurvey.staff_eligibility_screening === true,
-                rapid_test_samples_after_eligibility: activeSurvey.rapid_test_samples_after_eligibility === 1 || activeSurvey.rapid_test_samples_after_eligibility === true
+                rapid_test_samples_after_eligibility: activeSurvey.rapid_test_samples_after_eligibility === 1 || activeSurvey.rapid_test_samples_after_eligibility === true,
+                payment_audit_phone_enabled: activeSurvey.payment_audit_phone_enabled === 1 || activeSurvey.payment_audit_phone_enabled === true
             },
             sections: sections,
             questions: questions,
@@ -312,7 +313,8 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
                 re_enrollment_days: survey.re_enrollment_days || 90,
                 contact_info_enabled: survey.contact_info_enabled === 1 || survey.contact_info_enabled === true,
                 staff_eligibility_screening: survey.staff_eligibility_screening === 1 || survey.staff_eligibility_screening === true,
-                rapid_test_samples_after_eligibility: survey.rapid_test_samples_after_eligibility === 1 || survey.rapid_test_samples_after_eligibility === true
+                rapid_test_samples_after_eligibility: survey.rapid_test_samples_after_eligibility === 1 || survey.rapid_test_samples_after_eligibility === true,
+                payment_audit_phone_enabled: survey.payment_audit_phone_enabled === 1 || survey.payment_audit_phone_enabled === true
             },
             sections: sections,
             questions: questionsWithParsedJson,
@@ -344,7 +346,8 @@ router.get('/survey/download', requireFacilityApiKey, async (req, res) => {
                 re_enrollment_days: rawSurvey.re_enrollment_days || 90,
                 contact_info_enabled: rawSurvey.contact_info_enabled === 1 || rawSurvey.contact_info_enabled === true,
                 staff_eligibility_screening: rawSurvey.staff_eligibility_screening === 1 || rawSurvey.staff_eligibility_screening === true,
-                rapid_test_samples_after_eligibility: rawSurvey.rapid_test_samples_after_eligibility === 1 || rawSurvey.rapid_test_samples_after_eligibility === true
+                rapid_test_samples_after_eligibility: rawSurvey.rapid_test_samples_after_eligibility === 1 || rawSurvey.rapid_test_samples_after_eligibility === true,
+                payment_audit_phone_enabled: rawSurvey.payment_audit_phone_enabled === 1 || rawSurvey.payment_audit_phone_enabled === true
             },
             sections: sections,
             questions: questions,  // Use raw questions, not parsed

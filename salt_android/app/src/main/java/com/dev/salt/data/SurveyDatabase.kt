@@ -29,7 +29,8 @@ data class SurveyConfig(
     @ColumnInfo(name = "hiv_rapid_test_enabled") val hivRapidTestEnabled: Boolean = false,
     @ColumnInfo(name = "contact_info_enabled", defaultValue = "0") val contactInfoEnabled: Boolean = false,
     @ColumnInfo(name = "staff_eligibility_screening", defaultValue = "0") val staffEligibilityScreening: Boolean = false,
-    @ColumnInfo(name = "rapid_test_samples_after_eligibility", defaultValue = "1") val rapidTestSamplesAfterEligibility: Boolean = true
+    @ColumnInfo(name = "rapid_test_samples_after_eligibility", defaultValue = "1") val rapidTestSamplesAfterEligibility: Boolean = true,
+    @ColumnInfo(name = "payment_audit_phone_enabled", defaultValue = "0") val paymentAuditPhoneEnabled: Boolean = false
 )
 
 @Entity(tableName = "system_messages", primaryKeys = ["messageKey", "language"])
@@ -101,7 +102,8 @@ data class Survey(
     @ColumnInfo(name = "eligibility_script") var eligibilityScript: String? = null, // JEXL script to determine eligibility
     @ColumnInfo(name = "hiv_rapid_test_result") var hivRapidTestResult: String? = null, // "positive", "negative", "indeterminate", "not_performed"
     @ColumnInfo(name = "consent_signature_path") var consentSignaturePath: String? = null, // Path to signature PNG file
-    @ColumnInfo(name = "is_completed") var isCompleted: Boolean = false
+    @ColumnInfo(name = "is_completed") var isCompleted: Boolean = false,
+    @ColumnInfo(name = "payment_phone_number") var paymentPhoneNumber: String? = null // Phone for payment audit
 ) {
     @Ignore
     var questions: MutableList<Question> = mutableListOf()
@@ -203,6 +205,24 @@ data class SurveyUploadState(
     @ColumnInfo(name = "error_message") val errorMessage: String? = null,
     @ColumnInfo(name = "created_time") val createdTime: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "completed_time") val completedTime: Long? = null
+)
+
+@Entity(tableName = "recruitment_payment_upload_state")
+data class RecruitmentPaymentUploadState(
+    @PrimaryKey
+    val paymentId: String,
+    @ColumnInfo(name = "survey_id") val surveyId: String,
+    @ColumnInfo(name = "subject_id") val subjectId: String,
+    @ColumnInfo(name = "coupon_codes") val couponCodes: String, // comma-separated
+    @ColumnInfo(name = "payment_amount") val paymentAmount: Double,
+    @ColumnInfo(name = "payment_phone") val paymentPhone: String?,
+    @ColumnInfo(name = "signature_hex") val signatureHex: String?,
+    @ColumnInfo(name = "confirmation_method") val confirmationMethod: String, // "fingerprint" or "signature"
+    @ColumnInfo(name = "upload_status") val uploadStatus: String, // PENDING, COMPLETED, FAILED
+    @ColumnInfo(name = "last_attempt_time") val lastAttemptTime: Long? = null,
+    @ColumnInfo(name = "attempt_count") val attemptCount: Int = 0,
+    @ColumnInfo(name = "error_message") val errorMessage: String? = null,
+    @ColumnInfo(name = "created_time") val createdTime: Long = System.currentTimeMillis()
 )
 
 @Entity(tableName = "coupons")
@@ -500,6 +520,30 @@ interface UploadStateDao {
 }
 
 @Dao
+interface RecruitmentPaymentUploadStateDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insert(state: RecruitmentPaymentUploadState)
+
+    @Query("SELECT * FROM recruitment_payment_upload_state WHERE paymentId = :paymentId")
+    fun getByPaymentId(paymentId: String): RecruitmentPaymentUploadState?
+
+    @Query("SELECT * FROM recruitment_payment_upload_state WHERE upload_status IN ('PENDING', 'FAILED') ORDER BY created_time ASC")
+    fun getPendingUploads(): List<RecruitmentPaymentUploadState>
+
+    @Query("SELECT * FROM recruitment_payment_upload_state ORDER BY created_time DESC")
+    fun getAllUploadStates(): List<RecruitmentPaymentUploadState>
+
+    @Query("UPDATE recruitment_payment_upload_state SET upload_status = :status, last_attempt_time = :time, attempt_count = :count, error_message = :error WHERE paymentId = :paymentId")
+    fun updateAttempt(paymentId: String, status: String, time: Long, count: Int, error: String?)
+
+    @Query("UPDATE recruitment_payment_upload_state SET upload_status = 'COMPLETED' WHERE paymentId = :paymentId")
+    fun markCompleted(paymentId: String)
+
+    @Query("DELETE FROM recruitment_payment_upload_state WHERE paymentId = :paymentId")
+    fun delete(paymentId: String)
+}
+
+@Dao
 interface CouponDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertCoupon(coupon: Coupon)
@@ -692,16 +736,18 @@ interface AppServerConfigDao {
     fun hasServerConfig(): Boolean
 }
 
-@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class, LabTestConfiguration::class], version = 68, autoMigrations = [
+@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, RecruitmentPaymentUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class, LabTestConfiguration::class], version = 69, autoMigrations = [
     AutoMigration(from = 52, to = 53),
     AutoMigration(from = 65, to = 66),
     AutoMigration(from = 66, to = 67),
-    AutoMigration(from = 67, to = 68)
+    AutoMigration(from = 67, to = 68),
+    AutoMigration(from = 68, to = 69)
 ])
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun userDao(): UserDao
     abstract fun uploadStateDao(): UploadStateDao
+    abstract fun recruitmentPaymentUploadStateDao(): RecruitmentPaymentUploadStateDao
     abstract fun syncMetadataDao(): SyncMetadataDao
     abstract fun sectionDao(): SectionDao
     abstract fun surveyConfigDao(): SurveyConfigDao

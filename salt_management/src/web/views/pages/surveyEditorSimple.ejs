@@ -83,6 +83,13 @@ bodyHtml += '            <span>Obtain rapid test samples after eligibility</span
 bodyHtml += '        </label>\n';
 bodyHtml += '        <small style="color: #666; margin-left: 1.5rem;">Collect biological samples after eligibility screening is complete</small>\n';
 bodyHtml += '    </div>\n';
+bodyHtml += '    <div style="margin-bottom: 1rem;">\n';
+bodyHtml += '        <label style="display: flex; align-items: center; gap: 0.5rem;">\n';
+bodyHtml += '            <input type="checkbox" id="paymentAuditPhoneEnabled" ' + (survey.payment_audit_phone_enabled === 1 || survey.payment_audit_phone_enabled === true ? 'checked' : '') + '>\n';
+bodyHtml += '            <span>Require phone number for payment audit</span>\n';
+bodyHtml += '        </label>\n';
+bodyHtml += '        <small style="color: #666; margin-left: 1.5rem;">Requires phone number entry on payment confirmation and recruitment payment screens</small>\n';
+bodyHtml += '    </div>\n';
 bodyHtml += '    <button onclick="saveGeneralSettings()" class="btn">Save General Settings</button>\n';
 bodyHtml += '</div>\n';
 
@@ -421,6 +428,7 @@ bodyHtml += '    const reEnrollmentDays = parseInt(document.getElementById("reEn
 bodyHtml += '    const contactInfoEnabled = document.getElementById("contactInfoEnabled").checked;\n';
 bodyHtml += '    const staffEligibilityScreening = document.getElementById("staffEligibilityScreening").checked;\n';
 bodyHtml += '    const rapidTestSamplesAfterEligibility = document.getElementById("rapidTestSamplesAfterEligibility").checked;\n';
+bodyHtml += '    const paymentAuditPhoneEnabled = document.getElementById("paymentAuditPhoneEnabled").checked;\n';
 bodyHtml += '    \n';
 bodyHtml += '    if (isNaN(reEnrollmentDays) || reEnrollmentDays < 1 || reEnrollmentDays > 365) {\n';
 bodyHtml += '        alert("Re-enrollment days must be between 1 and 365");\n';
@@ -438,6 +446,7 @@ bodyHtml += '                re_enrollment_days: reEnrollmentDays,\n';
 bodyHtml += '                contact_info_enabled: contactInfoEnabled ? 1 : 0,\n';
 bodyHtml += '                staff_eligibility_screening: staffEligibilityScreening ? 1 : 0,\n';
 bodyHtml += '                rapid_test_samples_after_eligibility: rapidTestSamplesAfterEligibility ? 1 : 0,\n';
+bodyHtml += '                payment_audit_phone_enabled: paymentAuditPhoneEnabled ? 1 : 0,\n';
 bodyHtml += '                create_version: false\n';
 bodyHtml += '            })\n';
 bodyHtml += '        });\n';

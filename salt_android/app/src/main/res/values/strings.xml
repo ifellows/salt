@@ -167,6 +167,10 @@
     <string name="payment_amount">%1$s%2$.2f</string>
     <string name="payment_confirm">Confirm Payment Received</string>
     <string name="payment_skip">Continue Without Payment</string>
+    <string name="payment_phone_label">Phone Number</string>
+    <string name="payment_phone_placeholder">Enter phone number</string>
+    <string name="payment_phone_required">Phone number is required</string>
+    <string name="payment_phone_audit_note">For payment audit purposes</string>
 
     <!-- Lab Collection strings -->
     <string name="lab_title">Biological Sample Collection</string>

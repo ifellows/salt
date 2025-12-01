@@ -298,7 +298,8 @@ class SurveySyncManager(private val context: Context) {
                         hivRapidTestEnabled = parseBoolean(configJson, "hiv_rapid_test_enabled"),
                         contactInfoEnabled = parseBoolean(configJson, "contact_info_enabled"),
                         staffEligibilityScreening = parseBoolean(configJson, "staff_eligibility_screening"),
-                        rapidTestSamplesAfterEligibility = parseBoolean(configJson, "rapid_test_samples_after_eligibility", true)
+                        rapidTestSamplesAfterEligibility = parseBoolean(configJson, "rapid_test_samples_after_eligibility", true),
+                        paymentAuditPhoneEnabled = parseBoolean(configJson, "payment_audit_phone_enabled")
                     )
                     database.surveyConfigDao().insertSurveyConfig(surveyConfig)
                     Log.d("SurveySyncManager", "Survey config updated: serverSurveyId=${surveyConfig.serverSurveyId}, fingerprint=${surveyConfig.fingerprintEnabled}, reEnrollmentDays=${surveyConfig.reEnrollmentDays}, eligibilityScript=${surveyConfig.eligibilityScript}, contactInfoEnabled=${surveyConfig.contactInfoEnabled}, staffEligibilityScreening=${surveyConfig.staffEligibilityScreening}")

@@ -123,7 +123,8 @@ router.put('/:id', [
     body('staff_validation_message_json').optional(),
     body('contact_info_enabled').optional().isInt({ min: 0, max: 1 }),
     body('staff_eligibility_screening').optional().isInt({ min: 0, max: 1 }),
-    body('rapid_test_samples_after_eligibility').optional().isInt({ min: 0, max: 1 })
+    body('rapid_test_samples_after_eligibility').optional().isInt({ min: 0, max: 1 }),
+    body('payment_audit_phone_enabled').optional().isInt({ min: 0, max: 1 })
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -131,7 +132,7 @@ router.put('/:id', [
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, description, languages, eligibility_script, eligibility_message_json, create_version = false, fingerprint_enabled, re_enrollment_days, staff_validation_message_json, contact_info_enabled, staff_eligibility_screening, rapid_test_samples_after_eligibility } = req.body;
+    const { name, description, languages, eligibility_script, eligibility_message_json, create_version = false, fingerprint_enabled, re_enrollment_days, staff_validation_message_json, contact_info_enabled, staff_eligibility_screening, rapid_test_samples_after_eligibility, payment_audit_phone_enabled } = req.body;
     const surveyId = req.params.id;
     
     console.log('Update survey request:', {
@@ -289,6 +290,10 @@ router.put('/:id', [
             if (rapid_test_samples_after_eligibility !== undefined) {
                 updates.push('rapid_test_samples_after_eligibility = ?');
                 params.push(rapid_test_samples_after_eligibility);
+            }
+            if (payment_audit_phone_enabled !== undefined) {
+                updates.push('payment_audit_phone_enabled = ?');
+                params.push(payment_audit_phone_enabled);
             }
 
             if (updates.length > 0) {

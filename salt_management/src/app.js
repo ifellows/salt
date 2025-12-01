@@ -86,6 +86,7 @@ const labTestsRoutes = require('./api/routes/labTests');
 const labResultsRoutes = require('./api/routes/labResults');
 const dataExportRoutes = require('./api/routes/dataExport');
 const reportsRoutes = require('./api/routes/reports');
+const recruitmentPaymentUploadRoutes = require('./api/routes/recruitmentPaymentUpload');
 const webDashboardRoutes = require('./web/routes/dashboard');
 const webSurveyEditorRoutes = require('./web/routes/surveyEditor');
 const webUserManagementRoutes = require('./web/routes/userManagement');
@@ -113,6 +114,7 @@ app.use('/api', reportsRoutes);
 app.use('/api/sync', surveySyncRoutes);
 app.use('/api/sync', surveyUploadRoutes);
 app.use('/api/sync', facilityConfigRoutes);
+app.use('/api/sync', recruitmentPaymentUploadRoutes);
 
 // Web Routes
 app.use('/', webDashboardRoutes);

@@ -32,6 +32,7 @@ data class SerializedSurvey(
     val paymentAmount: Double? = null,
     val paymentType: String? = null,
     val paymentDate: String? = null,
+    val paymentPhoneNumber: String? = null, // Phone for payment audit purposes
     val consentSignaturePath: String? = null // Hexadecimal string of signature PNG
 )
 
@@ -156,6 +157,7 @@ class SurveySerializer {
             paymentAmount = survey.paymentAmount,
             paymentType = survey.paymentType,
             paymentDate = survey.paymentDate?.let { dateFormat.format(Date(it)) },
+            paymentPhoneNumber = survey.paymentPhoneNumber,
             consentSignaturePath = survey.consentSignaturePath
         )
 
@@ -218,6 +220,7 @@ class SurveySerializer {
             survey.paymentAmount?.let { put("paymentAmount", it) }
             survey.paymentType?.let { put("paymentType", it) }
             survey.paymentDate?.let { put("paymentDate", it) }
+            survey.paymentPhoneNumber?.let { put("paymentPhoneNumber", it) }
 
             // Consent signature (hexadecimal string)
             if (survey.consentSignaturePath != null) {

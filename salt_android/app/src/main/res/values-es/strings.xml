@@ -167,6 +167,10 @@
     <string name="payment_amount">%1$s%2$.2f</string>
     <string name="payment_confirm">Confirmar pago recibido</string>
     <string name="payment_skip">Continuar sin pago</string>
+    <string name="payment_phone_label">Número de Teléfono</string>
+    <string name="payment_phone_placeholder">Ingrese número de teléfono</string>
+    <string name="payment_phone_required">El número de teléfono es requerido</string>
+    <string name="payment_phone_audit_note">Para fines de auditoría de pagos</string>
 
     <!-- Lab Collection strings -->
     <string name="lab_title">Recolección de muestras biológicas</string>

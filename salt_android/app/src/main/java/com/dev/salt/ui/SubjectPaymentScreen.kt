@@ -8,7 +8,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,6 +71,9 @@ fun SubjectPaymentScreen(
     var isCapturingAdminFingerprint by remember { mutableStateOf(false) }
     var adminOverrideError by remember { mutableStateOf<String?>(null) }
     var adminOverrideSuccess by remember { mutableStateOf(false) }
+    var paymentAuditPhoneEnabled by remember { mutableStateOf(false) }
+    var paymentPhone by remember { mutableStateOf("") }
+    var phoneError by remember { mutableStateOf<String?>(null) }
 
     // Get default payment message and error strings
     val defaultPaymentMessage = stringResource(R.string.payment_default_message)
@@ -75,6 +81,12 @@ fun SubjectPaymentScreen(
     val errorScannerNotConnected = stringResource(R.string.payment_error_scanner_not_connected)
     val errorUsbPermission = stringResource(R.string.payment_error_usb_permission)
     val errorFingerprintMismatch = stringResource(R.string.payment_error_fingerprint_mismatch)
+
+    // Phone strings
+    val phoneLabel = stringResource(R.string.payment_phone_label)
+    val phonePlaceholder = stringResource(R.string.payment_phone_placeholder)
+    val phoneRequiredError = stringResource(R.string.payment_phone_required)
+    val phoneAuditNote = stringResource(R.string.payment_phone_audit_note)
 
     // Admin override strings
     val adminOverrideButton = stringResource(R.string.payment_admin_override_button)
@@ -89,9 +101,10 @@ fun SubjectPaymentScreen(
         facilityConfig = database.facilityConfigDao().getFacilityConfig()
         survey = database.surveyDao().getSurveyById(surveyId)
 
-        // Load fingerprint setting from survey config
+        // Load fingerprint setting and payment audit phone setting from survey config
         val surveyConfig = database.surveyConfigDao().getSurveyConfig()
         fingerprintEnabled = surveyConfig?.fingerprintEnabled ?: false
+        paymentAuditPhoneEnabled = surveyConfig?.paymentAuditPhoneEnabled ?: false
 
         // Calculate payment amount
         facilityConfig?.let { config ->
@@ -268,6 +281,56 @@ fun SubjectPaymentScreen(
                 }
             }
 
+            // Phone input for payment audit (only when enabled and payment amount > 0)
+            if (paymentAuditPhoneEnabled && paymentAmount > 0) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = paymentPhone,
+                            onValueChange = { newValue ->
+                                paymentPhone = newValue.filter { it.isDigit() }
+                                phoneError = null
+                            },
+                            label = { Text("$phoneLabel *") },
+                            placeholder = { Text(phonePlaceholder) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            isError = phoneError != null,
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Phone,
+                                    contentDescription = null,
+                                    tint = if (phoneError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        if (phoneError != null) {
+                            Text(
+                                text = phoneError!!,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        Text(
+                            text = phoneAuditNote,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+
             // Instructions
             if (fingerprintEnabled) {
                 Card(
@@ -351,6 +414,12 @@ fun SubjectPaymentScreen(
                 Button(
                 onClick = {
                     scope.launch {
+                        // Validate phone if required
+                        if (paymentAuditPhoneEnabled && paymentAmount > 0 && paymentPhone.isBlank()) {
+                            phoneError = phoneRequiredError
+                            return@launch
+                        }
+
                         isCapturingFingerprint = true
                         errorMessage = null
 
@@ -459,10 +528,11 @@ fun SubjectPaymentScreen(
                                 paymentAmount = paymentAmount,
                                 paymentType = facilityConfig?.subjectPaymentType ?: "Cash",
                                 paymentDate = System.currentTimeMillis(),
+                                paymentPhoneNumber = if (paymentAuditPhoneEnabled && paymentAmount > 0) paymentPhone else null,
                                 isCompleted = true
                             )
                             database.surveyDao().updateSurvey(updatedSurvey)
-                            Log.i("SubjectPaymentScreen", "Payment confirmed for survey $surveyId: amount=$paymentAmount")
+                            Log.i("SubjectPaymentScreen", "Payment confirmed for survey $surveyId: amount=$paymentAmount, phone=${updatedSurvey.paymentPhoneNumber}")
                         }
 
                         isCapturingFingerprint = false
@@ -556,6 +626,12 @@ fun SubjectPaymentScreen(
                 Button(
                     onClick = {
                         scope.launch {
+                            // Validate phone if required
+                            if (paymentAuditPhoneEnabled && paymentAmount > 0 && paymentPhone.isBlank()) {
+                                phoneError = phoneRequiredError
+                                return@launch
+                            }
+
                             // Update survey with payment confirmation (no fingerprint)
                             survey?.let { s ->
                                 val updatedSurvey = s.copy(
@@ -563,10 +639,11 @@ fun SubjectPaymentScreen(
                                     paymentAmount = paymentAmount,
                                     paymentType = facilityConfig?.subjectPaymentType ?: "Cash",
                                     paymentDate = System.currentTimeMillis(),
+                                    paymentPhoneNumber = if (paymentAuditPhoneEnabled && paymentAmount > 0) paymentPhone else null,
                                     isCompleted = true
                                 )
                                 database.surveyDao().updateSurvey(updatedSurvey)
-                                Log.i("SubjectPaymentScreen", "Payment confirmed (no fingerprint) for survey $surveyId: amount=$paymentAmount")
+                                Log.i("SubjectPaymentScreen", "Payment confirmed (no fingerprint) for survey $surveyId: amount=$paymentAmount, phone=${updatedSurvey.paymentPhoneNumber}")
                             }
 
                             // Upload survey after payment confirmation
@@ -850,10 +927,11 @@ fun SubjectPaymentScreen(
                                     paymentAmount = paymentAmount,
                                     paymentType = "${facilityConfig?.subjectPaymentType ?: "Cash"} (Admin Override: ${matchedAdmin.fullName})",
                                     paymentDate = System.currentTimeMillis(),
+                                    paymentPhoneNumber = if (paymentAuditPhoneEnabled && paymentAmount > 0) paymentPhone else null,
                                     isCompleted = true
                                 )
                                 database.surveyDao().updateSurvey(updatedSurvey)
-                                Log.i("SubjectPaymentScreen", "Payment override confirmed by admin ${matchedAdmin.fullName}: amount=$paymentAmount")
+                                Log.i("SubjectPaymentScreen", "Payment override confirmed by admin ${matchedAdmin.fullName}: amount=$paymentAmount, phone=${updatedSurvey.paymentPhoneNumber}")
                             }
 
                             isCapturingAdminFingerprint = false
