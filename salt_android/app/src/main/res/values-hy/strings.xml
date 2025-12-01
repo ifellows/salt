@@ -164,19 +164,6 @@
     <string name="server_settings_save">Պահպանել կարգավորումները</string>
     <string name="server_settings_help_title">Կարգավորման օգնություն</string>
     <string name="server_settings_help_text">1. Կապվեք ձեր համակարգի ադմինիստրատորի հետ\n2. Սերվերի URL-ը պետք է ուղղված լինի ձեր SALT սերվերին\n3. API բանալին պարտադիր չէ\n4. Պահպանելուց առաջ ստուգեք կապակցությունը\n5. Բոլոր վերբեռումները կօգտագործեն այս կարգավորումները</string>
-    <string name="upload_status_title">Վերբեռման կարգավիճակ</string>
-    <string name="upload_details_title">Հարցման վերբեռման մանրամասներ</string>
-    <string name="upload_no_surveys">Վերբեռման համար հարցումներ չկան</string>
-    <string name="upload_statistics_title">Վերբեռման վիճակագրություն</string>
-    <string name="upload_survey_id">Հարցում՝ %1$s…</string>
-    <string name="upload_status">Կարգավիճակ՝ %1$s</string>
-    <string name="upload_last_attempt">Վերջին փորձ՝ %1$s</string>
-    <string name="upload_attempts">Փորձեր՝ %1$d</string>
-    <string name="upload_error">Սխալ՝ %1$s</string>
-    <string name="upload_retry">Կրկին վերբեռել</string>
-    <string name="upload_retrying">Կրկին փորձում է…</string>
-    <string name="upload_retry_all">Կրկին փորձել բոլորը</string>
-    <string name="upload_retry_failed">Կրկնակի փորձը ձախողվեց՝ %1$s</string>
     <string name="recruitment_title">Մասնակիցների ներգրավում</string>
     <string name="recruitment_back_menu">Վերադառնալ մենյու</string>
     <string name="recruitment_contact_info">Կոնտակտային տեղեկություններ</string>
@@ -288,6 +275,18 @@
     <string name="user_management_delete">Ջնջել</string>
     <string name="user_management_enable">Միացնել</string>
     <string name="user_management_disable_biometric">Անջատել կենսաչափականը</string>
+    <string name="user_management_fingerprint_enrolled">Մատնահետքը գրանցված է</string>
+    <string name="user_management_no_fingerprint">Մատնահետք չկա</string>
+    <string name="user_management_enrolled_date">Գրանցված է՝ %1$s</string>
+    <string name="user_management_biometric_not_supported">Կենսաչափականը չի աջակցվում</string>
+    <string name="user_management_biometric_cd">Կենսաչափական</string>
+    <string name="user_management_reenroll_fingerprint">Կրկին գրանցել մատնահետքը</string>
+    <string name="user_management_enroll_fingerprint">Գրանցել մատնահետքը</string>
+    <string name="user_management_reenroll_message">Ցանկանու՞մ եք կրկին գրանցել մատնահետքը \"%1$s\"-ի համար: Սա կփոխարինի ընթացիկ մատնահետքի տվյալները:</string>
+    <string name="user_management_enroll_message">Ցանկանու՞մ եք գրանցել մատնահետքը \"%1$s\"-ի համար: Սա թույլ կտա նրանց մուտք գործել իրենց մատնահետքով:</string>
+    <string name="user_management_proceed">Շարունակել</string>
+    <string name="user_management_disable_biometric_title">Անջատել կենսաչափականը</string>
+    <string name="user_management_disable_biometric_message">Վստա՞հ եք, որ ցանկանում եք անջատել կենսաչափական նույնականացումը \"%1$s\"-ի համար: Նրանք այլևս չեն կարողանա մուտք գործել կենսաչափական նույնականացմամբ:</string>
     <string name="logout_button_text">Դուրս գալ</string>
     <string name="logout_confirm_button">Դուրս գալ</string>
     <string name="logout_cancel_button">Չեղարկել</string>
@@ -625,11 +624,56 @@
     <string name="rapid_test_use_fingerprint">Օգտագործել մատնահետք</string>
     
     <!-- Server Settings Screen -->
+    <string name="server_settings_api_key_configured">API բանալին կարգավորված է</string>
+    <string name="server_settings_no_api_key">API բանալի չկա - Օգտագործեք կարգավորման կոդը</string>
+    <string name="server_settings_help_url">• Սերվերի URL-ը կարող է խմբագրվել՝ ձեր սերվերին ցույց տալու համար</string>
+    <string name="server_settings_help_api_key">• API բանալին ստացվում է հաստատության կարգավորման կոդից</string>
+    <string name="server_settings_help_setup">• Օգտագործեք կարգավորման կոդը՝ հաստատությունը կարգավորելու և API բանալի ստանալու համար</string>
+    <string name="server_settings_help_test">• Ստուգել կապակցությունը՝ հաստատում է սերվերը և API բանալին</string>
+    <string name="server_settings_server_url_label">Սերվերի URL</string>
     <string name="server_settings_test_connection">Ստուգել կապակցությունը</string>
     <string name="server_settings_save_url">Պահպանել URL-ը</string>
-    <string name="server_settings_url_placeholder">http://10.0.2.2:3000</string>
-    <string name="server_settings_error_indicator">Սխալ՝ </string>
-    
+    <string name="server_settings_update_setup_code">Թարմացնել կարգավորման կոդը</string>
+    <string name="server_settings_enter_setup_code">Մուտքագրել կարգավորման կոդը</string>
+    <string name="server_settings_url_saved">Սերվերի URL-ն հաջողությամբ պահպանվեց</string>
+    <string name="server_settings_connection_successful">Կապակցությունը հաջողված է</string>
+    <string name="server_settings_invalid_url">Անվավեր URL ձևաչափ</string>
+    <string name="server_settings_no_api_key_setup">API բանալի չկա - մուտքագրեք կարգավորման կոդը</string>
+    <string name="server_settings_invalid_api_key">Անվավեր API բանալի - մուտքագրեք նոր կարգավորման կոդ</string>
+    <string name="server_settings_endpoint_not_found">Սերվերի վերջնակետը չի գտնվել</string>
+    <string name="server_settings_client_error">Հաճախորդի սխալ (HTTP %1$d)</string>
+    <string name="server_settings_server_error">Սերվերի սխալ (HTTP %1$d)</string>
+    <string name="server_settings_unexpected_response">Անսպասելի պատասխան (HTTP %1$d)</string>
+    <string name="server_settings_not_found">Սերվերը չի գտնվել - ստուգեք URL-ը</string>
+    <string name="server_settings_cannot_connect">Չի հաջողվում կապվել սերվերի հետ - ստուգեք URL-ը և պորտը</string>
+    <string name="server_settings_timeout">Կապակցման ժամանակը սպառվեց - սերվերը հնարավոր է հասանելի չէ</string>
+    <string name="server_settings_network_error">Ցանցի սխալ: %1$s</string>
+    <string name="server_settings_connection_failed">Կապակցումը ձախողվեց: %1$s</string>
+
+    <!-- Upload Status Screen -->
+    <string name="upload_status_title">Վերբեռնման կարգավիճակ</string>
+    <string name="upload_status_refresh">Թարմացնել</string>
+    <string name="upload_status_retry_all">Կրկին փորձել բոլորը</string>
+    <string name="upload_status_retrying">Կրկնում է...</string>
+    <string name="upload_status_success">Հաջողությամբ վերբեռնվել է %1$d հարցում</string>
+    <string name="upload_status_no_success">Ոչ մի հարցում հաջողությամբ չի վերբեռնվել</string>
+    <string name="upload_status_retry_failed">Կրկնությունը ձախողվեց: %1$s</string>
+    <string name="upload_status_statistics_title">Վերբեռնման վիճակագրություն</string>
+    <string name="upload_status_total">Ընդամենը</string>
+    <string name="upload_status_completed">Ավարտված</string>
+    <string name="upload_status_pending">Սպասման մեջ</string>
+    <string name="upload_status_failed">Ձախողված</string>
+    <string name="upload_status_details_title">Հարցման վերբեռնման մանրամասներ</string>
+    <string name="upload_status_no_surveys">Վերբեռնելու համար հարցումներ չկան</string>
+    <string name="upload_status_upload_success">Հարցումը հաջողությամբ վերբեռնվեց</string>
+    <string name="upload_status_upload_failed">Վերբեռնումը ձախողվեց</string>
+    <string name="upload_status_survey">Հարցում: %1$s...</string>
+    <string name="upload_status_status">Կարգավիճակ: %1$s</string>
+    <string name="upload_status_last_attempt">Վերջին փորձը: %1$s</string>
+    <string name="upload_status_attempts">Փորձեր: %1$d</string>
+    <string name="upload_status_error">Սխալ: %1$s</string>
+    <string name="upload_status_retry_upload">Կրկին փորձել վերբեռնել</string>
+
     <!-- Session Timeout Dialog -->
     <string name="session_timeout_expired">Սեսիան ավարտվեց</string>
     <string name="session_timeout_login_again">Կրկին մուտք գործել</string>

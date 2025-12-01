@@ -3,6 +3,7 @@ package com.dev.salt.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Refresh
@@ -17,6 +18,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.dev.salt.R
 import com.dev.salt.session.SessionManagerInstance
 import com.dev.salt.data.SurveyDatabase
 import com.dev.salt.upload.SurveyUploadManager
@@ -56,10 +59,10 @@ fun ServerSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Server Settings") },
+                title = { Text(stringResource(R.string.server_settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                     }
                 }
             )
@@ -81,7 +84,7 @@ fun ServerSettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "Upload Server Configuration",
+                        text = stringResource(R.string.server_settings_config_title),
                         style = MaterialTheme.typography.headlineSmall
                     )
                     
@@ -91,7 +94,7 @@ fun ServerSettingsScreen(
                             serverUrl = it
                             testResult = null // Clear test result when URL changes
                         },
-                        label = { Text("Server URL") },
+                        label = { Text(stringResource(R.string.server_settings_server_url_label)) },
                         placeholder = { Text("http://10.0.2.2:3000") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                         modifier = Modifier.fillMaxWidth(),
@@ -111,7 +114,7 @@ fun ServerSettingsScreen(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = "API Key Configured",
+                                text = stringResource(R.string.server_settings_api_key_configured),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -127,7 +130,7 @@ fun ServerSettingsScreen(
                                 tint = MaterialTheme.colorScheme.error
                             )
                             Text(
-                                text = "No API Key - Use Setup Code",
+                                text = stringResource(R.string.server_settings_no_api_key),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.error
                             )
@@ -182,7 +185,7 @@ fun ServerSettingsScreen(
                             onClick = {
                                 scope.launch {
                                     isLoading = true
-                                    testResult = testConnection(serverUrl, apiKey)
+                                    testResult = testConnection(context, serverUrl, apiKey)
                                     isLoading = false
                                 }
                             },
@@ -192,7 +195,7 @@ fun ServerSettingsScreen(
                             if (isLoading) {
                                 CircularProgressIndicator(modifier = Modifier.size(16.dp))
                             } else {
-                                Text("Test Connection")
+                                Text(stringResource(R.string.server_settings_test_connection))
                             }
                         }
 
@@ -206,7 +209,7 @@ fun ServerSettingsScreen(
                                         apiKey = currentConfig?.apiKey ?: ""  // Keep existing API key
                                     )
                                     appServerConfigDao.insertOrUpdate(serverConfig)
-                                    saveMessage = "Server URL saved successfully"
+                                    saveMessage = context.getString(R.string.server_settings_url_saved)
                                     // Clear message after delay
                                     kotlinx.coroutines.delay(3000)
                                     saveMessage = null
@@ -215,7 +218,7 @@ fun ServerSettingsScreen(
                             enabled = serverUrl.isNotBlank(),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Save URL")
+                            Text(stringResource(R.string.server_settings_save_url))
                         }
                     }
 
@@ -224,7 +227,12 @@ fun ServerSettingsScreen(
                         onClick = onNavigateToSetup,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(if (hasApiKey) "Update Setup Code" else "Enter Setup Code")
+                        Text(
+                            if (hasApiKey)
+                                stringResource(R.string.server_settings_update_setup_code)
+                            else
+                                stringResource(R.string.server_settings_enter_setup_code)
+                        )
                     }
                 }
             }
@@ -238,23 +246,23 @@ fun ServerSettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "Configuration Help",
+                        text = stringResource(R.string.server_settings_help_title),
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = "• Server URL can be edited to point to your server",
+                        text = stringResource(R.string.server_settings_help_url),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = "• API Key is obtained from the facility setup code",
+                        text = stringResource(R.string.server_settings_help_api_key),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = "• Use setup code to configure facility and get API key",
+                        text = stringResource(R.string.server_settings_help_setup),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = "• Test Connection verifies the server and API key",
+                        text = stringResource(R.string.server_settings_help_test),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -268,13 +276,13 @@ sealed class TestResult {
     data class Error(val message: String) : TestResult()
 }
 
-private suspend fun testConnection(serverUrl: String, apiKey: String): TestResult = withContext(Dispatchers.IO) {
+private suspend fun testConnection(context: android.content.Context, serverUrl: String, apiKey: String): TestResult = withContext(Dispatchers.IO) {
     try {
         // Validate URL format
         val url = try {
             URL(serverUrl)
         } catch (e: Exception) {
-            return@withContext TestResult.Error("Invalid URL format")
+            return@withContext TestResult.Error(context.getString(R.string.server_settings_invalid_url))
         }
 
         // Use the survey version endpoint to test connection
@@ -293,26 +301,31 @@ private suspend fun testConnection(serverUrl: String, apiKey: String): TestResul
             val responseCode = connection.responseCode
             when (responseCode) {
                 in 200..299 -> {
-                    TestResult.Success("Connection successful")
+                    TestResult.Success(context.getString(R.string.server_settings_connection_successful))
                 }
-                401, 403 -> TestResult.Error(if (apiKey.isBlank()) "No API key - enter setup code" else "Invalid API key - enter new setup code")
-                404 -> TestResult.Error("Server endpoint not found")
-                in 400..499 -> TestResult.Error("Client error (HTTP $responseCode)")
-                in 500..599 -> TestResult.Error("Server error (HTTP $responseCode)")
-                else -> TestResult.Error("Unexpected response (HTTP $responseCode)")
+                401, 403 -> TestResult.Error(
+                    if (apiKey.isBlank())
+                        context.getString(R.string.server_settings_no_api_key_setup)
+                    else
+                        context.getString(R.string.server_settings_invalid_api_key)
+                )
+                404 -> TestResult.Error(context.getString(R.string.server_settings_endpoint_not_found))
+                in 400..499 -> TestResult.Error(context.getString(R.string.server_settings_client_error, responseCode))
+                in 500..599 -> TestResult.Error(context.getString(R.string.server_settings_server_error, responseCode))
+                else -> TestResult.Error(context.getString(R.string.server_settings_unexpected_response, responseCode))
             }
         } finally {
             connection.disconnect()
         }
     } catch (e: java.net.UnknownHostException) {
-        TestResult.Error("Server not found - check URL")
+        TestResult.Error(context.getString(R.string.server_settings_not_found))
     } catch (e: java.net.ConnectException) {
-        TestResult.Error("Cannot connect to server - check URL and port")
+        TestResult.Error(context.getString(R.string.server_settings_cannot_connect))
     } catch (e: java.net.SocketTimeoutException) {
-        TestResult.Error("Connection timeout - server may be unreachable")
+        TestResult.Error(context.getString(R.string.server_settings_timeout))
     } catch (e: java.io.IOException) {
-        TestResult.Error("Network error: ${e.javaClass.simpleName}")
+        TestResult.Error(context.getString(R.string.server_settings_network_error, e.javaClass.simpleName))
     } catch (e: Exception) {
-        TestResult.Error("Connection failed: ${e.message ?: e.javaClass.simpleName}")
+        TestResult.Error(context.getString(R.string.server_settings_connection_failed, e.message ?: e.javaClass.simpleName))
     }
 }

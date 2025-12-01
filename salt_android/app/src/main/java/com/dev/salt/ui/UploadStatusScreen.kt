@@ -10,8 +10,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.dev.salt.R
 import com.dev.salt.data.*
 import com.dev.salt.upload.*
 import kotlinx.coroutines.launch
@@ -54,15 +56,15 @@ fun UploadStatusScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Upload Status") },
+                title = { Text(stringResource(R.string.upload_status_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { loadData() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.upload_status_refresh))
                     }
                 }
             )
@@ -78,13 +80,13 @@ fun UploadStatusScreen(
                                 val results = uploadManager.retryPendingUploads()
                                 val successCount = results.count { it.second is UploadResult.Success }
                                 message = if (successCount > 0) {
-                                    "Successfully uploaded $successCount surveys"
+                                    context.getString(R.string.upload_status_success, successCount)
                                 } else {
-                                    "No surveys were successfully uploaded"
+                                    context.getString(R.string.upload_status_no_success)
                                 }
                                 loadData() // Refresh data
                             } catch (e: Exception) {
-                                message = "Retry failed: ${e.message}"
+                                message = context.getString(R.string.upload_status_retry_failed, e.message ?: "")
                             } finally {
                                 isRetrying = false
                                 // Clear message after delay
@@ -101,11 +103,11 @@ fun UploadStatusScreen(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Retrying...")
+                        Text(stringResource(R.string.upload_status_retrying))
                     } else {
                         Icon(Icons.Default.Refresh, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Retry All")
+                        Text(stringResource(R.string.upload_status_retry_all))
                     }
                 }
             }
@@ -144,11 +146,11 @@ fun UploadStatusScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Survey Upload Details",
+                        text = stringResource(R.string.upload_status_details_title),
                         style = MaterialTheme.typography.titleMedium
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     if (isLoading) {
                         Box(
                             modifier = Modifier.fillMaxWidth().padding(32.dp),
@@ -158,7 +160,7 @@ fun UploadStatusScreen(
                         }
                     } else if (uploadStates.isEmpty()) {
                         Text(
-                            text = "No surveys to upload",
+                            text = stringResource(R.string.upload_status_no_surveys),
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(16.dp)
                         )
@@ -174,12 +176,12 @@ fun UploadStatusScreen(
                                             try {
                                                 val result = uploadManager.uploadSurvey(surveyId)
                                                 message = when (result) {
-                                                    is UploadResult.Success -> "Survey uploaded successfully"
-                                                    else -> "Upload failed"
+                                                    is UploadResult.Success -> context.getString(R.string.upload_status_upload_success)
+                                                    else -> context.getString(R.string.upload_status_upload_failed)
                                                 }
                                                 loadData() // Refresh data
                                             } catch (e: Exception) {
-                                                message = "Retry failed: ${e.message}"
+                                                message = context.getString(R.string.upload_status_retry_failed, e.message ?: "")
                                             }
                                             // Clear message after delay
                                             kotlinx.coroutines.delay(3000)
@@ -207,38 +209,38 @@ fun StatisticsCard(statistics: UploadStatistics) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Upload Statistics",
+                text = stringResource(R.string.upload_status_statistics_title),
                 style = MaterialTheme.typography.titleMedium
             )
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 StatisticItem(
                     icon = Icons.Default.Assessment,
-                    label = "Total",
+                    label = stringResource(R.string.upload_status_total),
                     value = statistics.totalSurveys.toString(),
                     color = MaterialTheme.colorScheme.primary
                 )
-                
+
                 StatisticItem(
                     icon = Icons.Default.CheckCircle,
-                    label = "Completed",
+                    label = stringResource(R.string.upload_status_completed),
                     value = statistics.completedUploads.toString(),
                     color = MaterialTheme.colorScheme.primary
                 )
-                
+
                 StatisticItem(
                     icon = Icons.Default.Schedule,
-                    label = "Pending",
+                    label = stringResource(R.string.upload_status_pending),
                     value = statistics.pendingUploads.toString(),
                     color = MaterialTheme.colorScheme.secondary
                 )
-                
+
                 StatisticItem(
                     icon = Icons.Default.Error,
-                    label = "Failed",
+                    label = stringResource(R.string.upload_status_failed),
                     value = statistics.failedUploads.toString(),
                     color = MaterialTheme.colorScheme.error
                 )
@@ -281,8 +283,9 @@ fun UploadStateItem(
     uploadState: SurveyUploadState,
     onRetry: (String) -> Unit
 ) {
+    val context = LocalContext.current
     val dateFormat = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault())
-    
+
     Card(
         colors = CardDefaults.cardColors(
             containerColor = when (uploadState.uploadStatus) {
@@ -302,30 +305,30 @@ fun UploadStateItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Survey: ${uploadState.surveyId.take(8)}...",
+                    text = context.getString(R.string.upload_status_survey, uploadState.surveyId.take(8)),
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "Status: ${uploadState.uploadStatus}",
+                    text = context.getString(R.string.upload_status_status, uploadState.uploadStatus),
                     style = MaterialTheme.typography.bodySmall
                 )
                 uploadState.lastAttemptTime?.let { time ->
                     Text(
-                        text = "Last attempt: ${dateFormat.format(Date(time))}",
+                        text = context.getString(R.string.upload_status_last_attempt, dateFormat.format(Date(time))),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
                 if (uploadState.attemptCount > 1) {
                     Text(
-                        text = "Attempts: ${uploadState.attemptCount}",
+                        text = context.getString(R.string.upload_status_attempts, uploadState.attemptCount),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
                 uploadState.errorMessage?.let { error ->
                     Text(
-                        text = "Error: $error",
+                        text = context.getString(R.string.upload_status_error, error),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         maxLines = 2,
@@ -333,14 +336,14 @@ fun UploadStateItem(
                     )
                 }
             }
-            
+
             if (uploadState.uploadStatus in listOf(UploadStatus.FAILED.name, UploadStatus.PENDING.name)) {
                 IconButton(
                     onClick = { onRetry(uploadState.surveyId) }
                 ) {
                     Icon(
                         Icons.Default.Refresh,
-                        contentDescription = "Retry Upload",
+                        contentDescription = stringResource(R.string.upload_status_retry_upload),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }

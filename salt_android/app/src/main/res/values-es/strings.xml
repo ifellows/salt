@@ -476,4 +476,317 @@
     <string name="facility_setup_code_label">Código de Configuración</string>
     <string name="facility_setup_code_placeholder">ABC123</string>
     <string name="facility_setup_button">Configurar Instalación</string>
+
+    <!-- Additional Server Settings strings -->
+    <string name="server_settings_api_key_configured">Clave API configurada</string>
+    <string name="server_settings_no_api_key">Sin clave API - Use el código de configuración</string>
+    <string name="server_settings_help_url">• La URL del servidor se puede editar para apuntar a su servidor</string>
+    <string name="server_settings_help_api_key">• La clave API se obtiene del código de configuración de la instalación</string>
+    <string name="server_settings_help_setup">• Use el código de configuración para configurar la instalación y obtener la clave API</string>
+    <string name="server_settings_help_test">• Probar conexión verifica el servidor y la clave API</string>
+    <string name="server_settings_server_url_label">URL del servidor</string>
+    <string name="server_settings_test_connection">Probar conexión</string>
+    <string name="server_settings_save_url">Guardar URL</string>
+    <string name="server_settings_update_setup_code">Actualizar código de configuración</string>
+    <string name="server_settings_enter_setup_code">Ingresar código de configuración</string>
+    <string name="server_settings_url_saved">URL del servidor guardada exitosamente</string>
+    <string name="server_settings_connection_successful">Conexión exitosa</string>
+    <string name="server_settings_invalid_url">Formato de URL inválido</string>
+    <string name="server_settings_no_api_key_setup">Sin clave API - ingrese el código de configuración</string>
+    <string name="server_settings_invalid_api_key">Clave API inválida - ingrese un nuevo código de configuración</string>
+    <string name="server_settings_endpoint_not_found">Endpoint del servidor no encontrado</string>
+    <string name="server_settings_client_error">Error del cliente (HTTP %1$d)</string>
+    <string name="server_settings_server_error">Error del servidor (HTTP %1$d)</string>
+    <string name="server_settings_unexpected_response">Respuesta inesperada (HTTP %1$d)</string>
+    <string name="server_settings_not_found">Servidor no encontrado - verifique la URL</string>
+    <string name="server_settings_cannot_connect">No se puede conectar al servidor - verifique la URL y el puerto</string>
+    <string name="server_settings_timeout">Tiempo de conexión agotado - el servidor puede ser inaccesible</string>
+    <string name="server_settings_network_error">Error de red: %1$s</string>
+    <string name="server_settings_connection_failed">Conexión fallida: %1$s</string>
+
+    <!-- Upload Status Screen strings -->
+    <string name="upload_status_refresh">Actualizar</string>
+    <string name="upload_status_retry_all">Reintentar todo</string>
+    <string name="upload_status_retrying">Reintentando...</string>
+    <string name="upload_status_success">%1$d encuestas cargadas exitosamente</string>
+    <string name="upload_status_no_success">No se cargaron encuestas exitosamente</string>
+    <string name="upload_status_retry_failed">Reintento fallido: %1$s</string>
+    <string name="upload_status_statistics_title">Estadísticas de carga</string>
+    <string name="upload_status_total">Total</string>
+    <string name="upload_status_completed">Completado</string>
+    <string name="upload_status_pending">Pendiente</string>
+    <string name="upload_status_failed">Fallido</string>
+    <string name="upload_status_details_title">Detalles de carga de encuesta</string>
+    <string name="upload_status_no_surveys">No hay encuestas para cargar</string>
+    <string name="upload_status_upload_success">Encuesta cargada exitosamente</string>
+    <string name="upload_status_upload_failed">Carga fallida</string>
+    <string name="upload_status_survey">Encuesta: %1$s...</string>
+    <string name="upload_status_status">Estado: %1$s</string>
+    <string name="upload_status_last_attempt">Último intento: %1$s</string>
+    <string name="upload_status_attempts">Intentos: %1$d</string>
+    <string name="upload_status_error">Error: %1$s</string>
+    <string name="upload_status_retry_upload">Reintentar carga</string>
+
+    <!-- Additional User Management strings -->
+    <string name="user_management_fingerprint_enrolled">Huella dactilar inscrita</string>
+    <string name="user_management_no_fingerprint">Sin huella dactilar</string>
+    <string name="user_management_enrolled_date">Inscrito: %1$s</string>
+    <string name="user_management_biometric_not_supported">Biométrico no compatible</string>
+    <string name="user_management_biometric_cd">Biométrico</string>
+    <string name="user_management_reenroll_fingerprint">Reinscribir huella dactilar</string>
+    <string name="user_management_enroll_fingerprint">Inscribir huella dactilar</string>
+    <string name="user_management_reenroll_message">¿Desea reinscribir la huella dactilar para \"%1$s\"? Esto reemplazará los datos de huella dactilar actuales.</string>
+    <string name="user_management_enroll_message">¿Desea inscribir una huella dactilar para \"%1$s\"? Esto les permitirá iniciar sesión usando su huella dactilar.</string>
+    <string name="user_management_proceed">Continuar</string>
+    <string name="user_management_disable_biometric_title">Desactivar biométrico</string>
+    <string name="user_management_disable_biometric_message">¿Está seguro de que desea desactivar la autenticación biométrica para \"%1$s\"? Ya no podrán iniciar sesión usando autenticación biométrica.</string>
+
+    <!-- Language Settings strings -->
+    <string name="language_settings_app_language">Idioma de la aplicación</string>
+    <string name="language_settings_description">Seleccione el idioma de la interfaz de la aplicación</string>
+    <string name="language_settings_note">Nota: El idioma de la encuesta se selecciona por separado para cada participante</string>
+
+    <!-- Session Timeout Dialog strings -->
+    <string name="session_timeout_expired">Sesión expirada</string>
+    <string name="session_timeout_login_again">Iniciar sesión de nuevo</string>
+
+    <!-- Additional Content Descriptions -->
+    <string name="cd_biometric_login">Inicio de sesión biométrico</string>
+    <string name="cd_clear_signature">Borrar firma</string>
+    <string name="cd_device_not_connected">Dispositivo no conectado</string>
+    <string name="cd_fingerprint_instruction">Coloque el dedo índice derecho en el escáner</string>
+    <string name="cd_fingerprint_scanner_instruction">Instrucción del escáner de huellas</string>
+    <string name="cd_quality_issue">Problema de calidad</string>
+    <string name="cd_replay_audio">Reproducir audio</string>
+    <string name="cd_sample_collection">Recolección de muestras</string>
+    <string name="cd_search">Buscar</string>
+    <string name="cd_test_icon">Prueba de %1$s</string>
+    <string name="cd_usb_permission">Permiso USB</string>
+
+    <!-- Additional Common strings -->
+    <string name="common_clear">Limpiar</string>
+    <string name="common_done">Listo</string>
+    <string name="common_login">Iniciar sesión</string>
+    <string name="common_none">(ninguno)</string>
+    <string name="common_selected">Seleccionado</string>
+
+    <!-- Consent Screens -->
+    <string name="consent_go_back">Volver</string>
+    <string name="consent_i_agree">Acepto</string>
+    <string name="consent_instruction_intro">A continuación obtendremos el consentimiento del participante para participar en el estudio.</string>
+    <string name="consent_instruction_step1">Muestre la tableta al participante y déjele leer los términos de participación.</string>
+    <string name="consent_instruction_step2">Luego se le pedirá que firme y acepte continuar.</string>
+    <string name="consent_instruction_step3">Por favor asegúrese de que entienda.</string>
+    <string name="consent_instruction_title">Instrucciones del personal</string>
+    <string name="consent_load_error">Error al cargar consentimiento: %1$s</string>
+    <string name="consent_no_agreement_error">No hay acuerdo de consentimiento configurado. Por favor contacte al administrador.</string>
+    <string name="consent_read_instruction">Por favor lea el acuerdo de consentimiento a continuación:</string>
+    <string name="consent_replay_audio">Reproducir audio</string>
+    <string name="consent_sign_instruction">Por favor firme abajo para indicar su consentimiento:</string>
+    <string name="consent_text_unavailable">Texto de consentimiento no disponible</string>
+    <string name="consent_title">Acuerdo de consentimiento</string>
+
+    <!-- Contact Info validation -->
+    <string name="contact_info_invalid_email">Por favor ingrese una dirección de correo electrónico válida</string>
+    <string name="contact_info_invalid_phone">Por favor ingrese un número de teléfono válido</string>
+
+    <!-- Eligibility Screen -->
+    <string name="eligibility_attempts_remaining">Intentos restantes: %1$d</string>
+    <string name="eligibility_fingerprint_button">Autenticar con huella dactilar</string>
+    <string name="eligibility_hand_back">Por favor devuelva la tableta al miembro del personal</string>
+    <string name="eligibility_not_eligible_default">Gracias por su interés. Desafortunadamente, no cumple con los criterios de elegibilidad para esta encuesta.</string>
+    <string name="eligibility_password_button">Usar contraseña</string>
+    <string name="eligibility_replay_audio">Reproducir mensaje de audio</string>
+    <string name="eligibility_scanning">Escaneando...</string>
+    <string name="eligibility_test_hint">Cuentas de prueba: admin/123 o staff/123</string>
+    <string name="eligibility_title">Gracias</string>
+
+    <!-- Fingerprint Errors -->
+    <string name="error_fingerprint_capture_failed">Error al capturar huella dactilar</string>
+    <string name="error_fingerprint_init_failed">Error al inicializar el escáner de huellas</string>
+    <string name="error_fingerprint_max_attempts">Se excedió el número máximo de intentos</string>
+    <string name="error_fingerprint_not_recognized">Huella dactilar no reconocida. Por favor intente de nuevo.</string>
+    <string name="error_fingerprint_scanner_not_connected">Escáner de huellas no conectado</string>
+    <string name="error_fingerprint_usb_permission">Por favor otorgue permiso USB e intente de nuevo</string>
+    <string name="error_invalid_credentials">Credenciales inválidas</string>
+    <string name="error_no_fingerprints_enrolled">No hay miembros del personal con huellas inscritas</string>
+
+    <!-- Fingerprint Enrollment -->
+    <string name="fingerprint_attempt_of">Intento %1$d de %2$d</string>
+    <string name="fingerprint_enrollment_button">Inscribir huella dactilar</string>
+    <string name="fingerprint_enrollment_header">Inscribir huella dactilar</string>
+    <string name="fingerprint_enrollment_instructions_label">Instrucciones:</string>
+    <string name="fingerprint_enrollment_ready">%1$s ahora puede iniciar sesión usando su huella dactilar</string>
+    <string name="fingerprint_enrollment_skip_message">El usuario necesitará usar su contraseña para iniciar sesión. Puede inscribir su huella dactilar más tarde desde Administración de usuarios.</string>
+    <string name="fingerprint_enrollment_skip_title">¿Omitir inscripción de huella dactilar?</string>
+    <string name="fingerprint_enrollment_step1">Limpie su dedo ÍNDICE DERECHO</string>
+    <string name="fingerprint_enrollment_step2">Coloque el dedo plano en el escáner</string>
+    <string name="fingerprint_enrollment_step3">Presione suavemente - no demasiado fuerte</string>
+    <string name="fingerprint_enrollment_step4">Mantenga quieto hasta que se complete el escaneo</string>
+    <string name="fingerprint_enrollment_success">¡Huella dactilar inscrita exitosamente!</string>
+    <string name="fingerprint_enrollment_title">Inscripción de huella dactilar</string>
+    <string name="fingerprint_instruction_step2">Coloque su dedo ÍNDICE DERECHO plano en el escáner</string>
+    <string name="fingerprint_setup_skip_info">Puede omitir la configuración de huella dactilar y usar solo autenticación por contraseña. La huella dactilar se puede habilitar más tarde en la configuración.</string>
+
+    <!-- HIV/Rapid Test screens -->
+    <string name="hiv_test_auth_fingerprint">Autenticar con huella dactilar</string>
+    <string name="hiv_test_authenticate">Autenticar</string>
+    <string name="hiv_test_password_label">Contraseña del personal</string>
+    <string name="hiv_test_replay_instructions">Reproducir instrucciones</string>
+    <string name="hiv_test_use_fingerprint">Usar huella dactilar en su lugar</string>
+    <string name="hiv_test_use_password">Usar contraseña en su lugar</string>
+
+    <!-- Lab Test Debug -->
+    <string name="lab_debug_condition">Condición: %1$s</string>
+    <string name="lab_debug_hide">OCULTAR</string>
+    <string name="lab_debug_lab_test_evaluations">Evaluaciones de pruebas de laboratorio:</string>
+    <string name="lab_debug_na">N/D</string>
+    <string name="lab_debug_none">(ninguno - siempre mostrar)</string>
+    <string name="lab_debug_rapid_test_results">Resultados de pruebas rápidas:</string>
+    <string name="lab_debug_result">Resultado: %1$s =&gt; %2$s</string>
+    <string name="lab_debug_show">MOSTRAR</string>
+    <string name="lab_debug_survey_answers">Respuestas de la encuesta:</string>
+    <string name="lab_debug_title">Información de depuración JEXL</string>
+
+    <!-- Lab Collection -->
+    <string name="lab_no_tests_message">No se requieren pruebas de laboratorio para este participante.</string>
+    <string name="lab_required_tests">Pruebas de laboratorio requeridas (%1$d)</string>
+    <string name="lab_test_code">Código: %1$s</string>
+    <string name="lab_test_type_dropdown">Tipo: Desplegable</string>
+    <string name="lab_test_type_generic">Tipo: %1$s</string>
+    <string name="lab_test_type_numeric">Tipo: Numérico%1$s</string>
+    <string name="lab_toggle_debug">Activar depuración</string>
+
+    <!-- Low Quality Fingerprint -->
+    <string name="low_quality_message">La calidad de la huella dactilar es demasiado baja. Por favor:</string>
+    <string name="low_quality_step1">Asegúrese de que su dedo esté limpio y seco</string>
+    <string name="low_quality_step2">Coloque su dedo plano en el escáner</string>
+    <string name="low_quality_step3">Presione firmemente pero no demasiado fuerte</string>
+    <string name="low_quality_step4">Asegúrese de que el vidrio del escáner esté limpio</string>
+    <string name="low_quality_title">Escaneo de baja calidad</string>
+    <string name="low_quality_try_again">Intentar de nuevo</string>
+
+    <!-- Menu -->
+    <string name="menu_recruitment_payment">Pago de reclutamiento</string>
+
+    <!-- Participant Check -->
+    <string name="participant_check_instruction">Si no está seguro, consulte con otros miembros del personal.</string>
+    <string name="participant_check_never">Nunca participó</string>
+    <string name="participant_check_participated">Participó o no está seguro</string>
+    <string name="participant_check_question">¿Ha participado esta persona en esta encuesta en los últimos %1$d días?</string>
+    <string name="participant_check_title">Verificación de participante</string>
+
+    <!-- Payment Admin Override -->
+    <string name="payment_admin_override_button">Anulación de administrador - Continuar sin huella del sujeto</string>
+    <string name="payment_admin_override_error_no_match">La huella dactilar no coincide con ningún administrador</string>
+    <string name="payment_admin_override_message">Para confirmar el pago sin verificación de huella del sujeto, un administrador debe autorizar esta acción con su huella dactilar.</string>
+    <string name="payment_admin_override_payment_type">%1$s (Anulación de admin: %2$s)</string>
+    <string name="payment_admin_override_scan_button">Escanear huella del administrador</string>
+    <string name="payment_admin_override_scanning">Escaneando huella del administrador...</string>
+    <string name="payment_admin_override_success">✓ Anulación de admin registrada. %1$s confirmó pago dado.</string>
+    <string name="payment_admin_override_title">Anulación de administrador requerida</string>
+    <string name="payment_default_message">Gracias por su participación. Ahora recibirá su pago.</string>
+    <string name="payment_error_fingerprint_mismatch">La huella dactilar no coincide. Por favor intente de nuevo.</string>
+    <string name="payment_error_no_fingerprint">No se encontró inscripción de huella dactilar para esta encuesta</string>
+    <string name="payment_error_scanner_not_connected">Escáner de huellas no conectado</string>
+    <string name="payment_error_usb_permission">Por favor otorgue permiso USB e intente de nuevo</string>
+
+    <!-- Rapid Test -->
+    <string name="rapid_test_auth_fingerprint">Autenticar con huella dactilar</string>
+    <string name="rapid_test_authenticate">Autenticar</string>
+    <string name="rapid_test_password_label">Contraseña del personal</string>
+    <string name="rapid_test_replay_instructions">Reproducir instrucciones</string>
+    <string name="rapid_test_use_fingerprint">Usar huella dactilar en su lugar</string>
+    <string name="rapid_test_use_password">Usar contraseña en su lugar</string>
+
+    <!-- Recruitment Admin Override -->
+    <string name="recruitment_admin_override_message">La búsqueda basada en cupones requiere verificación del administrador cuando está habilitada la huella dactilar. Por favor solicite a un administrador que escanee su huella dactilar.</string>
+    <string name="recruitment_admin_override_no_match">No se encontró coincidencia de huella de administrador.</string>
+    <string name="recruitment_admin_override_required">Verificación de administrador requerida</string>
+    <string name="recruitment_admin_override_scan">Escanear huella del administrador</string>
+    <string name="recruitment_admin_override_success">Administrador verificado: %1$s</string>
+
+    <!-- Recruitment Lookup & Payment -->
+    <string name="recruitment_coupon_not_found">Código de cupón no encontrado. Por favor verifique e intente de nuevo.</string>
+    <string name="recruitment_fingerprint_not_found">Huella dactilar no encontrada. Por favor intente de nuevo o use su código de cupón.</string>
+    <string name="recruitment_lookup_button">Buscar</string>
+    <string name="recruitment_lookup_coupon_label">Su código de cupón</string>
+    <string name="recruitment_lookup_fingerprint">Escanear huella dactilar</string>
+    <string name="recruitment_lookup_instruction">Ingrese su código de cupón o escanee su huella dactilar para buscar sus pagos de reclutamiento.</string>
+    <string name="recruitment_lookup_instruction_fingerprint">Escanee la huella dactilar del participante para buscar su pago de reclutamiento.</string>
+    <string name="recruitment_lookup_instruction_no_fingerprint">Ingrese el código de cupón para buscar el pago de reclutamiento.</string>
+    <string name="recruitment_lookup_or">O</string>
+    <string name="recruitment_lookup_placeholder">XXXXXX</string>
+    <string name="recruitment_lookup_title">Pago de reclutamiento</string>
+    <string name="recruitment_payment_already_paid">Pagado el %1$s</string>
+    <string name="recruitment_payment_cancel">Cancelar</string>
+    <string name="recruitment_payment_confirm_button">Confirmar pago recibido</string>
+    <string name="recruitment_payment_confirm_fingerprint">Confirmar con huella dactilar</string>
+    <string name="recruitment_payment_confirm_signature">Firme abajo para confirmar recepción</string>
+    <string name="recruitment_payment_eligible">%1$d código(s) de cupón han sido usados y son elegibles para pago.</string>
+    <string name="recruitment_payment_error_no_fingerprint">No hay huella dactilar registrada para este participante.</string>
+    <string name="recruitment_payment_no_coupons">No se emitieron cupones a este participante.</string>
+    <string name="recruitment_payment_none_eligible">No hay códigos de cupón elegibles para pago en este momento.</string>
+    <string name="recruitment_payment_not_used">No usado</string>
+    <string name="recruitment_payment_pending">Disponible para pago</string>
+    <string name="recruitment_payment_subject_id_label">ID del sujeto</string>
+    <string name="recruitment_payment_success">¡Pago confirmado exitosamente!</string>
+    <string name="recruitment_payment_title">Pago de reclutamiento</string>
+    <string name="recruitment_payment_total">Monto total del pago: %1$s%2$.2f %3$s</string>
+    <string name="recruitment_payment_used">Usado</string>
+    <string name="recruitment_payment_welcome">¡Bienvenido de nuevo!</string>
+    <string name="recruitment_payment_your_coupons">Sus cupones</string>
+
+    <!-- Sample Collection -->
+    <string name="sample_collection_check_all">Por favor marque todas las pruebas para continuar</string>
+    <string name="sample_collection_continue">Continuar a la encuesta</string>
+    <string name="sample_collection_instruction">Por favor tome muestras biológicas para realizar cada una de las siguientes pruebas. Marque cada una para confirmar que se realizarán.</string>
+    <string name="sample_collection_no_tests">No hay pruebas rápidas configuradas</string>
+    <string name="sample_collection_title">Recolección de muestras biológicas</string>
+
+    <!-- Scanner Not Connected -->
+    <string name="scanner_not_connected_message">El escáner de huellas dactilares no está conectado. Por favor:</string>
+    <string name="scanner_not_connected_step1">1. Conecte el escáner SecuGen al puerto USB</string>
+    <string name="scanner_not_connected_step2">2. Use un adaptador USB OTG si es necesario</string>
+    <string name="scanner_not_connected_step3">3. Asegúrese de que el dispositivo esté encendido</string>
+    <string name="scanner_not_connected_step4">4. Intente de nuevo</string>
+    <string name="scanner_not_connected_title">Escáner no conectado</string>
+
+    <!-- Staff Validation -->
+    <string name="staff_validation_default">Por favor devuelva la tableta al miembro del personal que se la dio</string>
+
+    <!-- Survey Instructions -->
+    <string name="survey_completed">¡Encuesta completada!</string>
+    <string name="survey_error_default">Ocurrió un error.</string>
+    <string name="survey_error_icon">Error</string>
+    <string name="survey_instructions_hand_tablet">En un área privada, entregue la tableta al participante para comenzar la encuesta.</string>
+    <string name="survey_instructions_staff_screening">En un área privada, el miembro del personal hará algunas preguntas iniciales.</string>
+    <string name="survey_instructions_title">Instrucciones de la encuesta</string>
+
+    <!-- Survey Multi-select -->
+    <string name="survey_multiselect_exact">Seleccione exactamente %1$d opciones</string>
+    <string name="survey_multiselect_max">Seleccione hasta %1$d opciones</string>
+    <string name="survey_multiselect_min">Seleccione al menos %1$d opciones</string>
+    <string name="survey_multiselect_range">Seleccione de %1$d a %2$d opciones</string>
+
+    <!-- Tablet Handoff -->
+    <string name="tablet_handoff_instruction">Entregue la tableta al participante. Completarán la encuesta por sí mismos y se les indicará que se la devuelvan cuando hayan terminado.</string>
+    <string name="tablet_handoff_title">Entrega de tableta</string>
+
+    <!-- Test Results -->
+    <string name="test_indeterminate_description">Resultado de prueba inválido o poco claro</string>
+    <string name="test_instruction_format">Por favor registre el resultado del %1$s</string>
+    <string name="test_not_performed_description">La prueba no se realizó</string>
+    <string name="test_result_indeterminate">Indeterminado</string>
+    <string name="test_result_negative">Negativo</string>
+    <string name="test_result_not_performed">Prueba no realizada</string>
+    <string name="test_result_positive">Positivo</string>
+    <string name="test_result_save_error">Error al guardar el resultado de la prueba: %1$s</string>
+    <string name="test_submit_result">Enviar resultado</string>
+    <string name="test_title_format">Resultado de %1$s</string>
+
+    <!-- USB Permission -->
+    <string name="usb_permission_message">Por favor otorgue permiso USB para usar el escáner de huellas dactilares.</string>
+    <string name="usb_permission_message_full">Por favor otorgue permiso USB para usar el escáner de huellas dactilares. Cuando se le solicite, toque \'OK\' para permitir acceso al dispositivo.</string>
+    <string name="usb_permission_title">Permiso USB requerido</string>
 </resources>

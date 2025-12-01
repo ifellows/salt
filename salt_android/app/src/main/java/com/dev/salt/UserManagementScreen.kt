@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.Delete
@@ -18,11 +19,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.dev.salt.R
 import com.dev.salt.data.User
 import com.dev.salt.viewmodel.UserManagementViewModel
 import com.dev.salt.ui.LogoutButton
@@ -99,7 +102,17 @@ fun UserManagementScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("User Management") },
+                title = { Text(stringResource(R.string.user_management_title)) },
+                navigationIcon = {
+                    if (navController != null) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                contentDescription = stringResource(R.string.cd_back)
+                            )
+                        }
+                    }
+                },
                 actions = {
                     if (onLogout != null) {
                         LogoutButton(
@@ -263,13 +276,16 @@ fun UserCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Default.Fingerprint,
-                        contentDescription = "Biometric",
+                        contentDescription = stringResource(R.string.user_management_biometric_cd),
                         tint = if (user.fingerprintTemplate != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
-                            text = if (user.fingerprintTemplate != null) "Fingerprint Enrolled" else "No Fingerprint",
+                            text = if (user.fingerprintTemplate != null)
+                                stringResource(R.string.user_management_fingerprint_enrolled)
+                            else
+                                stringResource(R.string.user_management_no_fingerprint),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         if (user.fingerprintTemplate != null) {
@@ -277,7 +293,7 @@ fun UserCard(
                                 val date = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault())
                                     .format(java.util.Date(enrolledDate))
                                 Text(
-                                    text = "Enrolled: $date",
+                                    text = stringResource(R.string.user_management_enrolled_date, date),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -297,9 +313,9 @@ fun UserCard(
                                 onClick = onBiometricEnroll,
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Text("Re-enroll", style = MaterialTheme.typography.bodySmall)
+                                Text(stringResource(R.string.user_management_reenroll), style = MaterialTheme.typography.bodySmall)
                             }
-                            
+
                             // Disable button
                             OutlinedButton(
                                 onClick = onBiometricDisable,
@@ -308,7 +324,7 @@ fun UserCard(
                                 ),
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Text("Disable", style = MaterialTheme.typography.bodySmall)
+                                Text(stringResource(R.string.user_management_disable), style = MaterialTheme.typography.bodySmall)
                             }
                         } else {
                             // Enable button
@@ -316,13 +332,13 @@ fun UserCard(
                                 onClick = onBiometricEnroll,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Enable Biometric", style = MaterialTheme.typography.bodySmall)
+                                Text(stringResource(R.string.user_management_enable_biometric), style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
                 } else {
                     Text(
-                        text = "Biometric not supported",
+                        text = stringResource(R.string.user_management_biometric_not_supported),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -444,7 +460,7 @@ fun AddUserDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.user_management_cancel))
             }
         }
     )
@@ -474,7 +490,7 @@ fun DeleteUserConfirmDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.user_management_cancel))
             }
         }
     )
@@ -486,11 +502,14 @@ fun BiometricEnrollConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val title = if (user.fingerprintTemplate != null) "Re-enroll Fingerprint" else "Enroll Fingerprint"
+    val title = if (user.fingerprintTemplate != null)
+        stringResource(R.string.user_management_reenroll_fingerprint)
+    else
+        stringResource(R.string.user_management_enroll_fingerprint)
     val message = if (user.fingerprintTemplate != null) {
-        "Do you want to re-enroll the fingerprint for \"${user.fullName}\"? This will replace the current fingerprint data."
+        stringResource(R.string.user_management_reenroll_message, user.fullName)
     } else {
-        "Do you want to enroll a fingerprint for \"${user.fullName}\"? This will allow them to login using their fingerprint."
+        stringResource(R.string.user_management_enroll_message, user.fullName)
     }
     
     AlertDialog(
@@ -516,12 +535,12 @@ fun BiometricEnrollConfirmDialog(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
-                Text("Proceed")
+                Text(stringResource(R.string.user_management_proceed))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.user_management_cancel))
             }
         }
     )
@@ -535,7 +554,7 @@ fun BiometricDisableConfirmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { 
+        title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Default.Fingerprint,
@@ -543,11 +562,11 @@ fun BiometricDisableConfirmDialog(
                     tint = MaterialTheme.colorScheme.error
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Disable Biometric")
+                Text(stringResource(R.string.user_management_disable_biometric_title))
             }
         },
-        text = { 
-            Text("Are you sure you want to disable biometric authentication for \"${user.fullName}\"? They will no longer be able to login using biometric authentication.")
+        text = {
+            Text(stringResource(R.string.user_management_disable_biometric_message, user.fullName))
         },
         confirmButton = {
             Button(
@@ -556,12 +575,12 @@ fun BiometricDisableConfirmDialog(
                     containerColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text("Disable")
+                Text(stringResource(R.string.user_management_disable))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.user_management_cancel))
             }
         }
     )

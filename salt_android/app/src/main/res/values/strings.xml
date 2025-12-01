@@ -198,21 +198,6 @@
     <string name="server_settings_help_title">Configuration Help</string>
     <string name="server_settings_help_text">1. Contact your system administrator for the server URL and API key\n2. The server URL should point to your SALT management server\n3. API key is optional but recommended for security\n4. Test the connection before saving\n5. All survey uploads will use these settings</string>
 
-    <!-- Upload Status strings -->
-    <string name="upload_status_title">Upload Status</string>
-    <string name="upload_details_title">Survey Upload Details</string>
-    <string name="upload_no_surveys">No surveys to upload</string>
-    <string name="upload_statistics_title">Upload Statistics</string>
-    <string name="upload_survey_id">Survey: %1$s…</string>
-    <string name="upload_status">Status: %1$s</string>
-    <string name="upload_last_attempt">Last attempt: %1$s</string>
-    <string name="upload_attempts">Attempts: %1$d</string>
-    <string name="upload_error">Error: %1$s</string>
-    <string name="upload_retry">Retry Upload</string>
-    <string name="upload_retrying">Retrying…</string>
-    <string name="upload_retry_all">Retry All</string>
-    <string name="upload_retry_failed">Retry failed: %1$s</string>
-
     <!-- Seed Recruitment strings -->
     <string name="recruitment_title">Seed Recruitment</string>
     <string name="recruitment_back_menu">Back to Menu</string>
@@ -353,6 +338,18 @@
     <string name="user_management_delete">Delete</string>
     <string name="user_management_enable">Enable</string>
     <string name="user_management_disable_biometric">Disable Biometric</string>
+    <string name="user_management_fingerprint_enrolled">Fingerprint Enrolled</string>
+    <string name="user_management_no_fingerprint">No Fingerprint</string>
+    <string name="user_management_enrolled_date">Enrolled: %1$s</string>
+    <string name="user_management_biometric_not_supported">Biometric not supported</string>
+    <string name="user_management_biometric_cd">Biometric</string>
+    <string name="user_management_reenroll_fingerprint">Re-enroll Fingerprint</string>
+    <string name="user_management_enroll_fingerprint">Enroll Fingerprint</string>
+    <string name="user_management_reenroll_message">Do you want to re-enroll the fingerprint for \"%1$s\"? This will replace the current fingerprint data.</string>
+    <string name="user_management_enroll_message">Do you want to enroll a fingerprint for \"%1$s\"? This will allow them to login using their fingerprint.</string>
+    <string name="user_management_proceed">Proceed</string>
+    <string name="user_management_disable_biometric_title">Disable Biometric</string>
+    <string name="user_management_disable_biometric_message">Are you sure you want to disable biometric authentication for \"%1$s\"? They will no longer be able to login using biometric authentication.</string>
 
     <!-- Logout Button -->
     <string name="logout_button_text">Logout</string>
@@ -723,10 +720,55 @@
     <string name="rapid_test_use_fingerprint">Use Fingerprint Instead</string>
 
     <!-- Server Settings Screen strings -->
+    <string name="server_settings_api_key_configured">API Key Configured</string>
+    <string name="server_settings_no_api_key">No API Key - Use Setup Code</string>
+    <string name="server_settings_help_url">• Server URL can be edited to point to your server</string>
+    <string name="server_settings_help_api_key">• API Key is obtained from the facility setup code</string>
+    <string name="server_settings_help_setup">• Use setup code to configure facility and get API key</string>
+    <string name="server_settings_help_test">• Test Connection verifies the server and API key</string>
+    <string name="server_settings_server_url_label">Server URL</string>
     <string name="server_settings_test_connection">Test Connection</string>
     <string name="server_settings_save_url">Save URL</string>
-    <string name="server_settings_url_placeholder">http://10.0.2.2:3000</string>
-    <string name="server_settings_error_indicator">Error: </string>
+    <string name="server_settings_update_setup_code">Update Setup Code</string>
+    <string name="server_settings_enter_setup_code">Enter Setup Code</string>
+    <string name="server_settings_url_saved">Server URL saved successfully</string>
+    <string name="server_settings_connection_successful">Connection successful</string>
+    <string name="server_settings_invalid_url">Invalid URL format</string>
+    <string name="server_settings_no_api_key_setup">No API key - enter setup code</string>
+    <string name="server_settings_invalid_api_key">Invalid API key - enter new setup code</string>
+    <string name="server_settings_endpoint_not_found">Server endpoint not found</string>
+    <string name="server_settings_client_error">Client error (HTTP %1$d)</string>
+    <string name="server_settings_server_error">Server error (HTTP %1$d)</string>
+    <string name="server_settings_unexpected_response">Unexpected response (HTTP %1$d)</string>
+    <string name="server_settings_not_found">Server not found - check URL</string>
+    <string name="server_settings_cannot_connect">Cannot connect to server - check URL and port</string>
+    <string name="server_settings_timeout">Connection timeout - server may be unreachable</string>
+    <string name="server_settings_network_error">Network error: %1$s</string>
+    <string name="server_settings_connection_failed">Connection failed: %1$s</string>
+
+    <!-- Upload Status Screen strings -->
+    <string name="upload_status_title">Upload Status</string>
+    <string name="upload_status_refresh">Refresh</string>
+    <string name="upload_status_retry_all">Retry All</string>
+    <string name="upload_status_retrying">Retrying...</string>
+    <string name="upload_status_success">Successfully uploaded %1$d surveys</string>
+    <string name="upload_status_no_success">No surveys were successfully uploaded</string>
+    <string name="upload_status_retry_failed">Retry failed: %1$s</string>
+    <string name="upload_status_statistics_title">Upload Statistics</string>
+    <string name="upload_status_total">Total</string>
+    <string name="upload_status_completed">Completed</string>
+    <string name="upload_status_pending">Pending</string>
+    <string name="upload_status_failed">Failed</string>
+    <string name="upload_status_details_title">Survey Upload Details</string>
+    <string name="upload_status_no_surveys">No surveys to upload</string>
+    <string name="upload_status_upload_success">Survey uploaded successfully</string>
+    <string name="upload_status_upload_failed">Upload failed</string>
+    <string name="upload_status_survey">Survey: %1$s...</string>
+    <string name="upload_status_status">Status: %1$s</string>
+    <string name="upload_status_last_attempt">Last attempt: %1$s</string>
+    <string name="upload_status_attempts">Attempts: %1$d</string>
+    <string name="upload_status_error">Error: %1$s</string>
+    <string name="upload_status_retry_upload">Retry Upload</string>
 
     <!-- Session Timeout Dialog strings -->
     <string name="session_timeout_expired">Session Expired</string>

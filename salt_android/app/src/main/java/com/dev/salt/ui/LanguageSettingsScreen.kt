@@ -37,7 +37,7 @@ fun LanguageSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Language Settings") },
+                title = { Text(stringResource(R.string.language_settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
@@ -67,18 +67,18 @@ fun LanguageSettingsScreen(
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
-                        text = "App Language",
+                        text = stringResource(R.string.language_settings_app_language),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Select the language for the app interface. This setting applies to all users and staff members.",
+                        text = stringResource(R.string.language_settings_description),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Note: This only affects the app interface. Survey content languages are managed separately.",
+                        text = stringResource(R.string.language_settings_note),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                     )
@@ -149,9 +149,9 @@ fun LanguageSettingsScreen(
     if (showRestartDialog) {
         AlertDialog(
             onDismissRequest = { showRestartDialog = false },
-            title = { Text("Language Changed") },
+            title = { Text(stringResource(R.string.language_settings_changed_title)) },
             text = {
-                Text("The app needs to restart to apply the language change. Would you like to restart now?")
+                Text(stringResource(R.string.language_settings_restart_message))
             },
             confirmButton = {
                 TextButton(
@@ -164,7 +164,7 @@ fun LanguageSettingsScreen(
                         android.os.Process.killProcess(android.os.Process.myPid())
                     }
                 ) {
-                    Text("Restart Now")
+                    Text(stringResource(R.string.language_settings_restart_now))
                 }
             },
             dismissButton = {
@@ -174,7 +174,7 @@ fun LanguageSettingsScreen(
                         navController.popBackStack()
                     }
                 ) {
-                    Text("Later")
+                    Text(stringResource(R.string.language_settings_later))
                 }
             }
         )

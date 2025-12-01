@@ -1640,7 +1640,7 @@ fun AdminDashboardScreen(
                 onClick = { navController.navigate(AppDestinations.LANGUAGE_SETTINGS) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Language Settings")
+                Text(stringResource(R.string.language_settings_title))
             }
             // Add other admin functions
         }
