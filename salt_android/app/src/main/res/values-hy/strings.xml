@@ -681,4 +681,17 @@
     <!-- Additional fingerprint strings -->
     <string name="fingerprint_instruction_step2">Դրեք ԱՋ ՑՈՒՐԱՄԱՏԸ հարթ սկաների վրա</string>
     <string name="fingerprint_attempt_of">Փորձ %1$d %2$d-ից</string>
+
+    <!-- Walk-in Recruitment Payment Instructions -->
+    <string name="walkin_recruitment_title">Ներգրավման վճարման հրահանգներ</string>
+    <string name="walkin_recruitment_your_code">Ձեր ներգրավման կոդը</string>
+    <string name="walkin_recruitment_instructions">Տրամադրեք մեկ այլ կտրոն այս կոդով։ Նաև գրեք «Ձեր կտրոն» տեքստը դրա վրա։ Բացատրեք մասնակցին, որ սա իրենց ID-ն է և կպահանջվի, երբ նրանք գան ստանալու վճարումը մարդկանց ներգրավելու համար։ Առանց այս կոդի ներգրավման վճարումներ չեն կատարվի, ուստի ասեք նրանց չկորցնել այն։</string>
+    <string name="walkin_recruitment_continue">Շարունակել վճարմանը</string>
+    <string name="cd_info">Տեղեկատվություն</string>
+
+    <!-- Payment Phone Number for Audit -->
+    <string name="payment_phone_label">Հեռախոսահամար</string>
+    <string name="payment_phone_placeholder">Մուտքագրեք հեռախոսահամար</string>
+    <string name="payment_phone_required">Հեռախոսահամարը պարտադիր է</string>
+    <string name="payment_phone_audit_note">Վճարման աուդիտի նպատակների համար</string>
 </resources>

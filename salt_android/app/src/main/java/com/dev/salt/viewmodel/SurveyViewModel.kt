@@ -290,7 +290,6 @@ class SurveyViewModel(
         var result = "continue" // Default action if no script or evaluation fails
         try {
             val ret = evaluateJexlScript(script, context)
-            Log.d("JEXLResult", "Result of preScript: $result")
             if(ret == true) {
                 result = "skip"
             } else if(ret == null || ret == false){
@@ -298,6 +297,7 @@ class SurveyViewModel(
             } else{
                 result = ret.toString()
             }
+            Log.d("JEXLResult", "Result of preScript: $result")
         } catch (e: Exception) {
             Log.e("JEXLError", "Error evaluating preScript: ${e.message}")
             result ="continue" // Default action on error
@@ -314,14 +314,14 @@ class SurveyViewModel(
         var result = true // Default action if no script or evaluation fails
         try {
             val ret = evaluateJexlScript(script, context)
-            Log.d("JEXLResult", "Result of preScript: $result")
             if(ret == null || ret == false) {
                 result = false
             } else{
                 result = true
             }
+            Log.d("JEXLResult", "Result of validationScript: $result")
         } catch (e: Exception) {
-            Log.e("JEXLError", "Error evaluating preScript: ${e.message}")
+            Log.e("JEXLError", "Error evaluating validationScript: ${e.message}")
             result = true // Default action on error
         }
         return result
@@ -385,17 +385,14 @@ class SurveyViewModel(
     }
 
     // NEW: Helper function to build the JEXL context
-    private fun buildJexlContext(): Map<String, Any> {
-        val context = mutableMapOf<String, Any>()
+    private fun buildJexlContext(): Map<String, Any?> {
+        val context = mutableMapOf<String, Any?>()
         val ans = survey!!.answers
         val qus = survey!!.questions
         for(i in 0 until ans.size){
-            if(ans[i].getValue() != null){
-                val av : Any = ans[i].getValue()!!
-                context[qus[i].questionShortName] = av
-                Log.d("JEXLContext", "Adding to context: ${qus[i].questionShortName} = ${ans[i].getValue()}")
-            }
-
+            val av : Any? = ans[i].getValue()
+            context[qus[i].questionShortName] = av
+            Log.d("JEXLContext", "Adding to context: ${qus[i].questionShortName} = ${ans[i].getValue()}")
         }
         // You can add other global variables to the context if needed
         // context["userAge"] = 25 // Example

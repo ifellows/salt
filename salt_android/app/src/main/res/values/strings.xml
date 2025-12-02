@@ -266,6 +266,13 @@
     <string name="coupon_issued_usage">Each coupon can be used once for survey participation</string>
     <string name="coupon_issued_continue_payment">Continue to Payment</string>
 
+    <!-- Walk-in Recruitment Payment Instructions -->
+    <string name="walkin_recruitment_title">Recruitment Payment Instructions</string>
+    <string name="walkin_recruitment_your_code">Your Recruitment Code</string>
+    <string name="walkin_recruitment_instructions">Provide another coupon with this code on it. Also write the text \'Your coupon\' to it. Explain to the participant that this is their ID and will be required when they come in to be paid for recruiting people. No recruitment payments will be made without this code, so tell them not to lose it.</string>
+    <string name="walkin_recruitment_continue">Continue to Payment</string>
+    <string name="cd_info">Information</string>
+
     <!-- Fingerprint Screen -->
     <string name="fingerprint_instructions">Please follow the instructions below to capture the participant\'s fingerprint</string>
     <string name="fingerprint_step1">Ensure the SecuGen device is connected and the green light is on</string>

@@ -204,18 +204,6 @@
 
     <!-- Upload Status strings -->
     <string name="upload_status_title">Estado de carga</string>
-    <string name="upload_details_title">Detalles de carga de encuesta</string>
-    <string name="upload_no_surveys">No hay encuestas para cargar</string>
-    <string name="upload_statistics_title">Estadísticas de carga</string>
-    <string name="upload_survey_id">Encuesta: %1$s…</string>
-    <string name="upload_status">Estado: %1$s</string>
-    <string name="upload_last_attempt">Último intento: %1$s</string>
-    <string name="upload_attempts">Intentos: %1$d</string>
-    <string name="upload_error">Error: %1$s</string>
-    <string name="upload_retry">Reintentar carga</string>
-    <string name="upload_retrying">Reintentando…</string>
-    <string name="upload_retry_all">Reintentar todo</string>
-    <string name="upload_retry_failed">Reintento falló: %1$s</string>
 
     <!-- Seed Recruitment strings -->
     <string name="recruitment_title">Reclutamiento inicial</string>

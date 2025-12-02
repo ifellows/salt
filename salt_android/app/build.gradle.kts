@@ -1,8 +1,17 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.ksp)
+}
+
+// Load signing properties from signing.properties file (not in git)
+val signingPropertiesFile = rootProject.file("signing.properties")
+val signingProperties = Properties()
+if (signingPropertiesFile.exists()) {
+    signingProperties.load(signingPropertiesFile.inputStream())
 }
 
 android {
@@ -24,9 +33,19 @@ android {
         arg("room.schemaLocation", "$projectDir/schemas")
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file(signingProperties.getProperty("SALT_RELEASE_STORE_FILE") ?: "salt-release-key.jks")
+            storePassword = signingProperties.getProperty("SALT_RELEASE_STORE_PASSWORD") ?: ""
+            keyAlias = signingProperties.getProperty("SALT_RELEASE_KEY_ALIAS") ?: "salt"
+            keyPassword = signingProperties.getProperty("SALT_RELEASE_KEY_PASSWORD") ?: ""
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

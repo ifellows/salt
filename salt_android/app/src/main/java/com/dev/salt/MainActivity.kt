@@ -104,6 +104,7 @@ object AppDestinations {
     const val STAFF_INSTRUCTION = "staff_instruction" // For staff instructions before giving tablet to participant
     const val SURVEY_START_INSTRUCTION = "survey_start_instruction" // For pre-survey instructions (staff vs participant)
     const val SUBJECT_PAYMENT = "subject_payment" // For subject payment confirmation
+    const val WALKIN_RECRUITMENT_PAYMENT = "walkin_recruitment_payment" // For walk-in recruitment payment instructions
     const val LANGUAGE_SETTINGS = "language_settings" // For app language settings
     const val STAFF_FINGERPRINT_ENROLLMENT = "staff_fingerprint_enrollment" // For staff fingerprint enrollment
     const val FACILITY_SETUP = "facility_setup" // For facility setup with short code
@@ -133,6 +134,7 @@ object AppDestinations {
     const val UPLOAD_STATUS_SCREEN = UPLOAD_STATUS
     const val COUPON_SCREEN = COUPON
     const val COUPON_ISSUED_SCREEN = COUPON_ISSUED
+    const val WALKIN_RECRUITMENT_PAYMENT_SCREEN = WALKIN_RECRUITMENT_PAYMENT
 }
 /*delete the database*/
 /*database.clearAllTables()
@@ -615,7 +617,21 @@ class MainActivity : ComponentActivity() {
                             database = SurveyDatabase.getInstance(this@MainActivity)
                         )
                     }
-                    
+
+                    composable(
+                        route = AppDestinations.WALKIN_RECRUITMENT_PAYMENT_SCREEN + "/{surveyId}",
+                        arguments = listOf(
+                            navArgument("surveyId") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
+                        com.dev.salt.ui.WalkInRecruitmentPaymentScreen(
+                            navController = navController,
+                            surveyId = surveyId,
+                            database = SurveyDatabase.getInstance(this@MainActivity)
+                        )
+                    }
+
                     composable(
                         route = "${AppDestinations.STAFF_VALIDATION}/{surveyId}?coupons={coupons}",
                         arguments = listOf(

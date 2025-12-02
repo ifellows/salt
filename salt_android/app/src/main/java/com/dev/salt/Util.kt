@@ -96,7 +96,7 @@ private val jexlEngine by lazy {
  *         - The input `script` is null or blank.
  *         - An error occurs during script parsing or evaluation (an error will be logged).
  */
-fun evaluateJexlScript(script: String?, contextData: Map<String, Any>): Any? {
+fun evaluateJexlScript(script: String?, contextData: Map<String, Any?>): Any? {
     // If the script string is null or effectively empty, no evaluation is performed.
     if (script.isNullOrBlank()) {
         Log.d("JexlEvaluate", "Script is null or blank. No evaluation needed, returning null.")

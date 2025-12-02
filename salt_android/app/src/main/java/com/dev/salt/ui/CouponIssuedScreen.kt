@@ -184,20 +184,44 @@ fun CouponIssuedScreen(
             Button(
                 onClick = {
                     if (!surveyId.isNullOrBlank()) {
-                        // Check if HIV test was done (check if HIV test is enabled and we need to collect result)
                         scope.launch {
-                            val config = actualDatabase.surveyConfigDao().getSurveyConfig()
-                            val isHivTestEnabled = config?.hivRapidTestEnabled == true
+                            val surveyConfig = actualDatabase.surveyConfigDao().getSurveyConfig()
+                            val facilityConfig = actualDatabase.facilityConfigDao().getFacilityConfig()
+                            val survey = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                actualDatabase.surveyDao().getSurveyById(surveyId)
+                            }
 
-                            if (isHivTestEnabled) {
-                                // Navigate to HIV test result screen
-                                navController.navigate("${AppDestinations.HIV_TEST_RESULT}/$surveyId") {
+                            // Check if we should show walk-in recruitment payment instructions
+                            val isWalkIn = survey?.referralCouponCode == null
+                            val isFingerprintDisabled = surveyConfig?.fingerprintEnabled == false
+                            val hasRecruitmentPayment = (facilityConfig?.recruitmentPaymentAmount ?: 0.0) > 0.0
+                            val shouldShowWalkInInstructions = isWalkIn && isFingerprintDisabled && hasRecruitmentPayment
+
+                            Log.d("CouponIssuedScreen", "Navigation decision:")
+                            Log.d("CouponIssuedScreen", "  isWalkIn: $isWalkIn")
+                            Log.d("CouponIssuedScreen", "  isFingerprintDisabled: $isFingerprintDisabled")
+                            Log.d("CouponIssuedScreen", "  hasRecruitmentPayment: $hasRecruitmentPayment")
+                            Log.d("CouponIssuedScreen", "  shouldShowWalkInInstructions: $shouldShowWalkInInstructions")
+
+                            if (shouldShowWalkInInstructions) {
+                                // Navigate to walk-in recruitment payment instructions
+                                navController.navigate("${AppDestinations.WALKIN_RECRUITMENT_PAYMENT}/$surveyId") {
                                     popUpTo(AppDestinations.COUPON_ISSUED) { inclusive = true }
                                 }
                             } else {
-                                // Navigate to payment screen
-                                navController.navigate("${AppDestinations.SUBJECT_PAYMENT}/$surveyId?coupons=${actualCoupons.joinToString(",")}") {
-                                    popUpTo(AppDestinations.COUPON_ISSUED) { inclusive = true }
+                                // Original logic: check for HIV test or go directly to payment
+                                val isHivTestEnabled = surveyConfig?.hivRapidTestEnabled == true
+
+                                if (isHivTestEnabled) {
+                                    // Navigate to HIV test result screen
+                                    navController.navigate("${AppDestinations.HIV_TEST_RESULT}/$surveyId") {
+                                        popUpTo(AppDestinations.COUPON_ISSUED) { inclusive = true }
+                                    }
+                                } else {
+                                    // Navigate to payment screen
+                                    navController.navigate("${AppDestinations.SUBJECT_PAYMENT}/$surveyId?coupons=${actualCoupons.joinToString(",")}") {
+                                        popUpTo(AppDestinations.COUPON_ISSUED) { inclusive = true }
+                                    }
                                 }
                             }
                         }
