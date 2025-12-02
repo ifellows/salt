@@ -291,9 +291,9 @@ class SurveyViewModel(
         try {
             val ret = evaluateJexlScript(script, context)
             Log.d("JEXLResult", "Result of preScript: $result")
-            if(ret == null || ret == false) {
+            if(ret == true) {
                 result = "skip"
-            } else if(ret == true){
+            } else if(ret == null || ret == false){
                 result = "continue"
             } else{
                 result = ret.toString()
