@@ -47,6 +47,11 @@ router.get('/login', (req, res) => {
     res.render('pages/login', { title: 'Login', error: null });
 });
 
+// Tablet download page (public, no authentication required)
+router.get('/tablet', (req, res) => {
+    res.render('pages/tablet', { title: 'Download SALT App' });
+});
+
 // Admin redirect
 router.get('/admin', requireAdmin, (req, res) => {
     res.redirect('/');
