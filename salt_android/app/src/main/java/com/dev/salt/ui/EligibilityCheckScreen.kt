@@ -342,13 +342,26 @@ fun EligibilityCheckScreen(
 
                                     if (matchedUser != null) {
                                         Log.i("EligibilityCheck", "Staff member authenticated: $matchedUser")
-                                        // Mark survey as completed before ending
+                                        // Mark survey as completed and mark referral coupon as used (ineligible participant consumes coupon)
                                         withContext(Dispatchers.IO) {
                                             val survey = database.surveyDao().getSurveyById(surveyId)
                                             survey?.let { s ->
                                                 database.surveyDao().updateSurvey(
                                                     s.copy(isCompleted = true)
                                                 )
+                                                // Mark referral coupon as used - ineligible participants consume their coupon
+                                                s.referralCouponCode?.let { code ->
+                                                    try {
+                                                        database.couponDao().markCouponUsed(
+                                                            code = code,
+                                                            surveyId = s.id,
+                                                            usedDate = System.currentTimeMillis()
+                                                        )
+                                                        Log.i("EligibilityCheck", "Marked coupon $code as used for ineligible participant in survey ${s.id}")
+                                                    } catch (e: Exception) {
+                                                        Log.e("EligibilityCheck", "Failed to mark coupon as used", e)
+                                                    }
+                                                }
                                             }
                                         }
                                         onCancel() // End the survey
@@ -467,13 +480,26 @@ fun EligibilityCheckScreen(
                                 (user.role == "SURVEY_STAFF" || user.role == "ADMINISTRATOR") &&
                                 PasswordUtils.verifyPassword(password, user.hashedPassword)) {
                                 showPasswordDialog = false
-                                // Mark survey as completed before ending
+                                // Mark survey as completed and mark referral coupon as used (ineligible participant consumes coupon)
                                 withContext(Dispatchers.IO) {
                                     val survey = database.surveyDao().getSurveyById(surveyId)
                                     survey?.let { s ->
                                         database.surveyDao().updateSurvey(
                                             s.copy(isCompleted = true)
                                         )
+                                        // Mark referral coupon as used - ineligible participants consume their coupon
+                                        s.referralCouponCode?.let { code ->
+                                            try {
+                                                database.couponDao().markCouponUsed(
+                                                    code = code,
+                                                    surveyId = s.id,
+                                                    usedDate = System.currentTimeMillis()
+                                                )
+                                                Log.i("EligibilityCheck", "Marked coupon $code as used for ineligible participant in survey ${s.id}")
+                                            } catch (e: Exception) {
+                                                Log.e("EligibilityCheck", "Failed to mark coupon as used", e)
+                                            }
+                                        }
                                     }
                                 }
                                 onCancel() // End the survey

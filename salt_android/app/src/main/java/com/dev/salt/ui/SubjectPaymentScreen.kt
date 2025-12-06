@@ -533,6 +533,20 @@ fun SubjectPaymentScreen(
                             )
                             database.surveyDao().updateSurvey(updatedSurvey)
                             Log.i("SubjectPaymentScreen", "Payment confirmed for survey $surveyId: amount=$paymentAmount, phone=${updatedSurvey.paymentPhoneNumber}")
+
+                            // Mark referral coupon as used ONLY after payment confirmed
+                            s.referralCouponCode?.let { code ->
+                                try {
+                                    database.couponDao().markCouponUsed(
+                                        code = code,
+                                        surveyId = s.id,
+                                        usedDate = System.currentTimeMillis()
+                                    )
+                                    Log.i("SubjectPaymentScreen", "Marked coupon $code as used after payment confirmed for survey ${s.id}")
+                                } catch (e: Exception) {
+                                    Log.e("SubjectPaymentScreen", "Failed to mark coupon as used", e)
+                                }
+                            }
                         }
 
                         isCapturingFingerprint = false
@@ -644,6 +658,20 @@ fun SubjectPaymentScreen(
                                 )
                                 database.surveyDao().updateSurvey(updatedSurvey)
                                 Log.i("SubjectPaymentScreen", "Payment confirmed (no fingerprint) for survey $surveyId: amount=$paymentAmount, phone=${updatedSurvey.paymentPhoneNumber}")
+
+                                // Mark referral coupon as used ONLY after payment confirmed
+                                s.referralCouponCode?.let { code ->
+                                    try {
+                                        database.couponDao().markCouponUsed(
+                                            code = code,
+                                            surveyId = s.id,
+                                            usedDate = System.currentTimeMillis()
+                                        )
+                                        Log.i("SubjectPaymentScreen", "Marked coupon $code as used after payment confirmed for survey ${s.id}")
+                                    } catch (e: Exception) {
+                                        Log.e("SubjectPaymentScreen", "Failed to mark coupon as used", e)
+                                    }
+                                }
                             }
 
                             // Upload survey after payment confirmation
@@ -932,6 +960,20 @@ fun SubjectPaymentScreen(
                                 )
                                 database.surveyDao().updateSurvey(updatedSurvey)
                                 Log.i("SubjectPaymentScreen", "Payment override confirmed by admin ${matchedAdmin.fullName}: amount=$paymentAmount, phone=${updatedSurvey.paymentPhoneNumber}")
+
+                                // Mark referral coupon as used ONLY after payment confirmed (admin override)
+                                s.referralCouponCode?.let { code ->
+                                    try {
+                                        database.couponDao().markCouponUsed(
+                                            code = code,
+                                            surveyId = s.id,
+                                            usedDate = System.currentTimeMillis()
+                                        )
+                                        Log.i("SubjectPaymentScreen", "Marked coupon $code as used after admin override payment for survey ${s.id}")
+                                    } catch (e: Exception) {
+                                        Log.e("SubjectPaymentScreen", "Failed to mark coupon as used", e)
+                                    }
+                                }
                             }
 
                             isCapturingAdminFingerprint = false

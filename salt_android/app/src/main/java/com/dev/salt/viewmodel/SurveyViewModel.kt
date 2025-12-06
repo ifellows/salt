@@ -114,20 +114,13 @@ class SurveyViewModel(
                 makeNewSurvey("en")
             }
             
-            // Mark the referral coupon as used if one was provided
-            referralCouponCode?.let { code ->
-                try {
-                    database.couponDao().markCouponUsed(
-                        code = code,
-                        surveyId = survey!!.id,
-                        usedDate = System.currentTimeMillis()
-                    )
-                    Log.i("SurveyViewModel", "Marked coupon $code as used for survey ${survey!!.id}")
-                } catch (e: Exception) {
-                    Log.e("SurveyViewModel", "Failed to mark coupon as used", e)
-                }
-            }
-            
+            // NOTE: Coupon marking moved to SubjectPaymentScreen (after payment confirmed)
+            // and EligibilityCheckScreen (when participant is ineligible).
+            // Coupons should only be consumed when:
+            // 1. Payment is confirmed, OR
+            // 2. Participant is determined ineligible
+            // NOT when the survey starts (to handle app closures mid-survey)
+
             loadSurvey(survey!!)
             loadNextQuestion()
         }
