@@ -33,7 +33,8 @@ data class SerializedSurvey(
     val paymentType: String? = null,
     val paymentDate: String? = null,
     val paymentPhoneNumber: String? = null, // Phone for payment audit purposes
-    val consentSignaturePath: String? = null // Hexadecimal string of signature PNG
+    val consentSignaturePath: String? = null, // Hexadecimal string of signature PNG
+    val consentMessageText: String? = null // The consent text that was displayed at time of consent
 )
 
 data class SerializedQuestion(
@@ -79,7 +80,8 @@ class SurveySerializer {
         options: Map<Int, List<Option>>,
         deviceInfo: DeviceInfo,
         issuedCoupons: List<String> = emptyList(),
-        testResults: List<TestResult> = emptyList()
+        testResults: List<TestResult> = emptyList(),
+        consentMessageText: String? = null
     ): JSONObject {
         
         val serializedQuestions = questions.map { question ->
@@ -158,7 +160,8 @@ class SurveySerializer {
             paymentType = survey.paymentType,
             paymentDate = survey.paymentDate?.let { dateFormat.format(Date(it)) },
             paymentPhoneNumber = survey.paymentPhoneNumber,
-            consentSignaturePath = survey.consentSignaturePath
+            consentSignaturePath = survey.consentSignaturePath,
+            consentMessageText = consentMessageText
         )
 
         return toJSON(serializedSurvey)
@@ -227,6 +230,13 @@ class SurveySerializer {
                 put("consentSignaturePath", survey.consentSignaturePath)
             } else {
                 put("consentSignaturePath", JSONObject.NULL)
+            }
+
+            // Consent message text (the text that was displayed at time of consent)
+            if (survey.consentMessageText != null) {
+                put("consentMessageText", survey.consentMessageText)
+            } else {
+                put("consentMessageText", JSONObject.NULL)
             }
 
             // Device info

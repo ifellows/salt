@@ -18,7 +18,8 @@ import com.dev.salt.R
 fun ConsentInstructionScreen(
     navController: NavController,
     surveyId: String,
-    coupons: String = ""
+    coupons: String = "",
+    returnTo: String = "survey_start"  // "survey_start" or "survey" (return to survey after staff eligibility)
 ) {
     Scaffold(
         topBar = {
@@ -119,7 +120,7 @@ fun ConsentInstructionScreen(
             // Continue button
             Button(
                 onClick = {
-                    navController.navigate("${AppDestinations.CONSENT_SIGNATURE}/$surveyId?coupons=$coupons") {
+                    navController.navigate("${AppDestinations.CONSENT_SIGNATURE}/$surveyId?coupons=$coupons&returnTo=$returnTo") {
                         popUpTo("${AppDestinations.CONSENT_INSTRUCTION}/$surveyId") { inclusive = true }
                     }
                 },

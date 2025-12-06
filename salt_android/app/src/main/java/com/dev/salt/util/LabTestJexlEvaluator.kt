@@ -115,7 +115,8 @@ object LabTestJexlEvaluator {
      */
     fun evaluateCondition(condition: String?, context: Map<String, Any>): Pair<Boolean, Any?> {
         // If no condition, always show
-        if (condition.isNullOrBlank()) {
+        // Also check for literal string "null" which can occur from JSONObject.optString bug
+        if (condition.isNullOrBlank() || condition == "null") {
             Log.d(TAG, "No JEXL condition - test will always show")
             return Pair(true, null)
         }

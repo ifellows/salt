@@ -136,7 +136,8 @@ fun SurveyScreen(
     coroutineScope: CoroutineScope,
     onNavigateBack: () -> Unit = {},
     onNavigateToHivTest: () -> Unit = {},
-    onNavigateToRapidTests: () -> Unit = {}
+    onNavigateToRapidTests: () -> Unit = {},
+    onNavigateToConsent: (String) -> Unit = {}
 ) {
     //var currentQuestion = viewModel.currentQuestion
     val context = LocalContext.current
@@ -144,12 +145,15 @@ fun SurveyScreen(
     var highlightedButtonIndex by remember { mutableStateOf<Int?>(null) }
     //var mediaPlayer: MediaPlayer? = remember { null }
     var currentMediaPlayer: MediaPlayer? by remember { mutableStateOf(null) }
-    
+
     val surveyStateManager = SurveyStateManagerInstance.instance
 
     // Observe eligibility check states
     val needsEligibilityCheck by viewModel.needsEligibilityCheck.collectAsState()
     val isEligible by viewModel.isEligible.collectAsState()
+
+    // Observe consent needed after eligibility (staff screening mode)
+    val needsConsentAfterEligibility by viewModel.needsConsentAfterEligibility.collectAsState()
 
     // Observe HIV test requirement after eligibility (deprecated - for backward compatibility)
     val needsHivTestAfterEligibility by viewModel.needsHivTestAfterEligibility.collectAsState()
@@ -167,6 +171,16 @@ fun SurveyScreen(
                     onNavigateToHivTest()
                 }
             }
+        }
+    }
+
+    // Handle consent needed after eligibility (staff screening mode)
+    LaunchedEffect(needsConsentAfterEligibility) {
+        if (needsConsentAfterEligibility) {
+            val surveyId = viewModel.survey?.id ?: ""
+            Log.d("SurveyScreen", "Consent needed after eligibility - navigating to consent for survey: $surveyId")
+            viewModel.clearConsentNeeded()
+            onNavigateToConsent(surveyId)
         }
     }
 

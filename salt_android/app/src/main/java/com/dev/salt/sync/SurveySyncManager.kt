@@ -14,6 +14,21 @@ import java.net.URL
 import java.security.MessageDigest
 
 /**
+ * Extension function to safely get a String or null from JSONObject.
+ * Unlike optString(key, null), this properly returns null when the
+ * JSON field is missing or contains JSON null.
+ *
+ * The standard optString(key, null) returns the literal string "null"
+ * instead of actual null, which causes issues with JEXL evaluation.
+ */
+private fun JSONObject.getStringOrNull(key: String): String? =
+    if (this.has(key) && !this.isNull(key)) {
+        this.getString(key)
+    } else {
+        null
+    }
+
+/**
  * Result of checking for survey updates with detailed status information.
  */
 sealed class SurveyCheckResult {
@@ -366,7 +381,7 @@ class SurveySyncManager(private val context: Context) {
                     }
 
                     val surveyConfig = SurveyConfig(
-                        surveyName = configJson.optString("survey_name", null),
+                        surveyName = configJson.getStringOrNull("survey_name"),
                         serverSurveyId = serverSurveyId,  // Store server survey ID in SurveyConfig
                         fingerprintEnabled = parseBoolean(configJson, "fingerprint_enabled"),
                         reEnrollmentDays = configJson.optInt("re_enrollment_days", 90),
@@ -396,7 +411,7 @@ class SurveySyncManager(private val context: Context) {
                             sectionIndex = sectionJson.getInt("section_index"),
                             sectionType = sectionJson.getString("section_type"),
                             name = sectionJson.getString("name"),
-                            description = sectionJson.optString("description", null)
+                            description = sectionJson.getStringOrNull("description")
                         )
                         database.sectionDao().insertSection(section)
                         Log.d("SurveySyncManager", "Inserted section: ${section.name} (type: ${section.sectionType})")
@@ -452,15 +467,15 @@ class SurveySyncManager(private val context: Context) {
                                 questionLanguage = language,  // Use the actual language name
                                 primaryLanguageText = questionText,
                                 questionType = questionJson.optString("question_type", "multiple_choice"),
-                                preScript = questionJson.optString("pre_script", null),
-                                validationScript = questionJson.optString("validation_script", null),
+                                preScript = questionJson.getStringOrNull("pre_script"),
+                                validationScript = questionJson.getStringOrNull("validation_script"),
                                 validationErrorText = "Invalid Answer",
                                 minSelections = if (questionJson.has("min_selections") && !questionJson.isNull("min_selections"))
                                     questionJson.getInt("min_selections") else null,
                                 maxSelections = if (questionJson.has("max_selections") && !questionJson.isNull("max_selections"))
                                     questionJson.getInt("max_selections") else null,
-                                skipToScript = questionJson.optString("skip_to_script", null),
-                                skipToTarget = questionJson.optString("skip_to_target", null),
+                                skipToScript = questionJson.getStringOrNull("skip_to_script"),
+                                skipToTarget = questionJson.getStringOrNull("skip_to_target"),
                                 sectionId = if (questionJson.has("section_id") && !questionJson.isNull("section_id"))
                                     questionJson.getInt("section_id") else null
                             )
@@ -480,15 +495,15 @@ class SurveySyncManager(private val context: Context) {
                             questionLanguage = "English",  // Default to English
                             primaryLanguageText = questionText,
                             questionType = questionJson.optString("question_type", "multiple_choice"),
-                            preScript = questionJson.optString("pre_script", null),
-                            validationScript = questionJson.optString("validation_script", null),
+                            preScript = questionJson.getStringOrNull("pre_script"),
+                            validationScript = questionJson.getStringOrNull("validation_script"),
                             validationErrorText = "Invalid Answer",
                             minSelections = if (questionJson.has("min_selections") && !questionJson.isNull("min_selections"))
                                 questionJson.getInt("min_selections") else null,
                             maxSelections = if (questionJson.has("max_selections") && !questionJson.isNull("max_selections"))
                                 questionJson.getInt("max_selections") else null,
-                            skipToScript = questionJson.optString("skip_to_script", null),
-                            skipToTarget = questionJson.optString("skip_to_target", null),
+                            skipToScript = questionJson.getStringOrNull("skip_to_script"),
+                            skipToTarget = questionJson.getStringOrNull("skip_to_target"),
                             sectionId = if (questionJson.has("section_id") && !questionJson.isNull("section_id"))
                                 questionJson.getInt("section_id") else null
                         )
@@ -668,15 +683,15 @@ class SurveySyncManager(private val context: Context) {
                         val labTestConfiguration = LabTestConfiguration(
                             id = labTestJson.getLong("id"),
                             testName = labTestJson.getString("test_name"),
-                            testCode = labTestJson.optString("test_code", null),
+                            testCode = labTestJson.getStringOrNull("test_code"),
                             testType = labTestJson.getString("test_type"),
                             options = optionsString,
                             minValue = if (labTestJson.has("min_value") && !labTestJson.isNull("min_value"))
                                 labTestJson.getDouble("min_value") else null,
                             maxValue = if (labTestJson.has("max_value") && !labTestJson.isNull("max_value"))
                                 labTestJson.getDouble("max_value") else null,
-                            unit = labTestJson.optString("unit", null),
-                            jexlCondition = labTestJson.optString("jexl_condition", null),
+                            unit = labTestJson.getStringOrNull("unit"),
+                            jexlCondition = labTestJson.getStringOrNull("jexl_condition"),
                             isActive = labTestJson.optInt("is_active", 1) == 1,
                             displayOrder = labTestJson.optInt("display_order", 0)
                         )

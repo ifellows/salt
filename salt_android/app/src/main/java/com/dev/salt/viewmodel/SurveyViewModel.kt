@@ -91,6 +91,14 @@ class SurveyViewModel(
     private val _rapidTestsCompleted = MutableStateFlow(false)
     val rapidTestsCompleted: StateFlow<Boolean> = _rapidTestsCompleted
 
+    // Track if consent is needed after eligibility (staff screening mode)
+    private val _needsConsentAfterEligibility = MutableStateFlow(false)
+    val needsConsentAfterEligibility: StateFlow<Boolean> = _needsConsentAfterEligibility
+
+    fun clearConsentNeeded() {
+        _needsConsentAfterEligibility.value = false
+    }
+
     init {
         viewModelScope.launch {
             Log.d("SurveyViewModel", "Init called with surveyId=$surveyId, referralCouponCode=$referralCouponCode")
@@ -626,6 +634,20 @@ class SurveyViewModel(
             _isEligible.value = eligible
             _needsEligibilityCheck.value = true
             returnValue = if (eligible) 1 else 0
+
+            // For staff screening mode: check if consent is needed after eligibility passes
+            if (eligible) {
+                val surveyConfig = database.surveyConfigDao().getSurveyConfig()
+                val staffEligibilityScreening = surveyConfig?.staffEligibilityScreening ?: false
+                val existingSignature = survey?.consentSignaturePath
+
+                if (staffEligibilityScreening && existingSignature.isNullOrBlank()) {
+                    Log.d("SurveyViewModel", "Staff screening mode: consent needed after eligibility")
+                    _needsConsentAfterEligibility.value = true
+                    return 3  // Special return code for consent needed
+                }
+            }
+
             // Check if rapid tests are needed after eligibility
             if (eligible && !_rapidTestsCompleted.value) {
                 //viewModelScope.launch(Dispatchers.IO) {

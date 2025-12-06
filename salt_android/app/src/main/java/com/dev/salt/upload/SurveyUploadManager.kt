@@ -98,11 +98,30 @@ class SurveyUploadManager(
                 val testResults = testResultDao.getTestResultsBySurveyId(surveyId)
                 Log.d(TAG, "Found ${testResults.size} test results for survey $surveyId")
 
+                // Get consent message text for audit trail
+                val systemMessageDao = database.systemMessageDao()
+                var consentMessageText: String? = null
+                try {
+                    // Try to get consent message in survey's language, with fallbacks
+                    var message = systemMessageDao.getSystemMessage("consent_agreement", survey.language)
+                    if (message == null) {
+                        message = systemMessageDao.getSystemMessage("consent_agreement", "en")
+                    }
+                    if (message == null) {
+                        val allMessages = systemMessageDao.getAllMessagesForKey("consent_agreement")
+                        message = allMessages.firstOrNull()
+                    }
+                    consentMessageText = message?.messageText
+                    Log.d(TAG, "Consent message found: ${consentMessageText?.take(50) ?: "null"}...")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Could not retrieve consent message for upload", e)
+                }
+
                 // Create device info
                 val deviceInfo = serializer.createDeviceInfo(context)
 
-                // Serialize survey to JSON including coupon information and test results
-                val jsonData = serializer.serializeSurvey(survey, survey.questions, survey.answers, options, deviceInfo, issuedCoupons, testResults)
+                // Serialize survey to JSON including coupon information, test results, and consent message
+                val jsonData = serializer.serializeSurvey(survey, survey.questions, survey.answers, options, deviceInfo, issuedCoupons, testResults, consentMessageText)
                 
                 // Build the upload URL (append endpoint to base URL)
                 val uploadUrl = "${serverConfig.serverUrl}/api/sync/survey/upload"

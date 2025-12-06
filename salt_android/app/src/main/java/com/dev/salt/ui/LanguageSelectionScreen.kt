@@ -155,9 +155,24 @@ fun LanguageSelectionScreen(
                                         android.util.Log.e("LanguageSelection", "Survey $surveyId not found in database!")
                                     }
 
-                                    // Navigate to consent instruction screen
-                                    navController.navigate("${AppDestinations.CONSENT_INSTRUCTION}/$surveyId?coupons=$couponCode") {
-                                        popUpTo(AppDestinations.LANGUAGE_SELECTION) { inclusive = true }
+                                    // Check if staff eligibility screening is enabled
+                                    val surveyConfig = database.surveyConfigDao().getSurveyConfig()
+                                    val staffEligibilityScreening = surveyConfig?.staffEligibilityScreening ?: false
+                                    android.util.Log.d("LanguageSelection", "Staff eligibility screening: $staffEligibilityScreening")
+
+                                    if (staffEligibilityScreening) {
+                                        // Staff screening mode: skip consent, go to survey start
+                                        // Consent will be collected after eligibility is confirmed
+                                        android.util.Log.d("LanguageSelection", "Staff screening enabled - skipping consent, going to survey start")
+                                        navController.navigate("${AppDestinations.SURVEY_START_INSTRUCTION}?surveyId=$surveyId&couponCode=$couponCode") {
+                                            popUpTo(AppDestinations.LANGUAGE_SELECTION) { inclusive = true }
+                                        }
+                                    } else {
+                                        // Self-screening mode: consent first (current behavior)
+                                        android.util.Log.d("LanguageSelection", "Self-screening mode - going to consent first")
+                                        navController.navigate("${AppDestinations.CONSENT_INSTRUCTION}/$surveyId?coupons=$couponCode") {
+                                            popUpTo(AppDestinations.LANGUAGE_SELECTION) { inclusive = true }
+                                        }
                                     }
                                 } catch (e: Exception) {
                                     android.util.Log.e("LanguageSelection", "Error starting survey", e)

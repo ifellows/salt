@@ -38,7 +38,8 @@ import java.io.File
 fun ConsentSignatureScreen(
     navController: NavController,
     surveyId: String,
-    coupons: String
+    coupons: String,
+    returnTo: String = "survey_start"  // "survey_start" or "survey" (return to survey after staff eligibility)
 ) {
     val context = LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
@@ -338,9 +339,23 @@ fun ConsentSignatureScreen(
                                             survey?.referralCouponCode ?: ""
                                         }
 
-                                        // Navigate to survey start instruction screen
-                                        navController.navigate("${AppDestinations.SURVEY_START_INSTRUCTION}?surveyId=$surveyId&couponCode=$couponCode") {
-                                            popUpTo(AppDestinations.CONSENT_SIGNATURE) { inclusive = true }
+                                        // Navigate based on returnTo parameter
+                                        when (returnTo) {
+                                            "survey" -> {
+                                                // Staff screening: return to survey to continue after eligibility
+                                                Log.d("ConsentSignature", "Staff screening mode - returning to survey")
+                                                navController.navigate("${AppDestinations.SURVEY_SCREEN}?couponCode=$couponCode") {
+                                                    // Pop consent screens and return to survey
+                                                    popUpTo(AppDestinations.CONSENT_INSTRUCTION) { inclusive = true }
+                                                }
+                                            }
+                                            else -> {
+                                                // Self-screening mode (default): go to survey start instruction
+                                                Log.d("ConsentSignature", "Self-screening mode - going to survey start instruction")
+                                                navController.navigate("${AppDestinations.SURVEY_START_INSTRUCTION}?surveyId=$surveyId&couponCode=$couponCode") {
+                                                    popUpTo(AppDestinations.CONSENT_SIGNATURE) { inclusive = true }
+                                                }
+                                            }
                                         }
                                     }
                                 } catch (e: Exception) {

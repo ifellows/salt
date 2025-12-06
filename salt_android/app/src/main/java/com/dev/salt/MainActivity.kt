@@ -586,6 +586,13 @@ class MainActivity : ComponentActivity() {
                                             }
                                         }
                                     }
+                                },
+                                onNavigateToConsent = { consentSurveyId ->
+                                    // Staff screening mode: navigate to consent after eligibility passes
+                                    Log.d("MainActivity", "Navigating to consent after eligibility for survey: $consentSurveyId")
+                                    navController.navigate("${AppDestinations.CONSENT_INSTRUCTION}/$consentSurveyId?coupons=&returnTo=survey") {
+                                        launchSingleTop = true
+                                    }
                                 }
                             )
                         } else {
@@ -730,40 +737,52 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable(
-                        route = "${AppDestinations.CONSENT_INSTRUCTION}/{surveyId}?coupons={coupons}",
+                        route = "${AppDestinations.CONSENT_INSTRUCTION}/{surveyId}?coupons={coupons}&returnTo={returnTo}",
                         arguments = listOf(
                             navArgument("surveyId") { type = NavType.StringType },
                             navArgument("coupons") {
                                 type = NavType.StringType
                                 defaultValue = ""
+                            },
+                            navArgument("returnTo") {
+                                type = NavType.StringType
+                                defaultValue = "survey_start"  // Default: go to survey start (self-screening mode)
                             }
                         )
                     ) { backStackEntry ->
                         val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
                         val coupons = backStackEntry.arguments?.getString("coupons") ?: ""
+                        val returnTo = backStackEntry.arguments?.getString("returnTo") ?: "survey_start"
                         com.dev.salt.ui.ConsentInstructionScreen(
                             navController = navController,
                             surveyId = surveyId,
-                            coupons = coupons
+                            coupons = coupons,
+                            returnTo = returnTo
                         )
                     }
 
                     composable(
-                        route = "${AppDestinations.CONSENT_SIGNATURE}/{surveyId}?coupons={coupons}",
+                        route = "${AppDestinations.CONSENT_SIGNATURE}/{surveyId}?coupons={coupons}&returnTo={returnTo}",
                         arguments = listOf(
                             navArgument("surveyId") { type = NavType.StringType },
                             navArgument("coupons") {
                                 type = NavType.StringType
                                 defaultValue = ""
+                            },
+                            navArgument("returnTo") {
+                                type = NavType.StringType
+                                defaultValue = "survey_start"
                             }
                         )
                     ) { backStackEntry ->
                         val surveyId = backStackEntry.arguments?.getString("surveyId") ?: ""
                         val coupons = backStackEntry.arguments?.getString("coupons") ?: ""
+                        val returnTo = backStackEntry.arguments?.getString("returnTo") ?: "survey_start"
                         com.dev.salt.ui.ConsentSignatureScreen(
                             navController = navController,
                             surveyId = surveyId,
-                            coupons = coupons
+                            coupons = coupons,
+                            returnTo = returnTo
                         )
                     }
 
