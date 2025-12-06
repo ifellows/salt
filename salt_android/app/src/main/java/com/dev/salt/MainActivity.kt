@@ -179,6 +179,9 @@ class MainActivity : ComponentActivity() {
                 val surveyViewModels = remember { mutableStateMapOf<String, SurveyViewModel>() }
                 var showSessionWarning by remember { mutableStateOf(false) }
                 var showSessionExpired by remember { mutableStateOf(false) }
+
+                // Sync message to display after login
+                var pendingSyncMessage by remember { mutableStateOf<SyncMessage?>(null) }
                 
                 // Logout function
                 val handleLogout = {
@@ -374,7 +377,10 @@ class MainActivity : ComponentActivity() {
                         )
                         LoginScreen(
                             loginViewModel = loginViewModel,
-                            onLoginSuccess = { role ->
+                            onLoginSuccess = { role, syncMessage ->
+                                // Store sync message for display on menu screen
+                                pendingSyncMessage = syncMessage
+
                                 // Navigate to the appropriate screen based on user role
                                 // It's good practice to clear the back stack up to the login screen
                                 // or even further if login is a one-time entry point to a section.
@@ -402,14 +408,18 @@ class MainActivity : ComponentActivity() {
                         MenuScreen(
                             navController = navController,
                             onLogout = handleLogout,
-                            showLogout = !surveyState.isActive
+                            showLogout = !surveyState.isActive,
+                            syncMessage = pendingSyncMessage,
+                            onSyncMessageDismissed = { pendingSyncMessage = null }
                         )
                     }
                     composable(AppDestinations.ADMIN_DASHBOARD_SCREEN) {
                         AdminDashboardScreen(
                             navController = navController,
                             onLogout = handleLogout,
-                            showLogout = !surveyState.isActive
+                            showLogout = !surveyState.isActive,
+                            syncMessage = pendingSyncMessage,
+                            onSyncMessageDismissed = { pendingSyncMessage = null }
                         )
                     }
                     composable(AppDestinations.USER_MANAGEMENT_SCREEN) {
@@ -1430,6 +1440,23 @@ fun WelcomeScreen(navController: NavHostController) {
     val scope = rememberCoroutineScope()
     var isValidating by remember { mutableStateOf(false) }
 
+    // Get app version info
+    val versionInfo = remember {
+        try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            val versionName = packageInfo.versionName ?: "?"
+            val versionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                packageInfo.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                packageInfo.versionCode.toLong()
+            }
+            "v$versionName-$versionCode"
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.app_title_welcome)) }) }
     ) { paddingValues ->
@@ -1442,6 +1469,14 @@ fun WelcomeScreen(navController: NavHostController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(stringResource(R.string.menu_welcome), style = MaterialTheme.typography.headlineMedium)
+            if (versionInfo.isNotEmpty()) {
+                Text(
+                    text = versionInfo,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
             Spacer(modifier = Modifier.height(32.dp))
 
             if (isValidating) {
@@ -1482,7 +1517,9 @@ fun WelcomeScreen(navController: NavHostController) {
 fun MenuScreen(
     navController: NavHostController,
     onLogout: () -> Unit,
-    showLogout: Boolean = true
+    showLogout: Boolean = true,
+    syncMessage: SyncMessage? = null,
+    onSyncMessageDismissed: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
@@ -1490,6 +1527,20 @@ fun MenuScreen(
     val scope = rememberCoroutineScope()
     var showSeedRecruitment by remember { mutableStateOf(false) }
     var showRecruitmentPayment by remember { mutableStateOf(false) }
+
+    // Snackbar host state for sync messages
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+
+    // Show sync message as snackbar when it arrives
+    LaunchedEffect(syncMessage) {
+        syncMessage?.let { msg ->
+            snackbarHostState.showSnackbar(
+                message = msg.message,
+                duration = androidx.compose.material3.SnackbarDuration.Short
+            )
+            onSyncMessageDismissed()
+        }
+    }
 
     // Check if seed recruitment and recruitment payment are allowed
     LaunchedEffect(navController.currentBackStackEntry) {
@@ -1502,9 +1553,9 @@ fun MenuScreen(
         showRecruitmentPayment = (facilityConfig?.recruitmentPaymentAmount ?: 0.0) > 0
         Log.d("MenuScreen", "Show recruitment payment button: $showRecruitmentPayment (amount=${facilityConfig?.recruitmentPaymentAmount})")
     }
-    
+
     Scaffold(
-        topBar = { 
+        topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.menu_staff_title)) },
                 actions = {
@@ -1514,6 +1565,17 @@ fun MenuScreen(
                     )
                 }
             )
+        },
+        snackbarHost = {
+            androidx.compose.material3.SnackbarHost(hostState = snackbarHostState) { data ->
+                // Custom snackbar with error styling if isError
+                val isError = syncMessage?.isError == true
+                androidx.compose.material3.Snackbar(
+                    snackbarData = data,
+                    containerColor = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.inverseSurface,
+                    contentColor = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.inverseOnSurface
+                )
+            }
         }
     ) { paddingValues ->
         Column(
@@ -1534,7 +1596,7 @@ fun MenuScreen(
             ) {
                 Text(stringResource(R.string.menu_start_survey))
             }
-            
+
             // Show seed recruitment button if allowed
             if (showSeedRecruitment) {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -1570,11 +1632,27 @@ fun MenuScreen(
 fun AdminDashboardScreen(
     navController: NavHostController,
     onLogout: () -> Unit,
-    showLogout: Boolean = true
+    showLogout: Boolean = true,
+    syncMessage: SyncMessage? = null,
+    onSyncMessageDismissed: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
     var hasStaffUsers by remember { mutableStateOf(true) }
+
+    // Snackbar host state for sync messages
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+
+    // Show sync message as snackbar when it arrives
+    LaunchedEffect(syncMessage) {
+        syncMessage?.let { msg ->
+            snackbarHostState.showSnackbar(
+                message = msg.message,
+                duration = androidx.compose.material3.SnackbarDuration.Short
+            )
+            onSyncMessageDismissed()
+        }
+    }
 
     LaunchedEffect(Unit) {
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
@@ -1594,6 +1672,17 @@ fun AdminDashboardScreen(
                     )
                 }
             )
+        },
+        snackbarHost = {
+            androidx.compose.material3.SnackbarHost(hostState = snackbarHostState) { data ->
+                // Custom snackbar with error styling if isError
+                val isError = syncMessage?.isError == true
+                androidx.compose.material3.Snackbar(
+                    snackbarData = data,
+                    containerColor = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.inverseSurface,
+                    contentColor = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.inverseOnSurface
+                )
+            }
         }
     ) { paddingValues ->
         Column(

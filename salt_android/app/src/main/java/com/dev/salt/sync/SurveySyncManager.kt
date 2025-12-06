@@ -13,6 +13,18 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
 
+/**
+ * Result of checking for survey updates with detailed status information.
+ */
+sealed class SurveyCheckResult {
+    object NeedsUpdate : SurveyCheckResult()
+    object UpToDate : SurveyCheckResult()
+    /** Network unreachable - normal for offline operation, not alarming */
+    object Unreachable : SurveyCheckResult()
+    /** Actual error - connection refused, auth failure, server error - indicates a problem */
+    data class Error(val reason: String) : SurveyCheckResult()
+}
+
 class SurveySyncManager(private val context: Context) {
     private val database = SurveyDatabase.getInstance(context)
     private val surveyDao = database.surveyDao()
@@ -137,6 +149,71 @@ class SurveySyncManager(private val context: Context) {
         } catch (e: Exception) {
             Log.e("SurveySyncManager", "Error checking for survey updates", e)
             return@withContext false
+        }
+    }
+
+    /**
+     * Check for survey updates with detailed status information.
+     * Returns SurveyCheckResult indicating whether an update is needed, survey is up to date, or an error occurred.
+     */
+    suspend fun checkForSurveyUpdateWithStatus(): SurveyCheckResult = withContext(Dispatchers.IO) {
+        try {
+            val config = getServerConfig()
+            if (config == null) {
+                // No config is not alarming - just means not set up yet
+                return@withContext SurveyCheckResult.Unreachable
+            }
+
+            val (serverUrl, apiKey) = config
+            val url = URL("$serverUrl/api/sync/survey/version")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Accept", "application/json")
+            connection.setRequestProperty("X-API-Key", apiKey)
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+
+            val responseCode = connection.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                val jsonResponse = JSONObject(response)
+
+                if (jsonResponse.getString("status") == "success") {
+                    val data = jsonResponse.getJSONObject("data")
+                    val serverChecksum = data.optString("checksum", "")
+                    val syncMetadata = syncMetadataDao.getSyncMetadata()
+                    val localChecksum = syncMetadata?.surveyChecksum ?: ""
+
+                    return@withContext if (serverChecksum.isNotEmpty() && serverChecksum != localChecksum) {
+                        SurveyCheckResult.NeedsUpdate
+                    } else {
+                        SurveyCheckResult.UpToDate
+                    }
+                } else {
+                    return@withContext SurveyCheckResult.Error("Server returned error status")
+                }
+            } else {
+                // HTTP errors are real problems
+                return@withContext when (responseCode) {
+                    HttpURLConnection.HTTP_UNAUTHORIZED, HttpURLConnection.HTTP_FORBIDDEN ->
+                        SurveyCheckResult.Error("Authentication failed")
+                    in 500..599 ->
+                        SurveyCheckResult.Error("Server error ($responseCode)")
+                    else ->
+                        SurveyCheckResult.Error("Server returned $responseCode")
+                }
+            }
+        } catch (e: java.net.UnknownHostException) {
+            // Network unreachable - normal for offline operation
+            return@withContext SurveyCheckResult.Unreachable
+        } catch (e: java.net.SocketTimeoutException) {
+            // Timeout - normal for offline/slow connection
+            return@withContext SurveyCheckResult.Unreachable
+        } catch (e: java.net.ConnectException) {
+            // Connection refused - this is a real error (server is there but rejecting)
+            return@withContext SurveyCheckResult.Error("Connection refused")
+        } catch (e: Exception) {
+            return@withContext SurveyCheckResult.Error(e.message ?: "Unknown error")
         }
     }
 

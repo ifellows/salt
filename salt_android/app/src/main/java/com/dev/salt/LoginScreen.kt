@@ -19,55 +19,87 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.dev.salt.sync.SurveySyncManager
+import com.dev.salt.sync.SurveyCheckResult
 import com.dev.salt.viewmodel.LoginViewModel
 import com.dev.salt.viewmodel.UserRole
 import kotlinx.coroutines.launch
 import com.dev.salt.data.SurveyDatabase
 import android.util.Log
 
+/**
+ * Sync message to be displayed on the menu screen after login.
+ * @param message The message text
+ * @param isError True if this is an error (alarming), false if informational
+ */
+data class SyncMessage(val message: String, val isError: Boolean)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     loginViewModel: LoginViewModel,
-    onLoginSuccess: (UserRole) -> Unit // Callback to navigate based on role
+    onLoginSuccess: (UserRole, SyncMessage?) -> Unit // Callback with role and optional sync message
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-
     // Observe error state from ViewModel for Dialog
     val loginError = loginViewModel.loginError
     var showErrorDialog by remember(loginError) { mutableStateOf(loginError != null) }
-    
+
     // Function to sync facility config and check for survey updates after successful login
+    // Navigates immediately, sync runs in background and reports via callback
     fun syncAfterLogin(role: UserRole) {
+        // Navigate immediately - don't block on sync
         coroutineScope.launch {
+            var syncMessage: SyncMessage? = null
+
             try {
                 val database = com.dev.salt.data.SurveyDatabase.getInstance(context)
 
-                // Sync facility config
-                val facilityConfigManager = com.dev.salt.sync.FacilityConfigSyncManager(database)
-                facilityConfigManager.syncFacilityConfig()
+                // Sync facility config (quick, best-effort)
+                try {
+                    val facilityConfigManager = com.dev.salt.sync.FacilityConfigSyncManager(database)
+                    facilityConfigManager.syncFacilityConfig()
+                } catch (e: Exception) {
+                    Log.w("LoginScreen", "Failed to sync facility config", e)
+                }
 
-                // Check for survey updates
+                // Check for survey updates with detailed status
                 val surveySyncManager = SurveySyncManager(context)
-                val needsUpdate = surveySyncManager.checkForSurveyUpdate()
+                val checkResult = surveySyncManager.checkForSurveyUpdateWithStatus()
 
-                if (needsUpdate) {
-                    android.util.Log.i("LoginScreen", "New survey version available, downloading...")
-                    val result = surveySyncManager.downloadAndReplaceSurvey()
-                    if (result.isSuccess) {
-                        android.util.Log.i("LoginScreen", "Survey updated successfully")
-                    } else {
-                        android.util.Log.e("LoginScreen", "Failed to update survey", result.exceptionOrNull())
+                syncMessage = when (checkResult) {
+                    is SurveyCheckResult.NeedsUpdate -> {
+                        Log.i("LoginScreen", "New survey version available, downloading...")
+                        val result = surveySyncManager.downloadAndReplaceSurvey()
+                        if (result.isSuccess) {
+                            Log.i("LoginScreen", "Survey updated successfully")
+                            SyncMessage("Survey updated", isError = false)
+                        } else {
+                            Log.e("LoginScreen", "Failed to update survey", result.exceptionOrNull())
+                            SyncMessage("Error: ${result.exceptionOrNull()?.message ?: "Download failed"}", isError = true)
+                        }
+                    }
+                    is SurveyCheckResult.UpToDate -> {
+                        Log.i("LoginScreen", "Survey is up to date")
+                        SyncMessage("Survey is current", isError = false)
+                    }
+                    is SurveyCheckResult.Unreachable -> {
+                        Log.i("LoginScreen", "Server unreachable - offline mode")
+                        SyncMessage("Note: No server connection", isError = false)
+                    }
+                    is SurveyCheckResult.Error -> {
+                        Log.w("LoginScreen", "Sync error: ${checkResult.reason}")
+                        SyncMessage("Error: ${checkResult.reason}", isError = true)
                     }
                 }
             } catch (e: Exception) {
-                // Log but don't block login on sync failure
-                android.util.Log.e("LoginScreen", "Failed to sync data", e)
+                Log.e("LoginScreen", "Failed to sync data", e)
+                syncMessage = SyncMessage("Error: ${e.message ?: "Unknown error"}", isError = true)
             }
-            onLoginSuccess(role)
+
+            onLoginSuccess(role, syncMessage)
         }
     }
 
@@ -109,7 +141,7 @@ fun LoginScreen(
 
             OutlinedTextField(
                 value = loginViewModel.username,
-                onValueChange = { 
+                onValueChange = {
                     loginViewModel.username = it
                     loginViewModel.checkBiometricAvailability() // Check if biometric is available for this user
                 },
@@ -160,11 +192,11 @@ fun LoginScreen(
                     Text(stringResource(R.string.login_button_login))
                 }
             }
-            
+
             // Biometric authentication button
             if (loginViewModel.showBiometricOption) {
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 OutlinedButton(
                     onClick = {
                         loginViewModel.authenticateWithBiometric { result ->
@@ -193,7 +225,6 @@ fun LoginScreen(
                     }
                 }
             }
-
         }
     }
 }
