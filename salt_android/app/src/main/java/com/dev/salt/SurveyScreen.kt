@@ -257,6 +257,7 @@ fun SurveyScreen(
         derivedStateOf {
             currentQuestion?.let { (question, _, answer) ->
                 when (question.questionType) {
+                    "info" -> true  // Info questions are always "answered" - no input required
                     "multiple_choice" -> answer?.optionQuestionIndex != null
                     "multi_select" -> {
                         val selectedIndices = answer?.getSelectedIndices() ?: emptyList()
@@ -388,7 +389,8 @@ fun SurveyScreen(
             ) {
                 Button(onClick = {
                     currentQuestion?.let { (question, _, _) ->
-                        if (question.questionType != "multiple_choice") {
+                        // Don't save answer for info or multiple_choice types
+                        if (question.questionType != "multiple_choice" && question.questionType != "info") {
                             coroutineScope.launch {
                                 kotlinx.coroutines.delay(2000)
                                 viewModel.answerQuestion(textInputValue)
@@ -402,7 +404,8 @@ fun SurveyScreen(
                 }
                 Button(onClick = {
                     currentQuestion?.let { (question, _, _) ->
-                        if (question.questionType != "multiple_choice") {
+                        // Don't save answer for info or multiple_choice types
+                        if (question.questionType != "multiple_choice" && question.questionType != "info") {
                             viewModel.answerQuestion(textInputValue)
                         }
                     }
@@ -441,7 +444,12 @@ fun SurveyScreen(
                 }) { // Replay logic
                     Icon(Icons.Filled.Replay, contentDescription = stringResource(R.string.cd_replay))
                 }
-                if (question.questionType == "multiple_choice") {
+                if (question.questionType == "info") {
+                    // Info type: Display only - no input controls needed
+                    // The question statement is already displayed above
+                    // Just show a spacer for visual balance
+                    Spacer(modifier = Modifier.height(16.dp))
+                } else if (question.questionType == "multiple_choice") {
                     options.forEach { option ->
                         val isHighlighted by remember(highlightedButtonIndex, option.id)
                         { // Derived state

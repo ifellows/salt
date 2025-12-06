@@ -31,7 +31,7 @@
     <string name="common_replay">Կրկնել</string>
     <string name="common_yes">Այո</string>
     <string name="common_no">Ոչ</string>
-    <string name="common_clear">Մաքրել</string>
+    <string name="common_clear">Ջնջել</string>
     <string name="common_done">Պատրաստ</string>
     <string name="common_login">Մուտք</string>
     <string name="common_none">(ոչ մեկը)</string>
@@ -66,8 +66,8 @@
     <string name="session_expired_message">Ձեր սեսիան ավարտվել է անվտանգության նկատառումներից։ Խնդրում ենք կրկին մուտք գործել։</string>
     <string name="session_login_again">Կրկին մուտք գործել</string>
     <string name="menu_welcome">Բարի գալուստ!</string>
-    <string name="menu_staff_title">Հարցման անձնակազմի մենյու</string>
-    <string name="menu_staff_area">Հարցման անձնակազմի տարածք</string>
+    <string name="menu_staff_title">Հարցման անձնակազմի համար</string>
+    <string name="menu_staff_area">Հարցման անձնակազմի համար</string>
     <string name="menu_admin_title">Ադմինիստրատորի վահանակ</string>
     <string name="menu_admin_area">Ադմինիստրատորի վահանակ</string>
     <string name="menu_start_survey">Սկսել նոր հարցում</string>
@@ -456,9 +456,9 @@
     
     <!-- Consent Instruction Screen -->
     <string name="consent_instruction_title">Անձնակազմի հրահանգներ</string>
-    <string name="consent_instruction_intro">Հաջորդիվ ենք կստանանք մասնակցի համաձայնությունը հետազոտությանը մասնակցելու համար։</string>
+    <string name="consent_instruction_intro">Անհարժեշտ է ստանալ մասնակցի համաձայնությունը հետազոտությանը մասնակցելու համար։</string>
     <string name="consent_instruction_step1">Ցույց տվեք պլանշետը մասնակցին և թույլ տվեք կարդալ մասնակցության պայմանները։</string>
-    <string name="consent_instruction_step2">Ապա նրանցից կխնդրվի ստորագրել և համաձայնվել շարունակելու համար։</string>
+    <string name="consent_instruction_step2">Հետո մասնակցին խնդրեք ստորագրել և համաձայնվել շարունակելու համար։</string>
     <string name="consent_instruction_step3">Խնդրում ենք համոզվել, որ նրանք հասկանում են։</string>
     
     <!-- Eligibility Check Screen -->
@@ -612,7 +612,7 @@
     
     <!-- Survey Instructions Screen -->
     <string name="survey_instructions_title">Հարցման հրահանգներ</string>
-    <string name="survey_instructions_staff_screening">Անձնական տարածքում անձնակազմի անդամը կտա մի քանի նախնական հարցեր։</string>
+    <string name="survey_instructions_staff_screening">Այժմ Ձեզ կտրվի հետազոտությանը համապատասխանության մի քանի նախնական հարց։</string>
     <string name="survey_instructions_hand_tablet">Անձնական տարածքում հանձնեք պլանշետը մասնակցին՝ հարցումը սկսելու համար։</string>
     
     <!-- Rapid Test Instruction Screen -->
