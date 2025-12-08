@@ -23,11 +23,11 @@ fun ConsentInstructionScreen(
 ) {
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(stringResource(R.string.consent_instruction_title)) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+            SaltTopAppBar(
+                title = stringResource(R.string.consent_instruction_title),
+                navController = navController,
+                showBackButton = false,
+                showHomeButton = true
             )
         }
     ) { paddingValues ->

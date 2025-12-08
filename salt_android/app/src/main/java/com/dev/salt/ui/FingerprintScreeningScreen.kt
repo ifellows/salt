@@ -85,11 +85,11 @@ fun FingerprintScreeningScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(stringResource(R.string.fingerprint_title)) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+            SaltTopAppBar(
+                title = stringResource(R.string.fingerprint_title),
+                navController = navController,
+                showBackButton = false,
+                showHomeButton = true
             )
         }
     ) { paddingValues ->

@@ -182,11 +182,11 @@ fun SubjectPaymentScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(stringResource(R.string.payment_title)) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+            SaltTopAppBar(
+                title = stringResource(R.string.payment_title),
+                navController = navController,
+                showBackButton = false,
+                showHomeButton = true
             )
         }
     ) { paddingValues ->

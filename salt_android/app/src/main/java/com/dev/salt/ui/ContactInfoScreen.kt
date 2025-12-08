@@ -72,11 +72,11 @@ fun ContactInfoScreen(
     
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Contact Information") },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+            SaltTopAppBar(
+                title = "Contact Information",
+                navController = navController,
+                showBackButton = false,
+                showHomeButton = true
             )
         }
     ) { paddingValues ->

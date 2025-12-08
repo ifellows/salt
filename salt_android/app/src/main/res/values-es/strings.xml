@@ -52,6 +52,12 @@
     <string name="login_error_biometric_unavailable">Autenticación biométrica no disponible</string>
     <string name="login_error_authentication">Error de autenticación</string>
 
+    <!-- Sync Status Messages -->
+    <string name="sync_status_survey_updated">Encuesta actualizada</string>
+    <string name="sync_status_survey_current">La encuesta está actualizada</string>
+    <string name="sync_status_no_connection">Nota: Sin conexión al servidor</string>
+    <string name="sync_status_error">Error: %1$s</string>
+
     <!-- Staff Validation strings -->
     <string name="staff_validation_title">Validación del personal requerida</string>
     <string name="staff_validation_dialog_title">Inicio de sesión del personal</string>
@@ -85,6 +91,13 @@
     <string name="logout_confirm_title">Confirmar cierre de sesión</string>
     <string name="logout_confirm_message">¿Está seguro de que desea cerrar sesión? Su sesión finalizará y deberá iniciar sesión nuevamente.</string>
     <string name="logout_button">Cerrar sesión</string>
+
+    <!-- Return to Menu strings -->
+    <string name="return_to_menu_button">Volver al menú principal</string>
+    <string name="cd_return_to_menu">Volver al menú principal</string>
+    <string name="return_to_menu_confirm_title">¿Volver al menú principal?</string>
+    <string name="return_to_menu_confirm_message">¿Está seguro de que desea ir al menú principal? Todos los cambios no guardados se perderán.</string>
+    <string name="return_to_menu_confirm_button">Volver al menú</string>
 
     <!-- User Management strings -->
     <string name="user_management_title">Administración de usuarios</string>

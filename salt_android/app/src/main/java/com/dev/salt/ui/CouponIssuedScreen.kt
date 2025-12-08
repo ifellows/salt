@@ -62,11 +62,11 @@ fun CouponIssuedScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(stringResource(R.string.coupon_issued_title)) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+            SaltTopAppBar(
+                title = stringResource(R.string.coupon_issued_title),
+                navController = navController,
+                showBackButton = false,
+                showHomeButton = true
             )
         }
     ) { paddingValues ->

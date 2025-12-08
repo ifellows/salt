@@ -33,6 +33,7 @@
     <string name="common_logout">Logout</string>
     <string name="common_exit">Exit</string>
     <string name="common_replay">Replay</string>
+    <string name="common_return_to_menu">Return to Main Menu</string>
 
     <!-- Login/Authentication strings -->
     <string name="login_title">Login</string>
@@ -51,6 +52,12 @@
     <string name="login_error_biometric_failed">Biometric authentication failed</string>
     <string name="login_error_biometric_unavailable">Biometric authentication not available</string>
     <string name="login_error_authentication">Authentication error</string>
+
+    <!-- Sync Status Messages -->
+    <string name="sync_status_survey_updated">Survey updated</string>
+    <string name="sync_status_survey_current">Survey is current</string>
+    <string name="sync_status_no_connection">Note: No server connection</string>
+    <string name="sync_status_error">Error: %1$s</string>
 
     <!-- Staff Validation strings -->
     <string name="staff_validation_title">Staff Validation Required</string>
@@ -85,6 +92,13 @@
     <string name="logout_confirm_title">Confirm Logout</string>
     <string name="logout_confirm_message">Are you sure you want to logout? Your session will be ended and you will need to login again.</string>
     <string name="logout_button">Logout</string>
+
+    <!-- Return to Menu strings -->
+    <string name="return_to_menu_button">Return to Main Menu</string>
+    <string name="cd_return_to_menu">Return to Main Menu</string>
+    <string name="return_to_menu_confirm_title">Return to Main Menu?</string>
+    <string name="return_to_menu_confirm_message">Are you sure you want to navigate to the main menu? All unsaved changes will be lost.</string>
+    <string name="return_to_menu_confirm_button">Return to Menu</string>
 
     <!-- User Management strings -->
     <string name="user_management_title">User Management</string>

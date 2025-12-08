@@ -52,6 +52,13 @@
     <string name="login_error_biometric_failed">Կենսաչափական նույնականացումը ձախողվեց</string>
     <string name="login_error_biometric_unavailable">Կենսաչափական նույնականացումը հասանելի չէ</string>
     <string name="login_error_authentication">Նույնականացման սխալ</string>
+
+    <!-- Sync Status Messages -->
+    <string name="sync_status_survey_updated">Հարցումը թարմացվել է</string>
+    <string name="sync_status_survey_current">Հարցումը ընթացիկ է</string>
+    <string name="sync_status_no_connection">Նշում՝ սերվերի հետ կապ չկա</string>
+    <string name="sync_status_error">Սխալ՝ %1$s</string>
+
     <string name="staff_validation_title">Անձնակազմի ստուգում է պահանջվում</string>
     <string name="staff_validation_dialog_title">Անձնակազմի մուտք</string>
     <string name="staff_validation_attempts_remaining">Մնացած փորձեր՝ %1$d</string>
@@ -78,6 +85,14 @@
     <string name="logout_confirm_title">Հաստատել դուրս գալը</string>
     <string name="logout_confirm_message">Վստահ եք, որ ցանկանում եք դուրս գալ։ Ձեր սեսիան կավարտվի և պետք է կրկին մուտք գործեք։</string>
     <string name="logout_button">Դուրս գալ</string>
+
+    <!-- Return to Menu strings -->
+    <string name="return_to_menu_button">Վերադառնալ գլխավոր մենյու</string>
+    <string name="cd_return_to_menu">Վերադառնալ գլխավոր մենյու</string>
+    <string name="return_to_menu_confirm_title">Վերադառնա՞լ գլխավոր մենյու</string>
+    <string name="return_to_menu_confirm_message">Վստահ եք, որ ցանկանում եք անցնել գլխավոր մենյու։ Բոլոր չպահպանված փոփոխությունները կկորչեն։</string>
+    <string name="return_to_menu_confirm_button">Վերադառնալ մենյու</string>
+
     <string name="user_management_title">Օգտատերերի կառավարում</string>
     <string name="user_add_button">Ավելացնել օգտատեր</string>
     <string name="user_delete_button">Ջնջել օգտատեր</string>

@@ -65,13 +65,11 @@ fun SeedRecruitmentScreen(navController: NavController) {
     
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Seed Recruitment") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
+            SaltTopAppBar(
+                title = "Seed Recruitment",
+                navController = navController,
+                showBackButton = true,
+                showHomeButton = true
             )
         }
     ) { paddingValues ->

@@ -29,6 +29,7 @@ import com.dev.salt.R
 import com.dev.salt.data.User
 import com.dev.salt.viewmodel.UserManagementViewModel
 import com.dev.salt.ui.LogoutButton
+import com.dev.salt.ui.ReturnToMenuButton
 import androidx.navigation.NavController
 import com.dev.salt.AppDestinations
 
@@ -114,6 +115,17 @@ fun UserManagementScreen(
                     }
                 },
                 actions = {
+                    if (navController != null) {
+                        ReturnToMenuButton(
+                            onReturnToMenu = {
+                                navController.navigate(AppDestinations.MENU_SCREEN) {
+                                    popUpTo(AppDestinations.MENU_SCREEN) { inclusive = false }
+                                    launchSingleTop = true
+                                }
+                            },
+                            isVisible = true
+                        )
+                    }
                     if (onLogout != null) {
                         LogoutButton(
                             onLogout = onLogout,

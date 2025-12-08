@@ -8,8 +8,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.dev.salt.R
 
 @Composable
 fun LogoutButton(
@@ -29,11 +31,11 @@ fun LogoutButton(
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ExitToApp,
-                contentDescription = "Logout",
+                contentDescription = stringResource(R.string.cd_logout),
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Logout")
+            Text(stringResource(R.string.logout_button))
         }
     }
     
@@ -62,15 +64,15 @@ fun LogoutConfirmationDialog(
             ) {
                 Icon(
                     Icons.Default.Warning,
-                    contentDescription = "Warning",
+                    contentDescription = stringResource(R.string.common_warning),
                     tint = MaterialTheme.colorScheme.error
                 )
-                Text("Confirm Logout")
+                Text(stringResource(R.string.logout_confirm_title))
             }
         },
         text = {
             Text(
-                text = "Are you sure you want to logout? Your session will be ended and you will need to login again.",
+                text = stringResource(R.string.logout_confirm_message),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Start
             )
@@ -82,12 +84,12 @@ fun LogoutConfirmationDialog(
                     containerColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text("Logout")
+                Text(stringResource(R.string.logout_confirm_button))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.logout_cancel_button))
             }
         }
     )

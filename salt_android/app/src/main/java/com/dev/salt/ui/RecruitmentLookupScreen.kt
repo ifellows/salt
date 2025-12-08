@@ -99,11 +99,11 @@ fun RecruitmentLookupScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(stringResource(R.string.recruitment_lookup_title)) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+            SaltTopAppBar(
+                title = stringResource(R.string.recruitment_lookup_title),
+                navController = navController,
+                showBackButton = true,
+                showHomeButton = true
             )
         }
     ) { paddingValues ->

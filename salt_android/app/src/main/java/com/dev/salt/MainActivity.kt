@@ -65,6 +65,7 @@ import com.dev.salt.ui.SessionTimeoutDialog
 import com.dev.salt.ui.SessionExpiredDialog
 import com.dev.salt.ui.ActivityDetector
 import com.dev.salt.ui.LogoutButton
+import com.dev.salt.ui.ReturnToMenuButton
 import com.dev.salt.ui.ServerSettingsScreen
 import com.dev.salt.ui.UploadStatusScreen
 import com.dev.salt.ui.LanguageSettingsScreen
@@ -191,6 +192,14 @@ class MainActivity : ComponentActivity() {
                         popUpTo(navController.graph.startDestinationId) {
                             inclusive = true
                         }
+                        launchSingleTop = true
+                    }
+                }
+
+                // Return to menu function - always navigates to staff menu
+                val handleReturnToMenu = {
+                    navController.navigate(AppDestinations.MENU_SCREEN) {
+                        popUpTo(AppDestinations.MENU_SCREEN) { inclusive = false }
                         launchSingleTop = true
                     }
                 }
@@ -408,7 +417,7 @@ class MainActivity : ComponentActivity() {
                         MenuScreen(
                             navController = navController,
                             onLogout = handleLogout,
-                            showLogout = !surveyState.isActive,
+                            showLogout = true,
                             syncMessage = pendingSyncMessage,
                             onSyncMessageDismissed = { pendingSyncMessage = null }
                         )
@@ -417,7 +426,7 @@ class MainActivity : ComponentActivity() {
                         AdminDashboardScreen(
                             navController = navController,
                             onLogout = handleLogout,
-                            showLogout = !surveyState.isActive,
+                            showLogout = true,
                             syncMessage = pendingSyncMessage,
                             onSyncMessageDismissed = { pendingSyncMessage = null }
                         )
@@ -433,7 +442,7 @@ class MainActivity : ComponentActivity() {
                             viewModel = userManagementViewModel,
                             navController = navController,
                             onLogout = handleLogout,
-                            showLogout = !surveyState.isActive
+                            showLogout = true
                         )
                     }
 

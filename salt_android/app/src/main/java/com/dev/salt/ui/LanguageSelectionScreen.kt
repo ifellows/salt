@@ -66,8 +66,11 @@ fun LanguageSelectionScreen(
     
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.language_selection_title)) }
+            SaltTopAppBar(
+                title = stringResource(R.string.language_selection_title),
+                navController = navController,
+                showBackButton = false,
+                showHomeButton = true
             )
         }
     ) { paddingValues ->

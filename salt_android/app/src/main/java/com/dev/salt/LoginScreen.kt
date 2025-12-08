@@ -75,28 +75,30 @@ fun LoginScreen(
                         val result = surveySyncManager.downloadAndReplaceSurvey()
                         if (result.isSuccess) {
                             Log.i("LoginScreen", "Survey updated successfully")
-                            SyncMessage("Survey updated", isError = false)
+                            SyncMessage(context.getString(R.string.sync_status_survey_updated), isError = false)
                         } else {
                             Log.e("LoginScreen", "Failed to update survey", result.exceptionOrNull())
-                            SyncMessage("Error: ${result.exceptionOrNull()?.message ?: "Download failed"}", isError = true)
+                            val errorMsg = result.exceptionOrNull()?.message ?: "Download failed"
+                            SyncMessage(context.getString(R.string.sync_status_error, errorMsg), isError = true)
                         }
                     }
                     is SurveyCheckResult.UpToDate -> {
                         Log.i("LoginScreen", "Survey is up to date")
-                        SyncMessage("Survey is current", isError = false)
+                        SyncMessage(context.getString(R.string.sync_status_survey_current), isError = false)
                     }
                     is SurveyCheckResult.Unreachable -> {
                         Log.i("LoginScreen", "Server unreachable - offline mode")
-                        SyncMessage("Note: No server connection", isError = false)
+                        SyncMessage(context.getString(R.string.sync_status_no_connection), isError = false)
                     }
                     is SurveyCheckResult.Error -> {
                         Log.w("LoginScreen", "Sync error: ${checkResult.reason}")
-                        SyncMessage("Error: ${checkResult.reason}", isError = true)
+                        SyncMessage(context.getString(R.string.sync_status_error, checkResult.reason), isError = true)
                     }
                 }
             } catch (e: Exception) {
                 Log.e("LoginScreen", "Failed to sync data", e)
-                syncMessage = SyncMessage("Error: ${e.message ?: "Unknown error"}", isError = true)
+                val errorMsg = e.message ?: "Unknown error"
+                syncMessage = SyncMessage(context.getString(R.string.sync_status_error, errorMsg), isError = true)
             }
 
             onLoginSuccess(role, syncMessage)

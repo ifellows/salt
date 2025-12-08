@@ -284,14 +284,16 @@ bodyHtml += '                </div>\n';
 bodyHtml += '                \n';
 bodyHtml += '                <div id="languageTexts">\n';
 bodyHtml += '                    <label>Question Text</label>\n';
-// Add input for each language
+// Add textarea for each language (supports multiline text for all question types)
 surveyLanguages.forEach(lang => {
     const langId = lang.replace(/\s+/g, '_');
     bodyHtml += '                    <div class="form-group">\n';
-    bodyHtml += '                        <div style="display: flex; gap: 0.5rem; align-items: center;">\n';
-    bodyHtml += '                            <input type="text" id="text_' + langId + '" class="form-control" placeholder="' + lang + ' text" ' + (lang === surveyLanguages[0] ? 'required' : '') + ' style="flex: 1;">\n';
-    bodyHtml += '                            <button type="button" id="record_' + langId + '" onclick="toggleRecording(\'' + langId + '\')" class="btn btn-sm" style="width: 100px;">🎤 Record</button>\n';
-    bodyHtml += '                            <button type="button" id="play_' + langId + '" onclick="playAudio(\'' + langId + '\')" class="btn btn-sm" style="display: none;">▶️ Play</button>\n';
+    bodyHtml += '                        <div style="display: flex; gap: 0.5rem; align-items: flex-start;">\n';
+    bodyHtml += '                            <textarea id="text_' + langId + '" class="form-control" placeholder="' + lang + ' text (supports multiple lines)" rows="3" ' + (lang === surveyLanguages[0] ? 'required' : '') + ' style="flex: 1;"></textarea>\n';
+    bodyHtml += '                            <div style="display: flex; flex-direction: column; gap: 0.25rem;">\n';
+    bodyHtml += '                                <button type="button" id="record_' + langId + '" onclick="toggleRecording(\'' + langId + '\')" class="btn btn-sm" style="width: 100px;">🎤 Record</button>\n';
+    bodyHtml += '                                <button type="button" id="play_' + langId + '" onclick="playAudio(\'' + langId + '\')" class="btn btn-sm" style="display: none;">▶️ Play</button>\n';
+    bodyHtml += '                            </div>\n';
     bodyHtml += '                        </div>\n';
     bodyHtml += '                        <input type="hidden" id="audio_' + langId + '">\n';
     bodyHtml += '                    </div>\n';
