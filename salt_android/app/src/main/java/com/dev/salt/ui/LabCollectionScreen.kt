@@ -76,9 +76,9 @@ fun LabCollectionScreen(
         }
     }
 
-    // Auto-skip if no qualifying tests
-    LaunchedEffect(shouldSkip, isLoading) {
-        if (shouldSkip && !isLoading) {
+    // Auto-skip if no qualifying tests (but wait for debug dialogs to finish first)
+    LaunchedEffect(shouldSkip, isLoading, currentDebugDialogIndex) {
+        if (shouldSkip && !isLoading && currentDebugDialogIndex < 0) {
             android.util.Log.d("LabCollectionScreen", "Auto-navigating past lab collection (no qualifying tests)")
             onSamplesCollected() // Proceed to next screen as if samples were collected
         }
