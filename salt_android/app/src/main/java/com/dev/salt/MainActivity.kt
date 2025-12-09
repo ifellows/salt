@@ -72,6 +72,7 @@ import com.dev.salt.ui.LanguageSettingsScreen
 import com.dev.salt.ui.StaffFingerprintEnrollmentScreen
 import com.dev.salt.upload.SurveyUploadWorkManager
 import com.dev.salt.i18n.LanguageManager
+import com.dev.salt.ui.DeveloperSettingsScreen
 import android.util.Log
 import androidx.lifecycle.viewModelScope
 
@@ -123,6 +124,7 @@ object AppDestinations {
     const val INITIAL_FINGERPRINT_SETUP = "initial_fingerprint_setup" // For initial admin fingerprint enrollment
     const val RECRUITMENT_LOOKUP = "recruitment_lookup" // For recruitment payment lookup
     const val RECRUITMENT_PAYMENT = "recruitment_payment" // For recruitment payment confirmation
+    const val DEVELOPER_SETTINGS = "developer_settings" // For developer/debug settings
 
     // Compatibility aliases for existing code
     const val WELCOME_SCREEN = WELCOME
@@ -847,6 +849,10 @@ class MainActivity : ComponentActivity() {
 
                     composable(AppDestinations.LANGUAGE_SETTINGS) {
                         LanguageSettingsScreen(navController = navController)
+                    }
+
+                    composable(AppDestinations.DEVELOPER_SETTINGS) {
+                        DeveloperSettingsScreen(navController = navController)
                     }
 
                     composable(
@@ -1768,6 +1774,13 @@ fun AdminDashboardScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.language_settings_title))
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { navController.navigate(AppDestinations.DEVELOPER_SETTINGS) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Developer Settings")
             }
             // Add other admin functions
         }

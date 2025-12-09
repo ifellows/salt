@@ -345,8 +345,8 @@ fun ConsentSignatureScreen(
                                                 // Staff screening: return to survey to continue after eligibility
                                                 Log.d("ConsentSignature", "Staff screening mode - returning to survey")
                                                 navController.navigate("${AppDestinations.SURVEY_SCREEN}?couponCode=$couponCode") {
-                                                    // Pop consent screens and return to survey
-                                                    popUpTo(AppDestinations.CONSENT_INSTRUCTION) { inclusive = true }
+                                                    // Pop back to the survey screen that's already there
+                                                    popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
                                                 }
                                             }
                                             else -> {

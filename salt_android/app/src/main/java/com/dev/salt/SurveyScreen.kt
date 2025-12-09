@@ -127,6 +127,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import com.dev.salt.ui.EligibilityCheckScreen
+import com.dev.salt.ui.JexlDebugDialog
 import androidx.compose.ui.res.stringResource
 
 @Composable
@@ -152,6 +153,9 @@ fun SurveyScreen(
     val needsEligibilityCheck by viewModel.needsEligibilityCheck.collectAsState()
     val isEligible by viewModel.isEligible.collectAsState()
 
+    // Observe pending eligibility debug dialog
+    val pendingEligibilityDebug by viewModel.pendingEligibilityDebug.collectAsState()
+
     // Observe consent needed after eligibility (staff screening mode)
     val needsConsentAfterEligibility by viewModel.needsConsentAfterEligibility.collectAsState()
 
@@ -172,6 +176,32 @@ fun SurveyScreen(
                 }
             }
         }
+    }
+
+    // JEXL Debug Dialog - render early so it's available before any returns
+    // This must be rendered before any early returns so the dialog can actually show
+    val jexlDebugRequest by viewModel.jexlDebugRequest.collectAsState()
+    jexlDebugRequest?.let { request ->
+        JexlDebugDialog(
+            originalStatement = request.statement,
+            context = request.context,
+            scriptType = request.scriptType,
+            onContinue = {
+                viewModel.clearJexlDebugRequest()
+                request.onContinue()
+            }
+        )
+    }
+
+    // Handle eligibility debug dialog first - before any navigation happens
+    // This must come before consent navigation to intercept the flow
+    if (pendingEligibilityDebug != null) {
+        LaunchedEffect(Unit) {
+            viewModel.showPendingEligibilityDebug()
+        }
+        // The jexlDebugRequest dialog is rendered above - show it and wait for dismiss
+        // Don't proceed with the rest of the UI until dialog is dismissed
+        return
     }
 
     // Handle consent needed after eligibility (staff screening mode)
@@ -318,6 +348,9 @@ fun SurveyScreen(
             }
         )
     }
+
+    // Note: JEXL Debug Dialog is now rendered earlier (before any early returns)
+    // to ensure it can display for eligibility debug before the return statement
 
     suspend fun playCurrentQuestion(){
         currentQuestion?.let { (question, options, _) ->

@@ -26,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import com.dev.salt.R
 import com.dev.salt.data.LabTestConfiguration
 import com.dev.salt.data.SurveyDatabase
+import com.dev.salt.debug.DeveloperSettingsManager
 import com.dev.salt.util.JexlContextDebugInfo
 import com.dev.salt.util.LabTestEvaluationResult
 import com.dev.salt.util.LabTestJexlEvaluator
@@ -49,6 +50,10 @@ fun LabCollectionScreen(
     var showDebugPanel by remember { mutableStateOf(false) }
     var shouldSkip by remember { mutableStateOf(false) }
 
+    // JEXL Debug Dialog state for developer settings
+    var currentDebugDialogIndex by remember { mutableStateOf(-1) }
+    val isJexlDebugEnabled = remember { DeveloperSettingsManager.isJexlDebugEnabled(context) }
+
     // Load qualifying lab tests
     LaunchedEffect(surveyId) {
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
@@ -63,6 +68,11 @@ fun LabCollectionScreen(
                 shouldSkip = true
             }
             isLoading = false
+
+            // If JEXL debug is enabled and there are results with conditions, start showing dialogs
+            if (isJexlDebugEnabled && results.any { !it.jexlCondition.isNullOrBlank() && it.jexlCondition != "null" }) {
+                currentDebugDialogIndex = 0
+            }
         }
     }
 
@@ -71,6 +81,32 @@ fun LabCollectionScreen(
         if (shouldSkip && !isLoading) {
             android.util.Log.d("LabCollectionScreen", "Auto-navigating past lab collection (no qualifying tests)")
             onSamplesCollected() // Proceed to next screen as if samples were collected
+        }
+    }
+
+    // JEXL Debug Dialog for lab tests - shows one dialog per lab test with JEXL condition
+    if (currentDebugDialogIndex >= 0 && debugInfo != null) {
+        val results = debugInfo!!.second
+        val contextMap = debugInfo!!.first.combinedContext
+
+        // Find the next result with a JEXL condition
+        val resultsWithConditions = results.filter { !it.jexlCondition.isNullOrBlank() && it.jexlCondition != "null" }
+
+        if (currentDebugDialogIndex < resultsWithConditions.size) {
+            val result = resultsWithConditions[currentDebugDialogIndex]
+            JexlDebugDialog(
+                originalStatement = result.jexlCondition ?: "",
+                context = contextMap,
+                scriptType = "Lab Test: ${result.labTest.testName}",
+                onContinue = {
+                    // Move to next dialog or close
+                    if (currentDebugDialogIndex + 1 < resultsWithConditions.size) {
+                        currentDebugDialogIndex++
+                    } else {
+                        currentDebugDialogIndex = -1 // Close dialogs
+                    }
+                }
+            )
         }
     }
 

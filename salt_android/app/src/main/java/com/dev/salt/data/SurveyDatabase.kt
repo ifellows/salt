@@ -129,6 +129,7 @@ data class Survey(
                     optionQuestionIndex = null,
                     answerLanguage = this.language,
                     answerPrimaryLanguageText = null,
+                    isNumeric = question.questionType == "numeric",
                     isMultiSelect = question.questionType == "multi_select",
                     multiSelectIndices = if (question.questionType == "multi_select") "" else null
                 ))

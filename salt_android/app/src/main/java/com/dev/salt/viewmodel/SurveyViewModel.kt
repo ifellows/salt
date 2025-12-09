@@ -16,6 +16,8 @@ import com.dev.salt.evaluateJexlScript
 import com.dev.salt.upload.SurveyUploadManager
 import com.dev.salt.upload.SurveyUploadWorkManager
 import com.dev.salt.upload.UploadResult
+import com.dev.salt.ui.JexlDebugRequest
+import com.dev.salt.debug.DeveloperSettingsManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -23,6 +25,8 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import android.content.Context
@@ -78,6 +82,113 @@ class SurveyViewModel(
     // Track if we need to show HIV test after eligibility
     private val _needsHivTestAfterEligibility = MutableStateFlow(false)
     val needsHivTestAfterEligibility: StateFlow<Boolean> = _needsHivTestAfterEligibility
+
+    // JEXL Debug request for showing debug dialog
+    private val _jexlDebugRequest = MutableStateFlow<JexlDebugRequest?>(null)
+    val jexlDebugRequest: StateFlow<JexlDebugRequest?> = _jexlDebugRequest
+
+    // Pending eligibility debug info - Triple of (script, context, result)
+    // This is used to show the debug dialog after eligibility check, before proceeding
+    private val _pendingEligibilityDebug = MutableStateFlow<Triple<String, Map<String, Any?>, Boolean>?>(null)
+    val pendingEligibilityDebug: StateFlow<Triple<String, Map<String, Any?>, Boolean>?> = _pendingEligibilityDebug
+
+    // Flag to skip eligibility debug on re-entry (after dialog is dismissed)
+    private var skipEligibilityDebug = false
+
+    /**
+     * Check if JEXL debug mode is enabled.
+     * Returns false if context is not available.
+     */
+    private fun isJexlDebugEnabled(): Boolean {
+        val enabled = context?.let { DeveloperSettingsManager.isJexlDebugEnabled(it) } ?: false
+        Log.d("SurveyViewModel", "isJexlDebugEnabled: context=${context != null}, enabled=$enabled")
+        return enabled
+    }
+
+    /**
+     * Show a JEXL debug dialog and wait for user to continue.
+     * The onContinue callback will be invoked when the user presses Continue.
+     */
+    fun showJexlDebugDialog(statement: String, jexlContext: Map<String, Any?>, scriptType: String, onContinue: () -> Unit) {
+        _jexlDebugRequest.value = JexlDebugRequest(
+            statement = statement,
+            context = jexlContext,
+            scriptType = scriptType,
+            onContinue = {
+                _jexlDebugRequest.value = null
+                onContinue()
+            }
+        )
+    }
+
+    /**
+     * Clear the JEXL debug dialog (called when user continues).
+     */
+    fun clearJexlDebugRequest() {
+        _jexlDebugRequest.value = null
+    }
+
+    /**
+     * Show the pending eligibility debug dialog.
+     * Called from UI when it's ready to display the dialog.
+     * After dialog is dismissed, re-runs eligibility check to continue with navigation.
+     */
+    fun showPendingEligibilityDebug() {
+        val pending = _pendingEligibilityDebug.value ?: return
+        val (script, context, result) = pending
+        _jexlDebugRequest.value = JexlDebugRequest(
+            statement = script,
+            context = context,
+            scriptType = "Eligibility (result: $result)",
+            onContinue = {
+                _jexlDebugRequest.value = null
+                _pendingEligibilityDebug.value = null
+                // Set flag to skip debug on re-entry
+                skipEligibilityDebug = true
+                // Re-run eligibility check to continue with consent/navigation
+                Log.d("SurveyViewModel", "Debug dialog dismissed - re-running eligibility for navigation (skip debug)")
+                checkEligibility()
+            }
+        )
+    }
+
+    /**
+     * Clear the pending eligibility debug (if user dismisses without showing).
+     */
+    fun clearPendingEligibilityDebug() {
+        _pendingEligibilityDebug.value = null
+    }
+
+    /**
+     * Get the current question's preScript (skip logic) if any.
+     */
+    fun getCurrentPreScript(): String? {
+        return _currentQuestion?.value?.first?.preScript?.takeIf { it.isNotBlank() }
+    }
+
+    /**
+     * Get the current question's validationScript if any.
+     */
+    fun getCurrentValidationScript(): String? {
+        return _currentQuestion?.value?.first?.validationScript?.takeIf { it.isNotBlank() }
+    }
+
+    /**
+     * Get the current question's skipToScript if any.
+     */
+    fun getCurrentSkipToScript(): String? {
+        val q = _currentQuestion?.value?.first ?: return null
+        val script = q.skipToScript?.takeIf { it.isNotBlank() } ?: return null
+        val target = q.skipToTarget?.takeIf { it.isNotBlank() } ?: return null
+        return script
+    }
+
+    /**
+     * Get the eligibility script if any.
+     */
+    fun getEligibilityScript(): String? {
+        return survey?.eligibilityScript?.takeIf { it.isNotBlank() }
+    }
 
     // Track if HIV test has been completed (deprecated - kept for backward compatibility)
     private val _hivTestCompleted = MutableStateFlow(false)
@@ -299,6 +410,16 @@ class SurveyViewModel(
                 result = ret.toString()
             }
             Log.d("JEXLResult", "Result of preScript: $result")
+
+            // Show debug dialog if enabled
+            if (isJexlDebugEnabled()) {
+                _jexlDebugRequest.value = JexlDebugRequest(
+                    statement = script,
+                    context = context,
+                    scriptType = "PreScript (Skip Logic)",
+                    onContinue = { _jexlDebugRequest.value = null }
+                )
+            }
         } catch (e: Exception) {
             Log.e("JEXLError", "Error evaluating preScript: ${e.message}")
             result ="continue" // Default action on error
@@ -321,6 +442,16 @@ class SurveyViewModel(
                 result = true
             }
             Log.d("JEXLResult", "Result of validationScript: $result")
+
+            // Show debug dialog if enabled
+            if (isJexlDebugEnabled()) {
+                _jexlDebugRequest.value = JexlDebugRequest(
+                    statement = script,
+                    context = context,
+                    scriptType = "Validation",
+                    onContinue = { _jexlDebugRequest.value = null }
+                )
+            }
         } catch (e: Exception) {
             Log.e("JEXLError", "Error evaluating validationScript: ${e.message}")
             result = true // Default action on error
@@ -343,6 +474,16 @@ class SurveyViewModel(
         return try {
             val result = evaluateJexlScript(skipToScript, context)
             Log.d("SurveyViewModel", "Skip-to script evaluation: $result")
+
+            // Show debug dialog if enabled
+            if (isJexlDebugEnabled()) {
+                _jexlDebugRequest.value = JexlDebugRequest(
+                    statement = skipToScript,
+                    context = context,
+                    scriptType = "Skip-To (target: $skipToTarget)",
+                    onContinue = { _jexlDebugRequest.value = null }
+                )
+            }
 
             if (result == true) {
                 skipToTarget // Return the target question short name
@@ -385,8 +526,8 @@ class SurveyViewModel(
         }
     }
 
-    // NEW: Helper function to build the JEXL context
-    private fun buildJexlContext(): Map<String, Any?> {
+    // Helper function to build the JEXL context - public for debug dialog use
+    fun buildJexlContext(): Map<String, Any?> {
         val context = mutableMapOf<String, Any?>()
         val ans = survey!!.answers
         val qus = survey!!.questions
@@ -400,6 +541,31 @@ class SurveyViewModel(
         Log.d("SurveyViewModel", "JEXL Context built: $context")
         return context
     }
+
+    /**
+     * Shows a JEXL debug dialog and suspends until the user dismisses it.
+     * Use this for places where we need to wait before proceeding (like eligibility checks).
+     */
+    private suspend fun showDebugDialogAndWait(
+        statement: String,
+        context: Map<String, Any?>,
+        scriptType: String
+    ) {
+        if (!isJexlDebugEnabled()) return
+
+        suspendCancellableCoroutine { continuation ->
+            _jexlDebugRequest.value = JexlDebugRequest(
+                statement = statement,
+                context = context,
+                scriptType = scriptType,
+                onContinue = {
+                    _jexlDebugRequest.value = null
+                    continuation.resume(Unit)
+                }
+            )
+        }
+    }
+
     //@Composable
     //@OptIn(ExperimentalMaterial3Api::class)
     fun loadNextQuestion() : String? {
@@ -463,12 +629,14 @@ class SurveyViewModel(
 
     // NEW: Overloaded answerQuestion for text/numeric input
     fun answerQuestion(textAnswer: String) {
-        survey!!.answers[currentQuestionIndex].numericValue = textAnswer.toDoubleOrNull()
-        survey!!.answers[currentQuestionIndex].answerPrimaryLanguageText = textAnswer
-        _currentQuestion.value = _currentQuestion.value?.copy(third = survey!!.answers[currentQuestionIndex] )
-        //viewModelScope.launch {
-        //    loadNextQuestion()
-        //}
+        val answer = survey!!.answers[currentQuestionIndex]
+
+        // isNumeric is already set based on question type at Answer creation time
+        // Just set the values here
+        answer.numericValue = textAnswer.toDoubleOrNull()
+        answer.answerPrimaryLanguageText = textAnswer
+
+        _currentQuestion.value = _currentQuestion.value?.copy(third = answer)
     }
     
     // Handle multi-select option toggle
@@ -619,6 +787,15 @@ class SurveyViewModel(
                     null -> false
                     else -> result.toString().equals("true", ignoreCase = true)
                 }
+
+                // Show debug dialog if enabled - store context for showing after navigation pauses
+                // Skip if we're re-entering after debug dialog was dismissed
+                if (isJexlDebugEnabled() && !skipEligibilityDebug) {
+                    // Store the pending eligibility debug info
+                    _pendingEligibilityDebug.value = Triple(eligibilityScript, context, eligible)
+                }
+                // Reset skip flag after use
+                skipEligibilityDebug = false
             }else{
                 Log.d("SurveyViewModel", "No eligibility script defined, defaulting to eligible")
             }
@@ -627,6 +804,13 @@ class SurveyViewModel(
             _isEligible.value = eligible
             _needsEligibilityCheck.value = true
             returnValue = if (eligible) 1 else 0
+
+            // If debug dialog is pending, don't proceed with consent navigation yet
+            // The UI will show the dialog first, and when dismissed, this code path will be re-run
+            if (_pendingEligibilityDebug.value != null) {
+                Log.d("SurveyViewModel", "Debug dialog pending - deferring consent/navigation")
+                return returnValue
+            }
 
             // For staff screening mode: check if consent is needed after eligibility passes
             if (eligible) {

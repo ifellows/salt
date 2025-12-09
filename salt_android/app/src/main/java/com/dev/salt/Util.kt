@@ -91,12 +91,15 @@ private val jexlEngine by lazy {
  *               If the script is null or blank, this function will return null.
  * @param contextData A map where keys are variable names that can be used within the
  *                    JEXL script, and values are the corresponding data for those variables.
+ * @param throwErrors If true, exceptions will be thrown instead of returning null.
+ *                    Useful for debugging to see the actual error messages.
  * @return The result of the script evaluation as `Any?` (meaning it can be any type, or null).
  *         Returns null if:
  *         - The input `script` is null or blank.
  *         - An error occurs during script parsing or evaluation (an error will be logged).
+ * @throws JexlException if throwErrors is true and an evaluation error occurs
  */
-fun evaluateJexlScript(script: String?, contextData: Map<String, Any?>): Any? {
+fun evaluateJexlScript(script: String?, contextData: Map<String, Any?>, throwErrors: Boolean = false): Any? {
     // If the script string is null or effectively empty, no evaluation is performed.
     if (script.isNullOrBlank()) {
         Log.d("JexlEvaluate", "Script is null or blank. No evaluation needed, returning null.")
@@ -120,23 +123,23 @@ fun evaluateJexlScript(script: String?, contextData: Map<String, Any?>): Any? {
     } catch (e: JexlException.Variable) {
         // Handles errors where the script refers to a variable not defined in the contextData.
         Log.e("JexlEvaluate", "JEXL Error: Undefined variable '${e.variable}' in script '$script'. Available context keys: ${contextData.keys}", e)
-        null // Return null to indicate an error.
+        if (throwErrors) throw e else null
     } catch (e: JexlException.Method) {
         // Handles errors where the script tries to call a method that doesn't exist or isn't accessible.
         Log.e("JexlEvaluate", "JEXL Error: Undefined method '${e.method}' in script '$script'. Available context keys: ${contextData.keys}", e)
-        null
+        if (throwErrors) throw e else null
     } catch (e: JexlException.Parsing) {
         // Handles syntax errors within the JEXL script itself.
         Log.e("JexlEvaluate", "JEXL Parsing Error: '${e.message}' for script '$script'", e)
-        null
+        if (throwErrors) throw e else null
     } catch (e: JexlException) {
         // A general catch block for any other JEXL-specific exceptions.
         Log.e("JexlEvaluate", "A JEXL evaluation error occurred for script '$script'. Context keys: ${contextData.keys}", e)
-        null
+        if (throwErrors) throw e else null
     } catch (e: Exception) {
         // A fallback catch block for any other unexpected exceptions during the process.
         Log.e("JexlEvaluate", "Unexpected error during JEXL script evaluation for script '$script'. Context keys: ${contextData.keys}", e)
-        null
+        if (throwErrors) throw e else null
     }
 }
 
