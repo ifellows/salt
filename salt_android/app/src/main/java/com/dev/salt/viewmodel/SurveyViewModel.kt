@@ -38,6 +38,14 @@ sealed class SurveyNavigationEvent {
     object NavigateToHivTest : SurveyNavigationEvent()  // For backward compatibility
 }
 
+// Survey completion state for proper async coordination
+sealed class SurveyCompletionState {
+    object NotCompleted : SurveyCompletionState()
+    object Saving : SurveyCompletionState()
+    data class Completed(val coupons: List<String>) : SurveyCompletionState()
+    data class Failed(val error: String) : SurveyCompletionState()
+}
+
 class SurveyViewModel(
     private val database: SurveyDatabase,
     private val context: Context? = null,
@@ -60,6 +68,10 @@ class SurveyViewModel(
     
     private val _generatedCoupons = MutableStateFlow<List<String>>(emptyList())
     val generatedCoupons: StateFlow<List<String>> = _generatedCoupons
+
+    // Survey completion state for proper async coordination with SurveyScreen
+    private val _surveyCompletionState = MutableStateFlow<SurveyCompletionState>(SurveyCompletionState.NotCompleted)
+    val surveyCompletionState: StateFlow<SurveyCompletionState> = _surveyCompletionState
 
     private val couponGenerator = CouponGenerator(database.couponDao(), database.surveyDao())
     //public var currentQuestion: Pair<Question, List<Option>>? = null//StateFlow<Pair<Question, List<Option>>?> = _currentQuestion
@@ -342,51 +354,59 @@ class SurveyViewModel(
         } else {
             _currentQuestion.value = null
             //currentQuestion = null // Survey completed
-            
+
             Log.i("SurveyViewModel", "Survey completed! Index: $currentQuestionIndex, Questions size: ${questions.size}")
-            
+
             // Survey is completed - save and trigger upload
             survey?.let { completedSurvey ->
                 viewModelScope.launch {
                     try {
+                        // Signal that we're saving the survey
+                        _surveyCompletionState.value = SurveyCompletionState.Saving
+
                         Log.i("SurveyViewModel", "Processing completed survey ${completedSurvey.id}")
-                        
+
                         // Save the survey answers (the survey itself was created earlier)
-                        Log.i("SurveyViewModel", "Saving survey answers for ${completedSurvey.id}")
+                        Log.i("SurveyViewModel", "Saving ${completedSurvey.answers.size} survey answers for ${completedSurvey.id}")
                         completedSurvey.answers.forEach { answer ->
                             database.surveyDao().insertAnswer(answer)
                         }
-                        
+
                         // Check if coupons have already been generated for this survey
                         val existingCoupons = database.couponDao().getCouponsIssuedToSurvey(completedSurvey.id)
-                        
-                        if (existingCoupons.isEmpty()) {
+
+                        val coupons: List<String> = if (existingCoupons.isEmpty()) {
                             // Generate coupons for completed survey
                             try {
                                 // Get the number of coupons to issue from facility config
                                 val facilityConfig = database.facilityConfigDao().getFacilityConfig()
                                 val couponsToIssue = facilityConfig?.couponsToIssue ?: 3
-                                
+
                                 Log.i("SurveyViewModel", "Generating $couponsToIssue coupons for survey ${completedSurvey.id}")
-                                val coupons = couponGenerator.issueCouponsForSurvey(completedSurvey.id, couponsToIssue)
-                                _generatedCoupons.value = coupons
-                                Log.i("SurveyViewModel", "Generated ${coupons.size} coupons for survey ${completedSurvey.id}: $coupons")
+                                val generatedCoupons = couponGenerator.issueCouponsForSurvey(completedSurvey.id, couponsToIssue)
+                                Log.i("SurveyViewModel", "Generated ${generatedCoupons.size} coupons for survey ${completedSurvey.id}: $generatedCoupons")
+                                generatedCoupons
                             } catch (e: Exception) {
                                 Log.e("SurveyViewModel", "Failed to generate coupons for survey ${completedSurvey.id}", e)
-                                // Still set empty list so navigation can proceed
-                                _generatedCoupons.value = emptyList()
+                                // Still return empty list so navigation can proceed
+                                emptyList()
                             }
                         } else {
                             Log.i("SurveyViewModel", "Found ${existingCoupons.size} existing coupons for survey ${completedSurvey.id}")
-                            _generatedCoupons.value = existingCoupons.map { it.couponCode }
                             Log.i("SurveyViewModel", "Using existing coupons: ${existingCoupons.map { it.couponCode }}")
+                            existingCoupons.map { it.couponCode }
                         }
-                        
+
+                        // Update both the legacy generatedCoupons flow and the new completion state
+                        _generatedCoupons.value = coupons
+                        _surveyCompletionState.value = SurveyCompletionState.Completed(coupons)
+
                         // Upload is now triggered from StaffValidationScreen after all steps are complete
                         // This ensures sample collection status is recorded before upload
                         Log.i("SurveyViewModel", "Survey ready for upload: ${completedSurvey.id} (upload will happen after staff validation)")
                     } catch (e: Exception) {
                         Log.e("SurveyViewModel", "Error completing survey", e)
+                        _surveyCompletionState.value = SurveyCompletionState.Failed(e.message ?: "Unknown error")
                     }
                 }
             }

@@ -119,7 +119,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.dev.salt.viewmodel.SurveyViewModel
+import com.dev.salt.viewmodel.SurveyCompletionState
 import com.dev.salt.playAudio
+import kotlinx.coroutines.flow.first
 import com.dev.salt.session.SurveyStateManagerInstance
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -261,20 +263,29 @@ fun SurveyScreen(
     }
     
     // End survey when completed and navigate back
-    val generatedCoupons by viewModel.generatedCoupons.collectAsState()
-    
-    LaunchedEffect(currentQuestion, generatedCoupons) {
+    // Use proper async coordination via SurveyCompletionState instead of polling
+    LaunchedEffect(currentQuestion) {
         if (currentQuestion == null && viewModel.currentQuestionIndex >= 0) {
             surveyStateManager.endSurvey()
-            // Wait for coupons to be generated before navigating
-            // This gives the ViewModel time to save the survey and generate coupons
-            var waitCount = 0
-            while (generatedCoupons.isEmpty() && waitCount < 30) { // Wait up to 3 seconds
-                kotlinx.coroutines.delay(100)
-                waitCount++
+
+            // Wait for completion state to be Completed or Failed
+            // This properly awaits the ViewModel's coroutine without polling
+            val completionState = viewModel.surveyCompletionState.first { state ->
+                state is SurveyCompletionState.Completed || state is SurveyCompletionState.Failed
             }
-            // Navigate back after coupons are ready or timeout
-            kotlinx.coroutines.delay(1000) // Brief pause to show completion message
+
+            when (completionState) {
+                is SurveyCompletionState.Completed -> {
+                    Log.d("SurveyScreen", "Survey completed with ${completionState.coupons.size} coupons")
+                }
+                is SurveyCompletionState.Failed -> {
+                    Log.e("SurveyScreen", "Survey completion failed: ${completionState.error}")
+                }
+                else -> { /* NotCompleted or Saving - shouldn't reach here */ }
+            }
+
+            // Brief pause to show completion message before navigating
+            kotlinx.coroutines.delay(1000)
             onNavigateBack()
         }
     }
@@ -431,11 +442,7 @@ fun SurveyScreen(
                     currentQuestion?.let { (question, _, _) ->
                         // Don't save answer for info or multiple_choice types
                         if (question.questionType != "multiple_choice" && question.questionType != "info") {
-                            coroutineScope.launch {
-                                kotlinx.coroutines.delay(2000)
-                                viewModel.answerQuestion(textInputValue)
-                            }
-                            //viewModel.answerQuestion(textInputValue)
+                            viewModel.answerQuestion(textInputValue)
                         }
                     }
                     viewModel.loadPreviousQuestion()
