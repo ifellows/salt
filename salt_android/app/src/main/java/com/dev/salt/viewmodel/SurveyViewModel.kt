@@ -733,6 +733,7 @@ class SurveyViewModel(
 
     /**
      * Check if we've transitioned between sections
+     * Returns true if navigation away from survey is needed (don't update current question)
      */
     private fun checkSectionTransition(question: Question) : Boolean {
         //viewModelScope.launch {
@@ -751,7 +752,12 @@ class SurveyViewModel(
                     }
 
                     currentSection = newSection
-                    return eligStatus == 2 // Return true if we navigated to rapid tests
+                    // Return true if we're navigating away (rapid tests=2, consent=3, or debug dialog pending)
+                    val navigatingAway = eligStatus == 2 || eligStatus == 3 || _pendingEligibilityDebug.value != null
+                    if (navigatingAway) {
+                        Log.d("SurveyViewModel", "Navigating away from survey (eligStatus=$eligStatus, debugPending=${_pendingEligibilityDebug.value != null})")
+                    }
+                    return navigatingAway
                 }
             } catch (e: Exception) {
                 Log.e("SurveyViewModel", "Error checking section transition", e)
@@ -762,9 +768,27 @@ class SurveyViewModel(
 
     /**
      * Clear the eligibility check flag to continue with the survey
+     * Also refreshes the current question to ensure audio plays
      */
     fun clearEligibilityCheck() {
         _needsEligibilityCheck.value = false
+        // Refresh current question now that we're returning to survey
+        // This ensures _currentQuestion.value is set and audio will play
+        refreshCurrentQuestion()
+    }
+
+    /**
+     * Refresh the current question state (for when returning from consent/rapid tests)
+     * This sets _currentQuestion.value without triggering section transition checks
+     */
+    fun refreshCurrentQuestion() {
+        if (survey == null || currentQuestionIndex < 0 || currentQuestionIndex >= questions.size) {
+            return
+        }
+        Log.d("SurveyViewModel", "Refreshing current question at index: $currentQuestionIndex")
+        val question = questions[currentQuestionIndex]
+        val options = database.surveyDao().getOptionsForQuestion(question.id)
+        _currentQuestion.value = Triple(question, options, survey!!.answers[currentQuestionIndex])
     }
 
     /**

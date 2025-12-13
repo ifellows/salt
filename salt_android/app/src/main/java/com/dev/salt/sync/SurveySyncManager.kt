@@ -312,19 +312,10 @@ class SurveySyncManager(private val context: Context) {
     }
     
     private fun clearExistingData() {
-        // Clear all questions and options
+        // Clear all questions and options using bulk delete
         database.runInTransaction {
-            // Get all questions and delete them
-            val allQuestions = surveyDao.getAllQuestions()
-            allQuestions.forEach { question ->
-                // Delete all options for this question
-                val options = surveyDao.getOptionsForQuestion(question.id)
-                options.forEach { option ->
-                    surveyDao.deleteOption(option)
-                }
-                // Delete the question
-                surveyDao.deleteQuestion(question)
-            }
+            surveyDao.deleteAllOptions()
+            surveyDao.deleteAllQuestions()
         }
     }
     

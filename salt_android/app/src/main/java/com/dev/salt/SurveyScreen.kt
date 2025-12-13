@@ -159,6 +159,9 @@ fun SurveyScreen(
     // Observe consent needed after eligibility (staff screening mode)
     val needsConsentAfterEligibility by viewModel.needsConsentAfterEligibility.collectAsState()
 
+    // Observe rapid tests needed after eligibility
+    val needsRapidTestsAfterEligibility by viewModel.needsRapidTestsAfterEligibility.collectAsState()
+
     // Observe HIV test requirement after eligibility (deprecated - for backward compatibility)
     val needsHivTestAfterEligibility by viewModel.needsHivTestAfterEligibility.collectAsState()
 
@@ -218,8 +221,12 @@ fun SurveyScreen(
     if (needsEligibilityCheck) {
         if (isEligible == true) {
             // If eligible, just continue automatically
-            LaunchedEffect(Unit) {
-                viewModel.clearEligibilityCheck()
+            // But don't clear if we're navigating away (consent or rapid tests) - that will clear when we return
+            val navigatingAway = needsConsentAfterEligibility || needsRapidTestsAfterEligibility
+            if (!navigatingAway) {
+                LaunchedEffect(Unit) {
+                    viewModel.clearEligibilityCheck()
+                }
             }
         } else {
             // If not eligible, show the eligibility check screen

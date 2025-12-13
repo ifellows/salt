@@ -407,9 +407,15 @@ interface SurveyDao {
 
     @Delete
     fun deleteQuestion(question: Question)
-    
+
     @Delete
     fun deleteOption(option: Option)
+
+    @Query("DELETE FROM options")
+    fun deleteAllOptions()
+
+    @Query("DELETE FROM questions")
+    fun deleteAllQuestions()
 }
 
 fun saveSurvey(survey: Survey, surveyDao: SurveyDao) {
