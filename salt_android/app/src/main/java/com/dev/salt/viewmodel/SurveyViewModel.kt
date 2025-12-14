@@ -330,6 +330,17 @@ class SurveyViewModel(
         questions = database.surveyDao().getAllQuestions()
     }
 
+    // Save answer to database incrementally (survives Activity/ViewModel recreation)
+    private fun saveAnswerToDatabase(answer: Answer) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                database.surveyDao().insertAnswer(answer)
+            } catch (e: Exception) {
+                Log.e("SurveyViewModel", "Failed to save answer: ${answer.questionId}", e)
+            }
+        }
+    }
+
     public fun updateCurrentQuestion() {
         if(survey == null){
             return
@@ -366,11 +377,9 @@ class SurveyViewModel(
 
                         Log.i("SurveyViewModel", "Processing completed survey ${completedSurvey.id}")
 
-                        // Save the survey answers (the survey itself was created earlier)
-                        Log.i("SurveyViewModel", "Saving ${completedSurvey.answers.size} survey answers for ${completedSurvey.id}")
-                        completedSurvey.answers.forEach { answer ->
-                            database.surveyDao().insertAnswer(answer)
-                        }
+                        // Answers are saved incrementally as user answers each question
+                        // No need to re-save here (and doing so could overwrite valid answers
+                        // with stale in-memory data if ViewModel was recreated mid-survey)
 
                         // Check if coupons have already been generated for this survey
                         val existingCoupons = database.couponDao().getCouponsIssuedToSurvey(completedSurvey.id)
@@ -642,6 +651,10 @@ class SurveyViewModel(
         survey!!.answers[currentQuestionIndex].numericValue = optionIndex?.toDouble()
         survey!!.answers[currentQuestionIndex].answerPrimaryLanguageText = text
         _currentQuestion.value = _currentQuestion.value?.copy(third = survey!!.answers[currentQuestionIndex] )
+
+        // Save answer immediately to database (survives Activity/ViewModel recreation)
+        saveAnswerToDatabase(survey!!.answers[currentQuestionIndex])
+
         viewModelScope.launch {
             loadNextQuestion()
         }
@@ -657,6 +670,9 @@ class SurveyViewModel(
         answer.answerPrimaryLanguageText = textAnswer
 
         _currentQuestion.value = _currentQuestion.value?.copy(third = answer)
+
+        // Save answer immediately to database (survives Activity/ViewModel recreation)
+        saveAnswerToDatabase(answer)
     }
     
     // Handle multi-select option toggle
@@ -692,7 +708,7 @@ class SurveyViewModel(
         survey!!.answers[currentQuestionIndex] = updatedAnswer
         
         Log.d("SurveyViewModel", "Toggle multi-select: optionIndex=$optionIndex, selectedIndices=$selectedIndices, multiSelectIndices=${updatedAnswer.multiSelectIndices}")
-        
+
         // Force recomposition by creating a new Triple with the new answer object
         // This ensures the UI detects the change because the answer reference has changed
         val updatedTriple = Triple(
@@ -701,6 +717,9 @@ class SurveyViewModel(
             updatedAnswer
         )
         _currentQuestion.value = updatedTriple
+
+        // Save answer immediately to database (survives Activity/ViewModel recreation)
+        saveAnswerToDatabase(updatedAnswer)
     }
     
     // Validate multi-select answer
