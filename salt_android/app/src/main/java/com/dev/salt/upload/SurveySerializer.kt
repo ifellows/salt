@@ -83,7 +83,7 @@ class SurveySerializer {
         testResults: List<TestResult> = emptyList(),
         consentMessageText: String? = null
     ): JSONObject {
-        
+
         val serializedQuestions = questions.map { question ->
             SerializedQuestion(
                 id = question.id,
@@ -101,8 +101,8 @@ class SurveySerializer {
             )
         }
         
-        val serializedAnswers = answers.mapNotNull { answer ->
-            val question = questions.find { it.id == answer.questionId }
+        val serializedAnswers = answers.map { answer ->
+            val question = questions.find { it.questionId == answer.questionId }
             if (question != null) {
                 val (answerValue, answerType, optionText) = when {
                     answer.isMultiSelect -> {
@@ -116,7 +116,7 @@ class SurveySerializer {
                     }
                     else -> Triple(answer.answerPrimaryLanguageText, "text", null)
                 }
-                
+
                 SerializedAnswer(
                     questionId = question.questionId,
                     questionShortName = question.questionShortName,
@@ -124,7 +124,22 @@ class SurveySerializer {
                     answerType = answerType,
                     optionText = optionText
                 )
-            } else null
+            } else {
+                // Include answer even if question not found (shouldn't happen, but preserve data)
+                android.util.Log.w("SurveySerializer", "Question not found for answer with questionId: ${answer.questionId}")
+                SerializedAnswer(
+                    questionId = answer.questionId,
+                    questionShortName = "unknown_${answer.questionId}",
+                    answerValue = answer.getValue(),
+                    answerType = when {
+                        answer.isMultiSelect -> "multi_select"
+                        answer.isNumeric -> "numeric"
+                        answer.optionQuestionIndex != null -> "multiple_choice"
+                        else -> "text"
+                    },
+                    optionText = null
+                )
+            }
         }
         
         // Log sample collection status for debugging

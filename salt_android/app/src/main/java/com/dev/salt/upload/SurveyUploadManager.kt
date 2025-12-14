@@ -83,7 +83,7 @@ class SurveyUploadManager(
                 // Populate survey with questions and answers
                 survey.populateFields(surveyDao)
                 
-                // Get options for all questions
+                // Get options for all questions (keyed by Room internal id)
                 val options = survey.questions.associate { question ->
                     question.id to surveyDao.getOptionsForQuestion(question.id)
                 }

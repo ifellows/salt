@@ -115,17 +115,24 @@ data class Survey(
         android.util.Log.d("Survey", "PopulateFields called for survey $id with language: $language")
         val questionCount = surveyDao.getQuestionCountByLanguage(this.language)
         android.util.Log.d("Survey", "Found $questionCount questions for language: $language")
-        
+
         this.questions = surveyDao.getQuestionsByLanguage(this.language)
         android.util.Log.d("Survey", "Actually loaded ${this.questions.size} questions")
-        
-        this.answers = surveyDao.getAnswersBySurveyId(this.id)
-        if(answers.size != questions.size){
-            for(i in answers.size until questions.size){
-                val question = questions[i]
+
+        val existingAnswers = surveyDao.getAnswersBySurveyId(this.id)
+        val answersByQuestionId = existingAnswers.associateBy { it.questionId }
+
+        // Build answers list aligned with questions, creating stubs only for missing answers
+        this.answers = mutableListOf()
+        for (question in questions) {
+            val existingAnswer = answersByQuestionId[question.questionId]
+            if (existingAnswer != null) {
+                answers.add(existingAnswer)
+            } else {
+                // Create stub answer for this question
                 answers.add(Answer(
                     surveyId = id,
-                    questionId = question.id,
+                    questionId = question.questionId,
                     optionQuestionIndex = null,
                     answerLanguage = this.language,
                     answerPrimaryLanguageText = null,
@@ -135,6 +142,7 @@ data class Survey(
                 ))
             }
         }
+        android.util.Log.d("Survey", "Populated ${answers.size} answers (${existingAnswers.size} from DB, ${answers.size - existingAnswers.size} stubs)")
     }
 }
 
@@ -342,7 +350,7 @@ interface SurveyDao {
     @Query("SELECT * FROM questions WHERE question_language = :language ORDER BY question_id")
     fun getQuestionsByLanguage(language: String): MutableList<Question>
 
-    @Query("SELECT * FROM answers WHERE survey_id = :surveyId")
+    @Query("SELECT * FROM answers WHERE survey_id = :surveyId ORDER BY question_id")
     fun getAnswersBySurveyId(surveyId: String): MutableList<Answer>
 
     @Query("SELECT * FROM questions")

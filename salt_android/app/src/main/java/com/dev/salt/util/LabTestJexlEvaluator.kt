@@ -58,7 +58,7 @@ object LabTestJexlEvaluator {
         Log.d(TAG, "Found ${answers.size} answers and ${questions.size} questions")
 
         for (answer in answers) {
-            val question = questions.find { it.id == answer.questionId }
+            val question = questions.find { it.questionId == answer.questionId }
             val shortName = question?.questionShortName
 
             if (shortName != null) {
@@ -72,7 +72,8 @@ object LabTestJexlEvaluator {
                     }
                     answer.optionQuestionIndex != null -> {
                         // Get the option's primary language text for consistency
-                        val options = database.surveyDao().getOptionsForQuestion(answer.questionId)
+                        // Options are keyed by question.id (Room internal id), not questionId (server index)
+                        val options = question?.let { database.surveyDao().getOptionsForQuestion(it.id) } ?: emptyList()
                         val selectedOption = options.find { it.optionQuestionIndex == answer.optionQuestionIndex }
                         selectedOption?.primaryLanguageText ?: answer.optionQuestionIndex.toString()
                     }
