@@ -74,7 +74,7 @@ fun ContactConsentScreen(
             SaltTopAppBar(
                 title = stringResource(R.string.contact_consent_title),
                 navController = navController,
-                showBackButton = false,
+                showBackButton = true,
                 showHomeButton = true
             )
         }

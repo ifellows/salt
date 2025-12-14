@@ -699,9 +699,7 @@ class MainActivity : ComponentActivity() {
                                         if (contactInfoEnabled) {
                                             Log.d("MainActivity", "✓ Contact info IS enabled - navigating to CONTACT_CONSENT screen")
                                             // Navigate to contact consent if enabled
-                                            navController.navigate("${AppDestinations.CONTACT_CONSENT}/$surveyId?coupons=$coupons") {
-                                                popUpTo("${AppDestinations.STAFF_VALIDATION}/$surveyId") { inclusive = true }
-                                            }
+                                            navController.navigate("${AppDestinations.CONTACT_CONSENT}/$surveyId?coupons=$coupons")
                                         } else {
                                             Log.d("MainActivity", "✗ Contact info NOT enabled - SKIPPING contact consent screen")
                                             // Skip contact consent - check if tests are enabled
@@ -718,21 +716,15 @@ class MainActivity : ComponentActivity() {
                                                         if (rapidTestSamplesAfterEligibility) {
                                                             // Samples already collected after eligibility - go directly to rapid test results
                                                             Log.d("MainActivity", "Samples collected after eligibility - navigating to rapid test results")
-                                                            navController.navigate("${AppDestinations.RAPID_TEST_RESULT}/$surveyId/0?coupons=$coupons") {
-                                                                popUpTo("${AppDestinations.STAFF_VALIDATION}/$surveyId") { inclusive = true }
-                                                            }
+                                                            navController.navigate("${AppDestinations.RAPID_TEST_RESULT}/$surveyId/0?coupons=$coupons")
                                                         } else {
                                                             // Samples NOT collected after eligibility - need to collect them now
                                                             Log.d("MainActivity", "Samples NOT collected after eligibility - navigating to biological sample collection")
-                                                            navController.navigate("${AppDestinations.BIOLOGICAL_SAMPLE_COLLECTION}/$surveyId?coupons=$coupons") {
-                                                                popUpTo("${AppDestinations.STAFF_VALIDATION}/$surveyId") { inclusive = true }
-                                                            }
+                                                            navController.navigate("${AppDestinations.BIOLOGICAL_SAMPLE_COLLECTION}/$surveyId?coupons=$coupons")
                                                         }
                                                     } else {
                                                         // No tests, go directly to lab collection
-                                                        navController.navigate("${AppDestinations.LAB_COLLECTION}/$surveyId?coupons=$coupons") {
-                                                            popUpTo("${AppDestinations.STAFF_VALIDATION}/$surveyId") { inclusive = true }
-                                                        }
+                                                        navController.navigate("${AppDestinations.LAB_COLLECTION}/$surveyId?coupons=$coupons")
                                                     }
                                                 }
                                             }
@@ -946,9 +938,7 @@ class MainActivity : ComponentActivity() {
                                             Log.d("MainActivity", "=== LAB_COLLECTION -> COUPON_ISSUED Navigation ===")
                                             Log.d("MainActivity", "coupons parameter: '$coupons'")
                                             Log.d("MainActivity", "surveyId: $surveyId")
-                                            navController.navigate("${AppDestinations.COUPON_ISSUED}?coupons=$coupons&surveyId=$surveyId") {
-                                                popUpTo("${AppDestinations.LAB_COLLECTION}/$surveyId") { inclusive = true }
-                                            }
+                                            navController.navigate("${AppDestinations.COUPON_ISSUED}?coupons=$coupons&surveyId=$surveyId")
                                         }
                                     },
                                     onCancel = {
@@ -963,10 +953,12 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                             // Navigate to coupon issued screen after database update completes
-                                            navController.navigate("${AppDestinations.COUPON_ISSUED}?coupons=$coupons&surveyId=$surveyId") {
-                                                popUpTo("${AppDestinations.LAB_COLLECTION}/$surveyId") { inclusive = true }
-                                            }
+                                            navController.navigate("${AppDestinations.COUPON_ISSUED}?coupons=$coupons&surveyId=$surveyId")
                                         }
+                                    },
+                                    onBack = {
+                                        // Navigate back to previous screen
+                                        navController.navigateUp()
                                     }
                                 )
                             }
@@ -1190,9 +1182,7 @@ class MainActivity : ComponentActivity() {
                             surveyId = surveyId,
                             onResultSubmitted = {
                                 // After test result is submitted, navigate to payment
-                                navController.navigate("${AppDestinations.SUBJECT_PAYMENT}/$surveyId?coupons=$coupons") {
-                                    popUpTo("${AppDestinations.HIV_TEST_RESULT}/$surveyId") { inclusive = true }
-                                }
+                                navController.navigate("${AppDestinations.SUBJECT_PAYMENT}/$surveyId?coupons=$coupons")
                             },
                             onCancel = {
                                 // Go back to menu if cancelled
@@ -1433,14 +1423,21 @@ class MainActivity : ComponentActivity() {
                                     } else {
                                         // All tests completed - navigate to lab collection
                                         Log.d("MainActivity", "All rapid tests completed, navigating to lab collection")
-                                        navController.navigate("${AppDestinations.LAB_COLLECTION}/$surveyId?coupons=$couponsParam") {
-                                            popUpTo("${AppDestinations.RAPID_TEST_RESULT}/$surveyId/$testIndex") { inclusive = true }
-                                        }
+                                        navController.navigate("${AppDestinations.LAB_COLLECTION}/$surveyId?coupons=$couponsParam")
                                     }
                                 },
-                                onCancel = {
-                                    navController.navigate(AppDestinations.MENU_SCREEN) {
-                                        popUpTo(AppDestinations.RAPID_TEST_RESULT) { inclusive = true }
+                                onBack = {
+                                    // Navigate back to previous test or previous screen
+                                    if (testIndex > 0) {
+                                        // Go to previous test
+                                        val prevTestIndex = testIndex - 1
+                                        Log.d("MainActivity", "Going back to previous test: $prevTestIndex")
+                                        navController.navigate("${AppDestinations.RAPID_TEST_RESULT}/$surveyId/$prevTestIndex?coupons=$couponsParam") {
+                                            popUpTo("${AppDestinations.RAPID_TEST_RESULT}/$surveyId/$testIndex") { inclusive = true }
+                                        }
+                                    } else {
+                                        // First test, go back to previous screen
+                                        navController.navigateUp()
                                     }
                                 }
                             )

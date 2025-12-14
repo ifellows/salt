@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.BugReport
@@ -37,7 +38,8 @@ fun LabCollectionScreen(
     surveyId: String,
     subjectId: String,
     onSamplesCollected: () -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onBack: () -> Unit
 ) {
     val context = LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
@@ -124,6 +126,15 @@ fun LabCollectionScreen(
                             tint = Color.White
                         )
                         Text(stringResource(R.string.lab_title))
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back),
+                            tint = Color.White
+                        )
                     }
                 },
                 actions = {

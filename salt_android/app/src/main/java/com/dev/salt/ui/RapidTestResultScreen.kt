@@ -33,7 +33,7 @@ fun RapidTestResultScreen(
     testId: String,
     testName: String,
     onResultSubmitted: () -> Unit,
-    onCancel: () -> Unit
+    onBack: () -> Unit
 ) {
     val context = LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
@@ -246,13 +246,15 @@ fun RapidTestResultScreen(
                         }
                     }
 
-                    // Cancel button
-                    TextButton(
-                        onClick = onCancel,
-                        modifier = Modifier.padding(top = 8.dp),
+                    // Back button
+                    OutlinedButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
                         enabled = !isProcessing
                     ) {
-                        Text(stringResource(R.string.common_cancel))
+                        Text(stringResource(R.string.common_back))
                     }
                 }
             }

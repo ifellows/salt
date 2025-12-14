@@ -12,7 +12,7 @@ data class SessionState(
     val userName: String? = null,
     val sessionStartTime: Long = 0L,
     val lastActivityTime: Long = 0L,
-    val sessionTimeout: Long = 30 * 60 * 1000L, // 30 minutes in milliseconds
+    val sessionTimeout: Long = 180 * 60 * 1000L, // 3 hours in milliseconds
     val warningThreshold: Long = 5 * 60 * 1000L // 5 minutes warning before timeout
 )
 
@@ -35,7 +35,7 @@ class SessionManager {
     
     companion object {
         private const val TAG = "SessionManager"
-        private const val DEFAULT_SESSION_TIMEOUT = 30 * 60 * 1000L // 30 minutes
+        private const val DEFAULT_SESSION_TIMEOUT = 180 * 60 * 1000L // 3 hours
         private const val DEFAULT_WARNING_THRESHOLD = 5 * 60 * 1000L // 5 minutes
     }
     

@@ -146,7 +146,7 @@ fun ConsentSignatureScreen(
             SaltTopAppBar(
                 title = stringResource(R.string.consent_title),
                 navController = navController,
-                showBackButton = false,
+                showBackButton = true,
                 showHomeButton = true
             )
         }

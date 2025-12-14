@@ -188,7 +188,7 @@ data class User(
     @ColumnInfo(name = "biometric_enabled") val biometricEnabled: Boolean = false,
     @ColumnInfo(name = "biometric_enrolled_date") val biometricEnrolledDate: Long? = null,
     @ColumnInfo(name = "last_biometric_auth") val lastBiometricAuth: Long? = null,
-    @ColumnInfo(name = "session_timeout_minutes") val sessionTimeoutMinutes: Long = 30,
+    @ColumnInfo(name = "session_timeout_minutes") val sessionTimeoutMinutes: Long = 180,
     @ColumnInfo(name = "last_login_time") val lastLoginTime: Long? = null,
     @ColumnInfo(name = "last_activity_time") val lastActivityTime: Long? = null,
     @ColumnInfo(name = "upload_server_url") val uploadServerUrl: String? = null,

@@ -88,7 +88,7 @@ fun FingerprintScreeningScreen(
             SaltTopAppBar(
                 title = stringResource(R.string.fingerprint_title),
                 navController = navController,
-                showBackButton = false,
+                showBackButton = true,
                 showHomeButton = true
             )
         }

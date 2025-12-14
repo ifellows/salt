@@ -26,7 +26,7 @@ fun ConsentInstructionScreen(
             SaltTopAppBar(
                 title = stringResource(R.string.consent_instruction_title),
                 navController = navController,
-                showBackButton = false,
+                showBackButton = true,
                 showHomeButton = true
             )
         }

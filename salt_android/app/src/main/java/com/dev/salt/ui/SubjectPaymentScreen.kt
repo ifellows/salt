@@ -185,7 +185,7 @@ fun SubjectPaymentScreen(
             SaltTopAppBar(
                 title = stringResource(R.string.payment_title),
                 navController = navController,
-                showBackButton = false,
+                showBackButton = true,
                 showHomeButton = true
             )
         }

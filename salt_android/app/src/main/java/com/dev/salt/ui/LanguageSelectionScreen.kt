@@ -69,7 +69,7 @@ fun LanguageSelectionScreen(
             SaltTopAppBar(
                 title = stringResource(R.string.language_selection_title),
                 navController = navController,
-                showBackButton = false,
+                showBackButton = true,
                 showHomeButton = true
             )
         }

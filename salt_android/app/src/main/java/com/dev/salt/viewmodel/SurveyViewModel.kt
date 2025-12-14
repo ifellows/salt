@@ -84,6 +84,10 @@ class SurveyViewModel(
     private var sections: List<com.dev.salt.data.Section> = emptyList()
     private var currentSection: com.dev.salt.data.Section? = null
 
+    // Question navigation history - tracks the path user took through questions
+    // This allows proper back navigation that respects skip-to jumps
+    private val questionHistory = mutableListOf<Int>()
+
     // Eligibility check flow state
     private val _needsEligibilityCheck = MutableStateFlow(false)
     val needsEligibilityCheck: StateFlow<Boolean> = _needsEligibilityCheck
@@ -345,11 +349,9 @@ class SurveyViewModel(
         if(survey == null){
             return
         }
-        if(currentQuestionIndex > 0){
-            _hasPreviousQuestion.value = true
-        }else{
-            _hasPreviousQuestion.value = false
-        }
+        // Use question history to determine if there's a previous question
+        // This accounts for skip-to jumps properly
+        _hasPreviousQuestion.value = questionHistory.isNotEmpty() || currentQuestionIndex > 0
         if (currentQuestionIndex < questions.size) {
             val question = questions[currentQuestionIndex]
             val options = database.surveyDao().getOptionsForQuestion(question.id)
@@ -555,6 +557,31 @@ class SurveyViewModel(
         }
     }
 
+    // Internal jump function that doesn't add to history (used when called from loadNextQuestion which already added to history)
+    private fun jumpToQuestionWithoutHistory(targetShortName: String) {
+        val questions = survey?.questions ?: return
+
+        // Find the target question index
+        val targetIndex = questions.indexOfFirst { it.questionShortName == targetShortName }
+
+        if (targetIndex >= 0) {
+            Log.d("SurveyViewModel", "Jumping (no history) from index $currentQuestionIndex to $targetIndex (target: $targetShortName)")
+            currentQuestionIndex = targetIndex
+            updateCurrentQuestion()
+
+            // Check if the target question should be skipped
+            val action = evaluateCurrentQuestionPreScript()
+            if (action == "skip") {
+                loadNextQuestion()
+            }
+        } else {
+            Log.w("SurveyViewModel", "Skip-to target not found: $targetShortName")
+            // If target not found, just proceed normally
+            currentQuestionIndex++
+            updateCurrentQuestion()
+        }
+    }
+
     // Helper function to build the JEXL context - public for debug dialog use
     fun buildJexlContext(): Map<String, Any?> {
         val context = mutableMapOf<String, Any?>()
@@ -613,11 +640,17 @@ class SurveyViewModel(
             return errorText
         }
 
+        // Push current index to history before navigating forward
+        if (currentQuestionIndex >= 0) {
+            questionHistory.add(currentQuestionIndex)
+            Log.d("SurveyViewModel", "Added question $currentQuestionIndex to history. History size: ${questionHistory.size}")
+        }
+
         // Check for skip-to logic after validation passes
         val skipToTarget = evaluateSkipToLogic()
         if (skipToTarget != null) {
             Log.d("SurveyViewModel", "Skip-to logic triggered, jumping to: $skipToTarget")
-            jumpToQuestion(skipToTarget)
+            jumpToQuestionWithoutHistory(skipToTarget)
             return null
         }
 
@@ -631,11 +664,22 @@ class SurveyViewModel(
     }
 
     fun loadPreviousQuestion() {
-        currentQuestionIndex--
-        updateCurrentQuestion()
-        val action = evaluateCurrentQuestionPreScript()
-        if(action == "skip"){
-            loadPreviousQuestion()
+        // Use history stack to go back to the actual previous question
+        // This respects skip-to navigation - if user jumped from Q5 to Q20,
+        // pressing back on Q20 should return to Q5, not Q19
+        if (questionHistory.isNotEmpty()) {
+            currentQuestionIndex = questionHistory.removeLast()
+            Log.d("SurveyViewModel", "Popped question $currentQuestionIndex from history. History size: ${questionHistory.size}")
+            updateCurrentQuestion()
+        } else if (currentQuestionIndex > 0) {
+            // Fallback for edge cases (e.g., first question or history was cleared)
+            Log.d("SurveyViewModel", "History empty, falling back to simple decrement")
+            currentQuestionIndex--
+            updateCurrentQuestion()
+            val action = evaluateCurrentQuestionPreScript()
+            if(action == "skip"){
+                loadPreviousQuestion()
+            }
         }
     }
 

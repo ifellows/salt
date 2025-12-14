@@ -204,14 +204,6 @@ fun BiologicalSampleCollectionScreen(
                             )
                         }
                     }
-
-                    // Cancel button
-                    TextButton(
-                        onClick = onCancel,
-                        modifier = Modifier.padding(top = 8.dp)
-                    ) {
-                        Text(stringResource(R.string.common_cancel))
-                    }
                 }
             }
         }

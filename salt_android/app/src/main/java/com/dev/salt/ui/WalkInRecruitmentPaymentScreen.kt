@@ -56,7 +56,7 @@ fun WalkInRecruitmentPaymentScreen(
             SaltTopAppBar(
                 title = stringResource(R.string.walkin_recruitment_title),
                 navController = navController,
-                showBackButton = false,
+                showBackButton = true,
                 showHomeButton = true
             )
         }
@@ -146,14 +146,10 @@ fun WalkInRecruitmentPaymentScreen(
 
                         if (isHivTestEnabled) {
                             // Navigate to HIV test result screen
-                            navController.navigate("${AppDestinations.HIV_TEST_RESULT}/$surveyId") {
-                                popUpTo(AppDestinations.WALKIN_RECRUITMENT_PAYMENT) { inclusive = true }
-                            }
+                            navController.navigate("${AppDestinations.HIV_TEST_RESULT}/$surveyId")
                         } else {
                             // Navigate to payment screen
-                            navController.navigate("${AppDestinations.SUBJECT_PAYMENT}/$surveyId") {
-                                popUpTo(AppDestinations.WALKIN_RECRUITMENT_PAYMENT) { inclusive = true }
-                            }
+                            navController.navigate("${AppDestinations.SUBJECT_PAYMENT}/$surveyId")
                         }
                     }
                 },

@@ -65,7 +65,7 @@ fun CouponIssuedScreen(
             SaltTopAppBar(
                 title = stringResource(R.string.coupon_issued_title),
                 navController = navController,
-                showBackButton = false,
+                showBackButton = true,
                 showHomeButton = true
             )
         }
@@ -205,23 +205,17 @@ fun CouponIssuedScreen(
 
                             if (shouldShowWalkInInstructions) {
                                 // Navigate to walk-in recruitment payment instructions
-                                navController.navigate("${AppDestinations.WALKIN_RECRUITMENT_PAYMENT}/$surveyId") {
-                                    popUpTo(AppDestinations.COUPON_ISSUED) { inclusive = true }
-                                }
+                                navController.navigate("${AppDestinations.WALKIN_RECRUITMENT_PAYMENT}/$surveyId")
                             } else {
                                 // Original logic: check for HIV test or go directly to payment
                                 val isHivTestEnabled = surveyConfig?.hivRapidTestEnabled == true
 
                                 if (isHivTestEnabled) {
                                     // Navigate to HIV test result screen
-                                    navController.navigate("${AppDestinations.HIV_TEST_RESULT}/$surveyId") {
-                                        popUpTo(AppDestinations.COUPON_ISSUED) { inclusive = true }
-                                    }
+                                    navController.navigate("${AppDestinations.HIV_TEST_RESULT}/$surveyId")
                                 } else {
                                     // Navigate to payment screen
-                                    navController.navigate("${AppDestinations.SUBJECT_PAYMENT}/$surveyId?coupons=${actualCoupons.joinToString(",")}") {
-                                        popUpTo(AppDestinations.COUPON_ISSUED) { inclusive = true }
-                                    }
+                                    navController.navigate("${AppDestinations.SUBJECT_PAYMENT}/$surveyId?coupons=${actualCoupons.joinToString(",")}")
                                 }
                             }
                         }

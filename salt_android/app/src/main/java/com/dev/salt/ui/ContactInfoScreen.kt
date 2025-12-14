@@ -75,7 +75,7 @@ fun ContactInfoScreen(
             SaltTopAppBar(
                 title = "Contact Information",
                 navController = navController,
-                showBackButton = false,
+                showBackButton = true,
                 showHomeButton = true
             )
         }
