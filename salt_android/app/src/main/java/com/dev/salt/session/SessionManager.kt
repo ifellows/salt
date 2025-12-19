@@ -54,9 +54,10 @@ class SessionManager {
             warningThreshold = DEFAULT_WARNING_THRESHOLD
         )
         
-        scheduleSessionTimeouts()
+        // TEMPORARILY DISABLED: Session timeout disabled for testing
+        // scheduleSessionTimeouts()
     }
-    
+
     fun endSession() {
         Log.d(TAG, "Ending session for user: ${_sessionState.value.userName}")
         
@@ -86,8 +87,9 @@ class SessionManager {
         // Cancel existing timeout jobs and reschedule
         sessionTimeoutJob?.cancel()
         warningTimeoutJob?.cancel()
-        scheduleSessionTimeouts()
-        
+        // TEMPORARILY DISABLED: Session timeout disabled for testing
+        // scheduleSessionTimeouts()
+
         _sessionEvents.value = SessionEvent.SessionExtended(currentTime + currentState.sessionTimeout)
     }
     

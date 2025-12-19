@@ -327,30 +327,10 @@ fun RecruitmentLookupScreen(
                                 isSearching = true
                                 errorMessage = null
 
-                                // Search for survey by subject_id (coupon code)
+                                // Search for completed survey by subject_id
                                 val survey = withContext(Dispatchers.IO) {
-                                    database.surveyDao().getSurveyById(couponCode)
-                                        ?: // Also check if there's a survey where subject_id matches
-                                        database.surveyDao().getAllQuestions().let { _ ->
-                                            // Query survey by subject_id
-                                            val surveys = database.surveyDao()
-                                            var foundSurvey: com.dev.salt.data.Survey? = null
-                                            // Try to find by iterating - not ideal but works
-                                            try {
-                                                val query = database.openHelper.writableDatabase.query(
-                                                    "SELECT * FROM surveys WHERE subject_id = ? LIMIT 1",
-                                                    arrayOf(couponCode)
-                                                )
-                                                if (query.moveToFirst()) {
-                                                    val id = query.getString(query.getColumnIndexOrThrow("id"))
-                                                    foundSurvey = database.surveyDao().getSurveyById(id)
-                                                }
-                                                query.close()
-                                            } catch (e: Exception) {
-                                                Log.e("RecruitmentLookup", "Error querying survey", e)
-                                            }
-                                            foundSurvey
-                                        }
+                                    // Only find completed surveys (is_completed = true)
+                                    database.surveyDao().getCompletedSurveyBySubjectId(couponCode)
                                 }
 
                                 if (survey != null) {

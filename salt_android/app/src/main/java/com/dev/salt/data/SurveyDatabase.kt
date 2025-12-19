@@ -413,6 +413,17 @@ interface SurveyDao {
     @Query("SELECT EXISTS(SELECT 1 FROM surveys WHERE subject_id = :subjectId LIMIT 1)")
     fun isSubjectIdExists(subjectId: String): Boolean
 
+    @Query("SELECT * FROM surveys WHERE subject_id = :subjectId LIMIT 1")
+    fun getSurveyBySubjectId(subjectId: String): Survey?
+
+    @Query("""
+        SELECT * FROM surveys
+        WHERE subject_id = :subjectId AND is_completed = 1
+        ORDER BY start_datetime DESC
+        LIMIT 1
+    """)
+    fun getCompletedSurveyBySubjectId(subjectId: String): Survey?
+
     @Delete
     fun deleteQuestion(question: Question)
 

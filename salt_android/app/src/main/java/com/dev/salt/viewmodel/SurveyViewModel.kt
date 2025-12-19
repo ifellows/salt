@@ -351,7 +351,34 @@ class SurveyViewModel(
         }
         // Use question history to determine if there's a previous question
         // This accounts for skip-to jumps properly
-        _hasPreviousQuestion.value = questionHistory.isNotEmpty() || currentQuestionIndex > 0
+        var canGoBack = questionHistory.isNotEmpty() || currentQuestionIndex > 0
+
+        // Disable Previous button on the first question of the main (non-eligibility) section
+        // to prevent navigating back to eligibility questions after consent
+        if (canGoBack && currentQuestionIndex < questions.size) {
+            val currentQ = questions[currentQuestionIndex]
+            val currentQSection = sections.firstOrNull { it.id == currentQ.sectionId }
+
+            // If current question is NOT in eligibility section
+            if (currentQSection != null && currentQSection.sectionType != "eligibility") {
+                // Check if previous question would be in eligibility section
+                val prevIndex = if (questionHistory.isNotEmpty()) {
+                    questionHistory.last()
+                } else {
+                    currentQuestionIndex - 1
+                }
+                if (prevIndex >= 0 && prevIndex < questions.size) {
+                    val prevQ = questions[prevIndex]
+                    val prevQSection = sections.firstOrNull { it.id == prevQ.sectionId }
+                    // If previous question is in eligibility section, disable back navigation
+                    if (prevQSection?.sectionType == "eligibility") {
+                        canGoBack = false
+                    }
+                }
+            }
+        }
+        _hasPreviousQuestion.value = canGoBack
+
         if (currentQuestionIndex < questions.size) {
             val question = questions[currentQuestionIndex]
             val options = database.surveyDao().getOptionsForQuestion(question.id)

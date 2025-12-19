@@ -537,6 +537,7 @@
     <string name="recruitment_payment_your_coupons">Your Coupons</string>
     <string name="recruitment_payment_used">Used</string>
     <string name="recruitment_payment_not_used">Not Used</string>
+    <string name="recruitment_payment_ineligible">Ineligible</string>
     <string name="recruitment_payment_pending">Available for payment</string>
     <string name="recruitment_payment_already_paid">Paid on %1$s</string>
     <string name="recruitment_payment_eligible">%1$d coupon code(s) have been used and are eligible for payment.</string>

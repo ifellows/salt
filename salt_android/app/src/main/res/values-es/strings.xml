@@ -733,6 +733,7 @@
     <string name="recruitment_payment_no_coupons">No se emitieron cupones a este participante.</string>
     <string name="recruitment_payment_none_eligible">No hay códigos de cupón elegibles para pago en este momento.</string>
     <string name="recruitment_payment_not_used">No usado</string>
+    <string name="recruitment_payment_ineligible">No elegible</string>
     <string name="recruitment_payment_pending">Disponible para pago</string>
     <string name="recruitment_payment_subject_id_label">ID del sujeto</string>
     <string name="recruitment_payment_success">¡Pago confirmado exitosamente!</string>

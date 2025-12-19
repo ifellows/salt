@@ -431,6 +431,7 @@
     <string name="recruitment_payment_your_coupons">Ձեր կտրոնները</string>
     <string name="recruitment_payment_used">Օգտագործված</string>
     <string name="recruitment_payment_not_used">Չօգտագործված</string>
+    <string name="recruitment_payment_ineligible">Անհամապատասխան</string>
     <string name="recruitment_payment_pending">Հասանելի վճարման համար</string>
     <string name="recruitment_payment_already_paid">Վճարվել է %1$s</string>
     <string name="recruitment_payment_eligible">%1$d կտրոն(ներ) օգտագործվել է(են) և իրավասու է(են) վճարման։</string>

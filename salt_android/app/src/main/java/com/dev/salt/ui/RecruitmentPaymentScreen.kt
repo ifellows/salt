@@ -58,6 +58,24 @@ import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.graphics.vector.ImageVector
+
+// Helper data class for destructuring 4 values
+data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
+// Enum for the 4 coupon states
+enum class CouponDisplayState {
+    NOT_USED,      // Coupon issued but not yet redeemed
+    INELIGIBLE,    // Coupon used but recruit was ineligible
+    PENDING,       // Coupon used by eligible recruit, awaiting payment
+    PAID           // Recruitment payment already made
+}
+
+// Data class to hold coupon with its computed display state
+data class CouponWithState(
+    val coupon: Coupon,
+    val displayState: CouponDisplayState
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,6 +99,7 @@ fun RecruitmentPaymentScreen(
     var survey by remember { mutableStateOf<Survey?>(null) }
     var facilityConfig by remember { mutableStateOf<FacilityConfig?>(null) }
     var allCoupons by remember { mutableStateOf<List<Coupon>>(emptyList()) }
+    var couponsWithState by remember { mutableStateOf<List<CouponWithState>>(emptyList()) }
     var eligibleCoupons by remember { mutableStateOf<List<Coupon>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var isProcessing by remember { mutableStateOf(false) }
@@ -123,7 +142,48 @@ fun RecruitmentPaymentScreen(
             survey = database.surveyDao().getSurveyById(surveyId)
             facilityConfig = database.facilityConfigDao().getFacilityConfig()
             allCoupons = database.couponDao().getCouponsIssuedToSurvey(surveyId)
-            eligibleCoupons = database.couponDao().getUnpaidUsedCoupons(surveyId)
+
+            // Compute the display state for each coupon
+            val couponsWithStateList = allCoupons.map { coupon ->
+                val displayState = when {
+                    // State 1: Not Used - coupon not redeemed yet
+                    coupon.status != "USED" -> CouponDisplayState.NOT_USED
+
+                    // State 4: Already Paid
+                    coupon.recruitmentPaymentDate != null -> CouponDisplayState.PAID
+
+                    // For USED coupons without payment, check if recruit was eligible
+                    else -> {
+                        // Look up the recruit's survey to check eligibility
+                        val recruitSurveyId = coupon.usedBySurveyId
+                        if (recruitSurveyId != null) {
+                            val recruitSurvey = database.surveyDao().getSurveyById(recruitSurveyId)
+                            // If recruit's survey has paymentConfirmed = true, they were eligible
+                            // If survey is completed but no payment confirmed, they were ineligible
+                            when {
+                                recruitSurvey == null -> CouponDisplayState.PENDING // Survey not found, assume pending
+                                recruitSurvey.paymentConfirmed == true -> CouponDisplayState.PENDING // Eligible, awaiting recruitment payment
+                                recruitSurvey.isCompleted -> CouponDisplayState.INELIGIBLE // Completed without payment = ineligible
+                                else -> CouponDisplayState.PENDING // Still in progress, assume pending
+                            }
+                        } else {
+                            CouponDisplayState.PENDING // No survey ID, assume pending
+                        }
+                    }
+                }
+                CouponWithState(coupon, displayState)
+            }
+            couponsWithState = couponsWithStateList
+
+            // Filter eligible coupons: only those in PENDING state (used by eligible recruits, not yet paid)
+            eligibleCoupons = couponsWithStateList
+                .filter { it.displayState == CouponDisplayState.PENDING }
+                .map { it.coupon }
+
+            Log.d("RecruitmentPayment", "All coupons: ${allCoupons.size}, Eligible for payment: ${eligibleCoupons.size}")
+            couponsWithStateList.forEach { cws ->
+                Log.d("RecruitmentPayment", "Coupon ${cws.coupon.couponCode}: ${cws.displayState}")
+            }
 
             // Load payment audit phone config
             val surveyConfig = database.surveyConfigDao().getSurveyConfig()
@@ -321,14 +381,48 @@ fun RecruitmentPaymentScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        if (allCoupons.isEmpty()) {
+                        if (couponsWithState.isEmpty()) {
                             Text(
                                 text = "No coupons issued to this participant.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         } else {
-                            allCoupons.forEach { coupon ->
+                            couponsWithState.forEach { couponWithState ->
+                                val coupon = couponWithState.coupon
+                                val state = couponWithState.displayState
+
+                                // Determine icon and colors based on state
+                                val (icon, iconColor, statusText, statusColor) = when (state) {
+                                    CouponDisplayState.NOT_USED -> Quadruple(
+                                        Icons.Default.Close,
+                                        Color.Gray,
+                                        stringResource(R.string.recruitment_payment_not_used),
+                                        Color.Gray
+                                    )
+                                    CouponDisplayState.INELIGIBLE -> Quadruple(
+                                        Icons.Default.Close,
+                                        Color(0xFFE53935), // Red
+                                        stringResource(R.string.recruitment_payment_ineligible),
+                                        Color(0xFFE53935)
+                                    )
+                                    CouponDisplayState.PENDING -> Quadruple(
+                                        Icons.Default.CheckCircle,
+                                        Color(0xFF4CAF50), // Green
+                                        stringResource(R.string.recruitment_payment_pending),
+                                        Color(0xFF4CAF50)
+                                    )
+                                    CouponDisplayState.PAID -> Quadruple(
+                                        Icons.Default.CheckCircle,
+                                        Color(0xFF4CAF50), // Green
+                                        stringResource(
+                                            R.string.recruitment_payment_already_paid,
+                                            dateFormatter.format(Date(coupon.recruitmentPaymentDate ?: 0))
+                                        ),
+                                        Color(0xFF2196F3) // Blue
+                                    )
+                                }
+
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -341,9 +435,9 @@ fun RecruitmentPaymentScreen(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         Icon(
-                                            imageVector = if (coupon.status == "USED") Icons.Default.CheckCircle else Icons.Default.Close,
+                                            imageVector = icon,
                                             contentDescription = null,
-                                            tint = if (coupon.status == "USED") Color(0xFF4CAF50) else Color.Gray,
+                                            tint = iconColor,
                                             modifier = Modifier.size(20.dp)
                                         )
                                         Text(
@@ -353,34 +447,13 @@ fun RecruitmentPaymentScreen(
                                         )
                                     }
 
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        Text(
-                                            text = if (coupon.status == "USED")
-                                                stringResource(R.string.recruitment_payment_used)
-                                            else
-                                                stringResource(R.string.recruitment_payment_not_used),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = if (coupon.status == "USED") Color(0xFF4CAF50) else Color.Gray
-                                        )
-                                        if (coupon.status == "USED") {
-                                            Text(
-                                                text = if (coupon.recruitmentPaymentDate != null)
-                                                    stringResource(
-                                                        R.string.recruitment_payment_already_paid,
-                                                        dateFormatter.format(Date(coupon.recruitmentPaymentDate))
-                                                    )
-                                                else
-                                                    stringResource(R.string.recruitment_payment_pending),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = if (coupon.recruitmentPaymentDate != null)
-                                                    Color(0xFF2196F3)
-                                                else
-                                                    Color(0xFFFF9800)
-                                            )
-                                        }
-                                    }
+                                    Text(
+                                        text = statusText,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = statusColor
+                                    )
                                 }
-                                if (coupon != allCoupons.last()) {
+                                if (couponWithState != couponsWithState.last()) {
                                     HorizontalDivider()
                                 }
                             }
