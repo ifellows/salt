@@ -32,6 +32,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +42,11 @@ fun ConsentSignatureScreen(
     coupons: String,
     returnTo: String = "survey_start"  // "survey_start" or "survey" (return to survey after staff eligibility)
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val context = LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
     val coroutineScope = rememberCoroutineScope()

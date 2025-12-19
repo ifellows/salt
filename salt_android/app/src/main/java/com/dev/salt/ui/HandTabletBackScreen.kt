@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.dev.salt.R
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,6 +22,11 @@ fun HandTabletBackScreen(
     navController: NavController,
     surveyId: String
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     Scaffold(
         topBar = {
             SaltTopAppBar(

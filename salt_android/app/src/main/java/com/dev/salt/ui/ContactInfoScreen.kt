@@ -17,6 +17,7 @@ import androidx.navigation.NavController
 import com.dev.salt.AppDestinations
 import com.dev.salt.data.SurveyDatabase
 import kotlinx.coroutines.launch
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,6 +27,11 @@ fun ContactInfoScreen(
     surveyId: String,
     coupons: String
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     var contactType by remember { mutableStateOf("phone") }
     var phoneNumber by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }

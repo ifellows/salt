@@ -57,6 +57,7 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,6 +66,11 @@ fun RecruitmentPaymentScreen(
     surveyId: String,
     lookupMethod: String
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val context = LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
     val fingerprintManager = remember { FingerprintManager(database.subjectFingerprintDao(), context) }
@@ -208,7 +214,7 @@ fun RecruitmentPaymentScreen(
 
                 // Navigate back to menu
                 navController.navigate(AppDestinations.MENU) {
-                    popUpTo(AppDestinations.RECRUITMENT_LOOKUP) { inclusive = true }
+                    popUpTo(AppDestinations.MENU) { inclusive = false }
                 }
             } catch (e: Exception) {
                 Log.e("RecruitmentPayment", "Error processing payment", e)

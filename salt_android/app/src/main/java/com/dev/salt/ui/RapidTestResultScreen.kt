@@ -26,6 +26,7 @@ import com.dev.salt.data.TestResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.activity.compose.BackHandler
 
 @Composable
 fun RapidTestResultScreen(
@@ -35,6 +36,11 @@ fun RapidTestResultScreen(
     onResultSubmitted: () -> Unit,
     onBack: () -> Unit
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val context = LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
     val coroutineScope = rememberCoroutineScope()

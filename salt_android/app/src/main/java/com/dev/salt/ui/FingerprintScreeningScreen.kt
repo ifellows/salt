@@ -35,6 +35,7 @@ import android.hardware.usb.UsbManager
 import android.os.Build
 import android.util.Log
 import androidx.compose.runtime.DisposableEffect
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +44,11 @@ fun FingerprintScreeningScreen(
     surveyId: String,
     couponCode: String?
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val context = androidx.compose.ui.platform.LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
     val fingerprintManager = remember { FingerprintManager(database.subjectFingerprintDao(), context) }
@@ -358,7 +364,7 @@ fun FingerprintScreeningScreen(
                     onClick = {
                         // Navigate back to menu
                         navController.navigate(AppDestinations.MENU) {
-                            popUpTo(0) { inclusive = true }
+                            popUpTo(AppDestinations.MENU) { inclusive = false }
                         }
                     }
                 ) {

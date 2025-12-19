@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.util.Log
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +36,11 @@ fun WalkInRecruitmentPaymentScreen(
     surveyId: String,
     database: SurveyDatabase? = null
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val actualDatabase = database ?: SurveyDatabase.getInstance(context)

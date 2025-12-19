@@ -21,10 +21,16 @@ import androidx.navigation.NavController
 import com.dev.salt.data.SurveyDatabase
 import com.dev.salt.util.SeedRecruitmentManager
 import kotlinx.coroutines.launch
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SeedRecruitmentScreen(navController: NavController) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val context = LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
     val recruitmentManager = remember { SeedRecruitmentManager(database) }

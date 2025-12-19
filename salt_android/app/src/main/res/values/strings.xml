@@ -35,6 +35,12 @@
     <string name="common_replay">Replay</string>
     <string name="common_return_to_menu">Return to Main Menu</string>
 
+    <!-- Exit app confirmation -->
+    <string name="exit_app_title">Exit Application?</string>
+    <string name="exit_app_message">Are you sure you want to exit the application?</string>
+    <string name="exit_app_confirm">Exit</string>
+    <string name="exit_app_cancel">Cancel</string>
+
     <!-- Login/Authentication strings -->
     <string name="login_title">Login</string>
     <string name="login_subtitle">Please Log In</string>

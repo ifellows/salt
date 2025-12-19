@@ -42,12 +42,18 @@ import com.dev.salt.util.EmulatorDetector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecruitmentLookupScreen(
     navController: NavController
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val context = LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
     val fingerprintManager = remember { FingerprintManager(database.subjectFingerprintDao(), context) }

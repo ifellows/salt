@@ -27,6 +27,7 @@ import java.util.UUID
 import android.util.Log
 import androidx.compose.ui.res.stringResource
 import com.dev.salt.R
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +35,11 @@ fun CouponScreen(
     navController: NavController,
     database: SurveyDatabase
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val viewModel: CouponViewModel = viewModel(
         factory = CouponViewModelFactory(database)
     )

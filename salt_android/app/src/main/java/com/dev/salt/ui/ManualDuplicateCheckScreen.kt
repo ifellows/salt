@@ -16,6 +16,7 @@ import com.dev.salt.data.SurveyDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,6 +26,11 @@ fun ManualDuplicateCheckScreen(
     surveyId: String,
     couponCode: String = ""
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val scope = rememberCoroutineScope()
     var reEnrollmentDays by remember { mutableStateOf(90) }
     var isLoading by remember { mutableStateOf(true) }
@@ -97,7 +103,7 @@ fun ManualDuplicateCheckScreen(
                         onClick = {
                             // Return to menu
                             navController.navigate(AppDestinations.MENU) {
-                                popUpTo(AppDestinations.COUPON) { inclusive = true }
+                                popUpTo(AppDestinations.MENU) { inclusive = false }
                             }
                         },
                         modifier = Modifier

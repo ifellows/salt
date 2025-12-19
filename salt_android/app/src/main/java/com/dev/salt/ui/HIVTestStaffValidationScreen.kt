@@ -23,6 +23,7 @@ import com.dev.salt.data.SurveyDatabase
 import kotlinx.coroutines.launch
 import android.util.Log
 import java.io.File
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,6 +31,11 @@ fun HIVTestStaffValidationScreen(
     navController: NavController,
     surveyId: String
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val context = LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
     val scope = rememberCoroutineScope()

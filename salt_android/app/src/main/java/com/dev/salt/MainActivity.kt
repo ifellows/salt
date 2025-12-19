@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 // If you are using by viewModels() for Activity-level ViewModels, keep this:
 // import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
@@ -16,8 +17,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -540,7 +543,7 @@ class MainActivity : ComponentActivity() {
                                         // Ineligible participant - go back to main menu
                                         Log.d("MainActivity", "Navigating to menu due to eligibility failure")
                                         navController.navigate(AppDestinations.MENU) {
-                                            popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = true }
+                                            popUpTo(AppDestinations.MENU) { inclusive = false }
                                         }
                                     } else {
                                         // Normal survey completion - always navigate to staff validation
@@ -1558,6 +1561,11 @@ fun MenuScreen(
     val scope = rememberCoroutineScope()
     var showSeedRecruitment by remember { mutableStateOf(false) }
     var showRecruitmentPayment by remember { mutableStateOf(false) }
+
+    // Disable hardware back button on menu screen
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled on menu screen
+    }
 
     // Snackbar host state for sync messages
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }

@@ -38,6 +38,7 @@ import com.dev.salt.util.EmulatorDetector
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.activity.compose.BackHandler
 
 @Composable
 fun EligibilityCheckScreen(
@@ -46,6 +47,11 @@ fun EligibilityCheckScreen(
     onContinue: () -> Unit,  // Not used for ineligible participants
     onCancel: () -> Unit
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val database = remember { SurveyDatabase.getInstance(context) }

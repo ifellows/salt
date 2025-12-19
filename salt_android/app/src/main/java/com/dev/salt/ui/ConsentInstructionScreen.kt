@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.dev.salt.AppDestinations
 import com.dev.salt.R
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,12 +22,17 @@ fun ConsentInstructionScreen(
     coupons: String = "",
     returnTo: String = "survey_start"  // "survey_start" or "survey" (return to survey after staff eligibility)
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     Scaffold(
         topBar = {
             SaltTopAppBar(
                 title = stringResource(R.string.consent_instruction_title),
                 navController = navController,
-                showBackButton = true,
+                showBackButton = false,
                 showHomeButton = true
             )
         }

@@ -41,6 +41,7 @@ import android.hardware.usb.UsbManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
+import androidx.activity.compose.BackHandler
 
 @Composable
 fun HIVRapidTestInstructionScreen(
@@ -48,6 +49,11 @@ fun HIVRapidTestInstructionScreen(
     onStaffValidated: () -> Unit,
     onCancel: () -> Unit
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val context = LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
     val coroutineScope = rememberCoroutineScope()

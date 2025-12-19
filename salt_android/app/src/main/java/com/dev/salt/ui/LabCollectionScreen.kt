@@ -31,6 +31,7 @@ import com.dev.salt.debug.DeveloperSettingsManager
 import com.dev.salt.util.JexlContextDebugInfo
 import com.dev.salt.util.LabTestEvaluationResult
 import com.dev.salt.util.LabTestJexlEvaluator
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +42,11 @@ fun LabCollectionScreen(
     onCancel: () -> Unit,
     onBack: () -> Unit
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val context = LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
     val scrollState = rememberScrollState()

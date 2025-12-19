@@ -16,6 +16,7 @@ import com.dev.salt.data.SurveyDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,6 +26,11 @@ fun SurveyStartInstructionScreen(
     surveyId: String,
     couponCode: String
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val scope = rememberCoroutineScope()
     var staffEligibilityScreening by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }

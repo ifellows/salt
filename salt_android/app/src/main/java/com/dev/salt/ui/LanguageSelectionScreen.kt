@@ -16,6 +16,7 @@ import com.dev.salt.data.SurveyDatabase
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
 import com.dev.salt.R
+import androidx.activity.compose.BackHandler
 
 data class LanguageOption(
     val code: String
@@ -28,6 +29,11 @@ fun LanguageSelectionScreen(
     surveyId: String,
     couponCode: String?
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val context = androidx.compose.ui.platform.LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
     val scope = rememberCoroutineScope()
@@ -69,7 +75,7 @@ fun LanguageSelectionScreen(
             SaltTopAppBar(
                 title = stringResource(R.string.language_selection_title),
                 navController = navController,
-                showBackButton = true,
+                showBackButton = false,
                 showHomeButton = true
             )
         }

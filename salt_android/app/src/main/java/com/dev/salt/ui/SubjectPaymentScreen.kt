@@ -44,6 +44,7 @@ import kotlinx.coroutines.delay
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.ui.res.stringResource
 import com.dev.salt.R
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +53,11 @@ fun SubjectPaymentScreen(
     surveyId: String,
     coupons: String
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val context = LocalContext.current
     val database = remember { SurveyDatabase.getInstance(context) }
     val scope = rememberCoroutineScope()
@@ -580,8 +586,7 @@ fun SubjectPaymentScreen(
                             // Navigate to menu after a short delay to show the message
                             delay(1500)
                             navController.navigate(AppDestinations.MENU) {
-                                popUpTo(AppDestinations.SURVEY) { inclusive = true }
-                                popUpTo(AppDestinations.SUBJECT_PAYMENT) { inclusive = true }
+                                popUpTo(AppDestinations.MENU) { inclusive = false }
                             }
                         }
                     }
@@ -703,8 +708,7 @@ fun SubjectPaymentScreen(
                                 // Navigate to menu after a short delay to show the message
                                 delay(1500)
                                 navController.navigate(AppDestinations.MENU) {
-                                    popUpTo(AppDestinations.SURVEY) { inclusive = true }
-                                    popUpTo(AppDestinations.SUBJECT_PAYMENT) { inclusive = true }
+                                    popUpTo(AppDestinations.MENU) { inclusive = false }
                                 }
                             }
                         }
@@ -771,8 +775,7 @@ fun SubjectPaymentScreen(
                                 // Navigate to menu after a short delay to show the message
                                 delay(1500)
                                 navController.navigate(AppDestinations.MENU) {
-                                    popUpTo(AppDestinations.SURVEY) { inclusive = true }
-                                    popUpTo(AppDestinations.SUBJECT_PAYMENT) { inclusive = true }
+                                    popUpTo(AppDestinations.MENU) { inclusive = false }
                                 }
                             }
                         }
@@ -1009,8 +1012,7 @@ fun SubjectPaymentScreen(
                                 isUploading = false
                                 delay(1500)
                                 navController.navigate(AppDestinations.MENU) {
-                                    popUpTo(AppDestinations.SURVEY) { inclusive = true }
-                                    popUpTo(AppDestinations.SUBJECT_PAYMENT) { inclusive = true }
+                                    popUpTo(AppDestinations.MENU) { inclusive = false }
                                 }
                             }
                         }

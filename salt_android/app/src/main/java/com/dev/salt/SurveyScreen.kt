@@ -131,6 +131,7 @@ import kotlinx.coroutines.delay
 import com.dev.salt.ui.EligibilityCheckScreen
 import com.dev.salt.ui.JexlDebugDialog
 import androidx.compose.ui.res.stringResource
+import androidx.activity.compose.BackHandler
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -150,6 +151,11 @@ fun SurveyScreen(
     var currentMediaPlayer: MediaPlayer? by remember { mutableStateOf(null) }
 
     val surveyStateManager = SurveyStateManagerInstance.instance
+
+    // Disable hardware back button during survey to prevent accidental exits
+    BackHandler(enabled = true) {
+        // Intentionally empty - system back button is disabled during survey
+    }
 
     // Observe eligibility check states
     val needsEligibilityCheck by viewModel.needsEligibilityCheck.collectAsState()

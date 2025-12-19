@@ -25,6 +25,7 @@ import android.util.Log
 import androidx.compose.ui.res.stringResource
 import com.dev.salt.R
 import kotlinx.coroutines.launch
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +35,11 @@ fun CouponIssuedScreen(
     surveyId: String? = null,
     database: com.dev.salt.data.SurveyDatabase? = null
 ) {
+    // Disable hardware back button during survey flow
+    BackHandler(enabled = true) {
+        // Intentionally empty - back button is disabled during survey flow
+    }
+
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val actualDatabase = database ?: com.dev.salt.data.SurveyDatabase.getInstance(context)
