@@ -128,6 +128,7 @@ object AppDestinations {
     const val RECRUITMENT_LOOKUP = "recruitment_lookup" // For recruitment payment lookup
     const val RECRUITMENT_PAYMENT = "recruitment_payment" // For recruitment payment confirmation
     const val DEVELOPER_SETTINGS = "developer_settings" // For developer/debug settings
+    const val COUPON_LOGGING = "coupon_logging" // For coupon logging screen
 
     // Compatibility aliases for existing code
     const val WELCOME_SCREEN = WELCOME
@@ -848,6 +849,10 @@ class MainActivity : ComponentActivity() {
 
                     composable(AppDestinations.DEVELOPER_SETTINGS) {
                         DeveloperSettingsScreen(navController = navController)
+                    }
+
+                    composable(AppDestinations.COUPON_LOGGING) {
+                        com.dev.salt.ui.CouponLoggingScreen(navController = navController)
                     }
 
                     composable(
@@ -1779,6 +1784,13 @@ fun AdminDashboardScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.language_settings_title))
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { navController.navigate(AppDestinations.COUPON_LOGGING) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Coupon Logging")
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(

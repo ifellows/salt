@@ -79,9 +79,9 @@ class CouponGenerator(
                     couponCode = code,
                     issuedToSurveyId = surveyId,
                     issuedDate = currentTime,
-                    status = CouponStatus.ISSUED.name
+                    status = CouponStatus.UNUSED.name
                 )
-                
+
                 couponDao.insertCoupon(coupon)
                 issuedCoupons.add(code)
             }

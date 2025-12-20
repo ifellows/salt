@@ -398,6 +398,9 @@ interface SurveyDao {
     @Query("SELECT * FROM surveys ORDER BY start_datetime DESC LIMIT 1")
     fun getMostRecentSurvey(): Survey?
 
+    @Query("SELECT * FROM surveys ORDER BY start_datetime DESC")
+    fun getAllSurveys(): List<Survey>
+
     @Query("SELECT COUNT(*) FROM surveys WHERE subject_id = :subjectId")
     fun countSurveysWithSubjectId(subjectId: String): Int
 
@@ -588,6 +591,9 @@ interface CouponDao {
 
     @Query("UPDATE coupons SET status = 'USED', used_by_survey_id = :surveyId, used_date = :usedDate WHERE couponCode = :code")
     fun markCouponUsed(code: String, surveyId: String, usedDate: Long)
+
+    @Query("UPDATE coupons SET status = 'ISSUED' WHERE issued_to_survey_id = :surveyId AND status = 'UNUSED'")
+    fun markCouponsAsIssued(surveyId: String)
 
     @Query("SELECT COUNT(*) FROM coupons WHERE status = 'UNUSED'")
     fun getUnusedCouponCount(): Int

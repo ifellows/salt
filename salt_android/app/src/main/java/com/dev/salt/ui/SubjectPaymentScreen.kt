@@ -538,6 +538,7 @@ fun SubjectPaymentScreen(
                                 isCompleted = true
                             )
                             database.surveyDao().updateSurvey(updatedSurvey)
+                            database.couponDao().markCouponsAsIssued(surveyId)
                             Log.i("SubjectPaymentScreen", "Payment confirmed for survey $surveyId: amount=$paymentAmount, phone=${updatedSurvey.paymentPhoneNumber}")
 
                             // Mark referral coupon as used ONLY after payment confirmed
@@ -662,6 +663,7 @@ fun SubjectPaymentScreen(
                                     isCompleted = true
                                 )
                                 database.surveyDao().updateSurvey(updatedSurvey)
+                                database.couponDao().markCouponsAsIssued(surveyId)
                                 Log.i("SubjectPaymentScreen", "Payment confirmed (no fingerprint) for survey $surveyId: amount=$paymentAmount, phone=${updatedSurvey.paymentPhoneNumber}")
 
                                 // Mark referral coupon as used ONLY after payment confirmed
@@ -746,7 +748,20 @@ fun SubjectPaymentScreen(
                 OutlinedButton(
                     onClick = {
                         scope.launch {
-                            // Upload survey without payment confirmation
+                            // Mark survey as completed without payment (payment type = None)
+                            val updatedSurvey = survey?.copy(
+                                isCompleted = true,
+                                paymentConfirmed = true, // Confirmed eligible even though no payment given
+                                paymentDate = System.currentTimeMillis(),
+                                paymentType = "None"
+                            )
+                            if (updatedSurvey != null) {
+                                database.surveyDao().updateSurvey(updatedSurvey)
+                                database.couponDao().markCouponsAsIssued(surveyId)
+                                Log.i("SubjectPaymentScreen", "Survey marked complete (no payment) for survey $surveyId")
+                            }
+
+                            // Upload survey
                             isUploading = true
                             uploadMessage = skipUploadingMsg
                             try {
@@ -962,6 +977,7 @@ fun SubjectPaymentScreen(
                                     isCompleted = true
                                 )
                                 database.surveyDao().updateSurvey(updatedSurvey)
+                                database.couponDao().markCouponsAsIssued(surveyId)
                                 Log.i("SubjectPaymentScreen", "Payment override confirmed by admin ${matchedAdmin.fullName}: amount=$paymentAmount, phone=${updatedSurvey.paymentPhoneNumber}")
 
                                 // Mark referral coupon as used ONLY after payment confirmed (admin override)
