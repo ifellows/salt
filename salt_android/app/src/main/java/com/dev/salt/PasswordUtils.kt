@@ -1,7 +1,7 @@
 package com.dev.salt
 
 
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import java.security.SecureRandom
 import java.security.spec.KeySpec
 import javax.crypto.SecretKeyFactory

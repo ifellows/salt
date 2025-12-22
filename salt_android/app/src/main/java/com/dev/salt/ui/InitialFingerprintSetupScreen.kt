@@ -1,6 +1,6 @@
 package com.dev.salt.ui
 
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import android.content.Context
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager

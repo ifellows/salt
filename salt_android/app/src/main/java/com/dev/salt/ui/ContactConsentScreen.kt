@@ -1,6 +1,6 @@
 package com.dev.salt.ui
 
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons

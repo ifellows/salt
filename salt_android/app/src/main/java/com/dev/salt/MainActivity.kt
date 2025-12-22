@@ -76,7 +76,7 @@ import com.dev.salt.ui.StaffFingerprintEnrollmentScreen
 import com.dev.salt.upload.SurveyUploadWorkManager
 import com.dev.salt.i18n.LanguageManager
 import com.dev.salt.ui.DeveloperSettingsScreen
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import androidx.lifecycle.viewModelScope
 
 // Import your screen Composables if they are in separate files

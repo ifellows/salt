@@ -75,7 +75,7 @@
 package com.dev.salt
 
 import android.media.MediaPlayer
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement

@@ -1,7 +1,7 @@
 package com.dev.salt.fingerprint
 
 import android.content.Context
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import com.dev.salt.data.SubjectFingerprint
 import com.dev.salt.data.SubjectFingerprintDao
 import com.dev.salt.util.EmulatorDetector

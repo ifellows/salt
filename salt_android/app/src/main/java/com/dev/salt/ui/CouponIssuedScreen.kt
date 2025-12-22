@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.dev.salt.AppDestinations
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import androidx.compose.ui.res.stringResource
 import com.dev.salt.R
 import kotlinx.coroutines.launch

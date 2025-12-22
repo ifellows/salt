@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import androidx.compose.ui.res.stringResource
 import com.dev.salt.R
 import com.dev.salt.data.SurveyDatabase

@@ -1,6 +1,6 @@
 package com.dev.salt.fingerprint
 
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext

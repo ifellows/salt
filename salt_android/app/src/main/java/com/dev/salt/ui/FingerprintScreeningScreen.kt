@@ -33,7 +33,7 @@ import android.content.IntentFilter
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Build
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import androidx.compose.runtime.DisposableEffect
 import androidx.activity.compose.BackHandler
 

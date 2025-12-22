@@ -21,7 +21,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import android.media.MediaPlayer
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager

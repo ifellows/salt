@@ -1,6 +1,6 @@
 package com.dev.salt.util
 
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import com.dev.salt.data.LabTestConfiguration
 import com.dev.salt.data.SurveyDatabase
 import com.dev.salt.evaluateJexlScript

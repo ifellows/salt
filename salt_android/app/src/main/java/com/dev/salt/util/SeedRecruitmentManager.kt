@@ -1,6 +1,6 @@
 package com.dev.salt.util
 
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import com.dev.salt.data.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

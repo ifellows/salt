@@ -26,7 +26,7 @@ import com.dev.salt.data.SurveyDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)

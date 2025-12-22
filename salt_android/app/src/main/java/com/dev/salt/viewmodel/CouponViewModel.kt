@@ -1,6 +1,6 @@
 package com.dev.salt.viewmodel
 
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope

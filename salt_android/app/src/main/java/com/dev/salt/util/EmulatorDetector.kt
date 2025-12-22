@@ -1,7 +1,7 @@
 package com.dev.salt.util
 
 import android.os.Build
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 
 /**
  * Utility class to detect if the app is running in an emulator

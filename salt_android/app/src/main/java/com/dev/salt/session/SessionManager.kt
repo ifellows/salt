@@ -1,6 +1,6 @@
 package com.dev.salt.session
 
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

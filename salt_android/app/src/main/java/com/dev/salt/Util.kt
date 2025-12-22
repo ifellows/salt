@@ -2,7 +2,7 @@ package com.dev.salt
 
 import android.content.Context
 import android.media.MediaPlayer
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.security.MessageDigest
 import kotlin.random.Random

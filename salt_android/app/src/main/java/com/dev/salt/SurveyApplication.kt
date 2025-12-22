@@ -2,7 +2,7 @@ package com.dev.salt
 import com.dev.salt.data.User
 import android.app.Application
 import android.content.Context
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -22,14 +22,20 @@ import com.dev.salt.data.AppServerConfig
 import com.dev.salt.data.CouponStatus
 import net.sqlcipher.database.SQLiteDatabase
 import com.dev.salt.util.EmulatorDetector
+import com.dev.salt.logging.AppLogger
 
 class SurveyApplication : Application() {
     private val applicationScope = CoroutineScope(Dispatchers.Default)
 
     override fun onCreate() {
         super.onCreate()
+
+        // Initialize AppLogger FIRST (before any log calls)
+        AppLogger.init(this)
+        AppLogger.i("SurveyApplication", "SALT Application starting...")
+
         Log.e("SurveyApplication", "onCreate called")
-        
+
         // Initialize SQLCipher
         SQLiteDatabase.loadLibs(this)
         Log.d("SurveyApplication", "SQLCipher initialized")
@@ -209,6 +215,12 @@ class SurveyApplication : Application() {
             // Alternatively, if you want to force the app to close immediately after logging:
             // exitProcess(1) // Be cautious with this, as it bypasses normal shutdown procedures.
         }
+    }
+
+    override fun onTerminate() {
+        AppLogger.i("SurveyApplication", "SALT Application terminating...")
+        AppLogger.shutdown()
+        super.onTerminate()
     }
 
 }

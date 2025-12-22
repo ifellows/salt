@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dev.salt.auth.BiometricAuthManager
 import com.dev.salt.auth.BiometricAuthManagerFactory
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import com.dev.salt.auth.BiometricResult
 import com.dev.salt.data.SurveyDatabase
 import kotlinx.coroutines.launch

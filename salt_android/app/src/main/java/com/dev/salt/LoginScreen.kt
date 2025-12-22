@@ -24,7 +24,7 @@ import com.dev.salt.viewmodel.LoginViewModel
 import com.dev.salt.viewmodel.UserRole
 import kotlinx.coroutines.launch
 import com.dev.salt.data.SurveyDatabase
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 
 /**
  * Sync message to be displayed on the menu screen after login.

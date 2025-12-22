@@ -1,7 +1,7 @@
 package com.dev.salt.network
 
 import android.content.Context
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import com.dev.salt.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

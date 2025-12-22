@@ -2,7 +2,7 @@ package com.dev.salt.upload
 
 import android.content.Context
 import android.os.Build
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import com.dev.salt.data.*
 import kotlinx.coroutines.*
 import org.json.JSONArray

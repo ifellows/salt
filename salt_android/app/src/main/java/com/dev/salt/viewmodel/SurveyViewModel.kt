@@ -1,5 +1,5 @@
 package com.dev.salt.viewmodel
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text

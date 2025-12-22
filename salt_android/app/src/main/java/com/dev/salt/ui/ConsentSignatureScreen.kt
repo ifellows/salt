@@ -2,7 +2,7 @@ package com.dev.salt.ui
 
 import android.graphics.Bitmap
 import android.media.MediaPlayer
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState

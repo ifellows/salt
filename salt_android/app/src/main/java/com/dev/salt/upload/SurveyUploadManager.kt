@@ -1,7 +1,7 @@
 package com.dev.salt.upload
 
 import android.content.Context
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import com.dev.salt.data.*
 import com.dev.salt.session.SessionManagerInstance
 import kotlinx.coroutines.*

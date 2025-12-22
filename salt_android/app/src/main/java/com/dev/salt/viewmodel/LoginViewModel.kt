@@ -2,7 +2,7 @@ package com.dev.salt.viewmodel
 
 import android.app.Application
 import android.content.Context
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue

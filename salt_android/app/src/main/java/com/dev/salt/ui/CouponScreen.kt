@@ -24,7 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.GlobalScope
 import java.util.UUID
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import androidx.compose.ui.res.stringResource
 import com.dev.salt.R
 import androidx.activity.compose.BackHandler

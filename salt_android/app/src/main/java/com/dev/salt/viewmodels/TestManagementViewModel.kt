@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 
 class TestManagementViewModel(application: Application) : AndroidViewModel(application) {
     private val database = SurveyDatabase.getInstance(application)

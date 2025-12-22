@@ -1,7 +1,7 @@
 package com.dev.salt.auth
 
 import android.content.Context
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import com.dev.salt.PasswordUtils
 import com.dev.salt.data.User
 import com.dev.salt.data.UserDao

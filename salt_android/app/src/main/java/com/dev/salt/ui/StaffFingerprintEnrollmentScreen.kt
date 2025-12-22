@@ -20,7 +20,7 @@ import com.dev.salt.data.SurveyDatabase
 import com.dev.salt.fingerprint.FingerprintManager
 import com.dev.salt.data.UserDao
 import kotlinx.coroutines.launch
-import android.util.Log
+import com.dev.salt.logging.AppLogger as Log
 import android.content.Context
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
