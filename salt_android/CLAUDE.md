@@ -381,6 +381,41 @@ Based on current architecture and SALT methodology requirements:
 - Ready for SecuGen SDK integration when hardware is deployed
 - Supports enrollment, authentication, and secure key storage
 
+## Technical Debt
+
+### Development Logging System
+**Current Implementation**: The development logging system (AppLogger + LogUploadManager) uses a temporary workaround to upload logs to the server.
+
+**Temporary Hack**:
+- Logs are uploaded via the **recruitment payment API** (`/api/sync/recruitment-payment/upload`)
+- Raw log text is sent in the `signatureHex` field (which normally contains payment signatures)
+- Special markers identify log uploads:
+  - `paymentId` starts with `"LOG_UPLOAD_"`
+  - `surveyId` = `"DEV_LOG_UPLOAD"`
+  - `subjectId` = `"SYSTEM"`
+  - `couponCodes` = `["DEV_LOG_UPLOAD"]` (dummy value to satisfy validation)
+
+**Why This Exists**:
+- Needed development log upload capability immediately
+- Avoided database schema changes and API modifications
+- Leveraged existing upload infrastructure
+
+**Required Fix**:
+- **Create dedicated log upload API endpoint** on the management server
+  - Endpoint: `/api/sync/logs/upload` or `/api/admin/logs/upload`
+  - Proper request/response structure for log data
+  - Dedicated database table for storing development logs (not in payment records)
+  - Proper authentication and authorization
+  - Log extraction and viewing interface for administrators
+- **Update LogUploadManager.kt** to use the new dedicated endpoint
+- **Remove** the recruitment payment API workaround
+- **Clean up** any log upload records from payment database tables
+
+**Files Affected**:
+- `salt_android/app/src/main/java/com/dev/salt/logging/LogUploadManager.kt` - Android upload logic
+- `salt_management/src/api/routes/` - New server endpoint needed
+- Server database schema - New logs table needed
+
 ## Missing System Components (for full SALT implementation)
 - Management software for study administrators (Configuration & Monitoring UI)
 - Analytics platform for policy stakeholders (Dashboard with real-time statistical analysis)

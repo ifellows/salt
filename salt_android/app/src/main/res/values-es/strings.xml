@@ -85,7 +85,7 @@
     <string name="menu_recruit_participant">Reclutar participante anterior</string>
     <string name="menu_manage_users">Administrar usuarios</string>
     <string name="menu_server_settings">Configuración del servidor</string>
-    <string name="menu_upload_status">Estado de carga</string>
+    <string name="menu_upload_status">Estado de encuesta</string>
 
     <!-- Logout strings -->
     <string name="logout_confirm_title">Confirmar cierre de sesión</string>
@@ -216,7 +216,7 @@
     <string name="server_settings_help_text">1. Contacte a su administrador del sistema para obtener la URL del servidor y la clave API\n2. La URL del servidor debe apuntar a su servidor de administración SALT\n3. La clave API es opcional pero recomendada para la seguridad\n4. Pruebe la conexión antes de guardar\n5. Todas las cargas de encuestas utilizarán esta configuración</string>
 
     <!-- Upload Status strings -->
-    <string name="upload_status_title">Estado de carga</string>
+    <string name="upload_status_title">Estado de encuesta</string>
 
     <!-- Seed Recruitment strings -->
     <string name="recruitment_title">Reclutamiento inicial</string>
@@ -521,7 +521,7 @@
     <string name="upload_status_completed">Completado</string>
     <string name="upload_status_pending">Pendiente</string>
     <string name="upload_status_failed">Fallido</string>
-    <string name="upload_status_details_title">Detalles de carga de encuesta</string>
+    <string name="upload_status_details_title">Detalles de encuesta</string>
     <string name="upload_status_no_surveys">No hay encuestas para cargar</string>
     <string name="upload_status_upload_success">Encuesta cargada exitosamente</string>
     <string name="upload_status_upload_failed">Carga fallida</string>
@@ -531,6 +531,27 @@
     <string name="upload_status_attempts">Intentos: %1$d</string>
     <string name="upload_status_error">Error: %1$s</string>
     <string name="upload_status_retry_upload">Reintentar carga</string>
+
+    <!-- Survey Status Screen - New strings for enhanced display -->
+    <string name="survey_status_completed">Encuesta completada</string>
+    <string name="survey_status_incomplete">Encuesta incompleta</string>
+    <string name="survey_status_upload_completed">Cargado</string>
+    <string name="survey_status_upload_failed">Carga fallida</string>
+    <string name="survey_status_upload_pending">Carga pendiente</string>
+    <string name="survey_status_upload_incomplete">Encuesta incompleta</string>
+    <string name="survey_status_upload_uploading">Cargando...</string>
+    <string name="survey_status_tests">Pruebas: %1$d</string>
+    <string name="survey_status_coupons">Cupones: %1$d</string>
+    <string name="survey_status_payment">Pago: %1$s</string>
+    <string name="survey_status_payment_none">Sin pago</string>
+    <string name="survey_status_payment_declined">Pago rechazado</string>
+    <string name="survey_status_started">Iniciado: %1$s</string>
+    <string name="survey_status_ended">Finalizado: %1$s</string>
+    <string name="survey_status_upload_label">Carga: %1$s</string>
+    <string name="survey_status_upload">Carga: %1$s</string>
+    <string name="survey_status_last_attempt">Último intento: %1$s</string>
+    <string name="survey_status_upload_datetime">Cargado: %1$s</string>
+    <string name="survey_status_error">Error: %1$s</string>
 
     <!-- Additional User Management strings -->
     <string name="user_management_fingerprint_enrolled">Huella dactilar inscrita</string>

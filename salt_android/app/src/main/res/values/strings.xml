@@ -92,7 +92,7 @@
     <string name="menu_recruit_participant">Recruit Previous Participant</string>
     <string name="menu_manage_users">Manage Users</string>
     <string name="menu_server_settings">Server Settings</string>
-    <string name="menu_upload_status">Upload Status</string>
+    <string name="menu_upload_status">Survey Status</string>
 
     <!-- Logout strings -->
     <string name="logout_confirm_title">Confirm Logout</string>
@@ -779,7 +779,7 @@
     <string name="server_settings_connection_failed">Connection failed: %1$s</string>
 
     <!-- Upload Status Screen strings -->
-    <string name="upload_status_title">Upload Status</string>
+    <string name="upload_status_title">Survey Status</string>
     <string name="upload_status_refresh">Refresh</string>
     <string name="upload_status_retry_all">Retry All</string>
     <string name="upload_status_retrying">Retrying...</string>
@@ -791,7 +791,7 @@
     <string name="upload_status_completed">Completed</string>
     <string name="upload_status_pending">Pending</string>
     <string name="upload_status_failed">Failed</string>
-    <string name="upload_status_details_title">Survey Upload Details</string>
+    <string name="upload_status_details_title">Survey Details</string>
     <string name="upload_status_no_surveys">No surveys to upload</string>
     <string name="upload_status_upload_success">Survey uploaded successfully</string>
     <string name="upload_status_upload_failed">Upload failed</string>
@@ -801,6 +801,27 @@
     <string name="upload_status_attempts">Attempts: %1$d</string>
     <string name="upload_status_error">Error: %1$s</string>
     <string name="upload_status_retry_upload">Retry Upload</string>
+
+    <!-- Survey Status Screen - New strings for enhanced display -->
+    <string name="survey_status_completed">Survey Completed</string>
+    <string name="survey_status_incomplete">Survey Incomplete</string>
+    <string name="survey_status_upload_completed">Uploaded</string>
+    <string name="survey_status_upload_failed">Upload Failed</string>
+    <string name="survey_status_upload_pending">Pending Upload</string>
+    <string name="survey_status_upload_incomplete">Incomplete Survey</string>
+    <string name="survey_status_upload_uploading">Uploading...</string>
+    <string name="survey_status_tests">Tests: %1$d</string>
+    <string name="survey_status_coupons">Coupons: %1$d</string>
+    <string name="survey_status_payment">Payment: %1$s</string>
+    <string name="survey_status_payment_none">No Payment</string>
+    <string name="survey_status_payment_declined">Payment Declined</string>
+    <string name="survey_status_started">Started: %1$s</string>
+    <string name="survey_status_ended">Ended: %1$s</string>
+    <string name="survey_status_upload_label">Upload: %1$s</string>
+    <string name="survey_status_upload">Upload: %1$s</string>
+    <string name="survey_status_last_attempt">Last attempt: %1$s</string>
+    <string name="survey_status_upload_datetime">Uploaded: %1$s</string>
+    <string name="survey_status_error">Error: %1$s</string>
 
     <!-- Session Timeout Dialog strings -->
     <string name="session_timeout_expired">Session Expired</string>

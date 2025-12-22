@@ -81,7 +81,7 @@
     <string name="menu_recruit_participant">Ներգրավել նախկին մասնակից</string>
     <string name="menu_manage_users">Կառավարել օգտատերերին</string>
     <string name="menu_server_settings">Սերվերի կարգավորումներ</string>
-    <string name="menu_upload_status">Վերբեռման կարգավիճակ</string>
+    <string name="menu_upload_status">Հարցման կարգավիճակ</string>
     <string name="logout_confirm_title">Հաստատել դուրս գալը</string>
     <string name="logout_confirm_message">Վստահ եք, որ ցանկանում եք դուրս գալ։ Ձեր սեսիան կավարտվի և պետք է կրկին մուտք գործեք։</string>
     <string name="logout_button">Դուրս գալ</string>
@@ -667,7 +667,7 @@
     <string name="server_settings_connection_failed">Կապակցումը ձախողվեց: %1$s</string>
 
     <!-- Upload Status Screen -->
-    <string name="upload_status_title">Վերբեռնման կարգավիճակ</string>
+    <string name="upload_status_title">Հարցման կարգավիճակ</string>
     <string name="upload_status_refresh">Թարմացնել</string>
     <string name="upload_status_retry_all">Կրկին փորձել բոլորը</string>
     <string name="upload_status_retrying">Կրկնում է...</string>
@@ -679,7 +679,7 @@
     <string name="upload_status_completed">Ավարտված</string>
     <string name="upload_status_pending">Սպասման մեջ</string>
     <string name="upload_status_failed">Ձախողված</string>
-    <string name="upload_status_details_title">Հարցման վերբեռնման մանրամասներ</string>
+    <string name="upload_status_details_title">Հարցման մանրամասներ</string>
     <string name="upload_status_no_surveys">Վերբեռնելու համար հարցումներ չկան</string>
     <string name="upload_status_upload_success">Հարցումը հաջողությամբ վերբեռնվեց</string>
     <string name="upload_status_upload_failed">Վերբեռնումը ձախողվեց</string>
@@ -689,6 +689,27 @@
     <string name="upload_status_attempts">Փորձեր: %1$d</string>
     <string name="upload_status_error">Սխալ: %1$s</string>
     <string name="upload_status_retry_upload">Կրկին փորձել վերբեռնել</string>
+
+    <!-- Survey Status Screen - New strings for enhanced display -->
+    <string name="survey_status_completed">Հարցումն ավարտված է</string>
+    <string name="survey_status_incomplete">Հարցումը թերի է</string>
+    <string name="survey_status_upload_completed">Վերբեռնված</string>
+    <string name="survey_status_upload_failed">Վերբեռնումը ձախողվեց</string>
+    <string name="survey_status_upload_pending">Սպասվող վերբեռնում</string>
+    <string name="survey_status_upload_incomplete">Թերի հարցում</string>
+    <string name="survey_status_upload_uploading">Վերբեռնվում է...</string>
+    <string name="survey_status_tests">Թեստեր: %1$d</string>
+    <string name="survey_status_coupons">Կտրոններ: %1$d</string>
+    <string name="survey_status_payment">Վճարում: %1$s</string>
+    <string name="survey_status_payment_none">Վճարում չկա</string>
+    <string name="survey_status_payment_declined">Վճարումը մերժված է</string>
+    <string name="survey_status_started">Սկսված: %1$s</string>
+    <string name="survey_status_ended">Ավարտված: %1$s</string>
+    <string name="survey_status_upload_label">Վերբեռնում: %1$s</string>
+    <string name="survey_status_upload">Վերբեռնում: %1$s</string>
+    <string name="survey_status_last_attempt">Վերջին փորձը: %1$s</string>
+    <string name="survey_status_upload_datetime">Վերբեռնված: %1$s</string>
+    <string name="survey_status_error">Սխալ: %1$s</string>
 
     <!-- Session Timeout Dialog -->
     <string name="session_timeout_expired">Սեսիան ավարտվեց</string>
