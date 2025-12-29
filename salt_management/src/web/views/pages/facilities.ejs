@@ -50,7 +50,7 @@
                         </span>
                     </td>
                     <td style="text-align: center;">
-                        <strong>${facility.coupons_to_issue || 3}</strong>
+                        <strong>${facility.coupons_to_issue}</strong>
                     </td>
                     <td>
                         <span style="color: ${facility.seed_recruitment_active ? 'green' : 'gray'}; font-weight: bold;">
@@ -59,7 +59,7 @@
                     </td>
                     <td>${facility.upload_count}</td>
                     <td>
-                        <button onclick="editFacility(${facility.id}, '${facility.name}', '${facility.location || ''}', ${facility.allow_non_coupon_participants ? 'true' : 'false'}, ${facility.coupons_to_issue || 3}, ${facility.seed_recruitment_active ? 'true' : 'false'}, ${facility.seed_contact_rate_days || 7}, ${facility.seed_recruitment_window_min_days || 0}, ${facility.seed_recruitment_window_max_days || 730}, '${facility.subject_payment_type || 'None'}', ${facility.participation_payment_amount || 0}, ${facility.recruitment_payment_amount || 0}, '${facility.payment_currency || 'USD'}', '${facility.payment_currency_symbol || '$'}')" class="btn" style="padding: 0.25rem 0.5rem;">Edit</button>
+                        <button onclick="editFacility(${facility.id}, '${facility.name}', '${facility.location || ''}', ${facility.allow_non_coupon_participants ? 'true' : 'false'}, ${facility.coupons_to_issue}, ${facility.seed_recruitment_active ? 'true' : 'false'}, ${facility.seed_contact_rate_days || 7}, ${facility.seed_recruitment_window_min_days || 0}, ${facility.seed_recruitment_window_max_days || 730}, '${facility.subject_payment_type || 'None'}', ${facility.participation_payment_amount || 0}, ${facility.recruitment_payment_amount || 0}, '${facility.payment_currency || 'USD'}', '${facility.payment_currency_symbol || '$'}')" class="btn" style="padding: 0.25rem 0.5rem;">Edit</button>
                         <button onclick="confirmGenerateSetupCode(${facility.id}, '${facility.name}', ${facility.has_active_tablet ? 'true' : 'false'})" class="btn" style="padding: 0.25rem 0.5rem; background: #4CAF50; color: white;">Setup Code</button>
                     </td>
                 </tr>
