@@ -602,6 +602,18 @@ class DataExporter {
             return 'survey_id,participant_id\n';
         }
 
+        // Get question order from database for sorting q_ columns
+        const questionOrder = await allAsync(`
+            SELECT short_name, question_index
+            FROM questions
+            WHERE short_name IS NOT NULL
+            ORDER BY question_index
+        `);
+        const questionOrderMap = {};
+        questionOrder.forEach((q, index) => {
+            questionOrderMap['q_' + q.short_name] = q.question_index ?? index;
+        });
+
         // Pivot to wide format
         const wideData = {};
         const allColumns = new Set(['survey_id', 'participant_id']);
@@ -648,7 +660,15 @@ class DataExporter {
             const prefixB = prefixes.find(p => b.startsWith(p));
 
             if (prefixA && prefixB) {
-                if (prefixA === prefixB) return a.localeCompare(b);
+                if (prefixA === prefixB) {
+                    // For question columns, use display_order instead of alphabetical
+                    if (prefixA === 'q_') {
+                        const orderA = questionOrderMap[a] ?? 999999;
+                        const orderB = questionOrderMap[b] ?? 999999;
+                        return orderA - orderB;
+                    }
+                    return a.localeCompare(b);
+                }
                 return prefixes.indexOf(prefixA) - prefixes.indexOf(prefixB);
             }
             if (prefixA) return -1;
