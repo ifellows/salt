@@ -4,17 +4,9 @@ const fs = require('fs').promises;
 const path = require('path');
 const { allAsync, getAsync } = require('../models/database');
 
-// Find a Unicode font that supports all languages.
-// Arial Unicode covers Armenian, Arabic, CJK, Cyrillic, Latin, etc.
+// GNU Unifont - broadest Unicode coverage, bundled in project
 const FONT_SEARCH_PATHS = [
-    // Bundled in project
-    path.join(__dirname, '..', '..', 'data', 'fonts', 'ArialUnicode.ttf'),
-    // macOS system fonts
-    '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
-    '/Library/Fonts/Arial Unicode.ttf',
-    // Linux common paths
-    '/usr/share/fonts/truetype/arial-unicode/arial-unicode-ms.ttf',
-    '/usr/share/fonts/TTF/ArialUnicode.ttf',
+    path.join(__dirname, '..', '..', 'fonts', 'unifont.otf'),
 ];
 
 function findUnicodeFont() {
