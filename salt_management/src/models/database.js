@@ -3,11 +3,18 @@ const path = require('path');
 const fs = require('fs');
 
 const dbPath = path.join(__dirname, '..', '..', 'data', 'database', 'salt.db');
+const defaultDbPath = path.join(__dirname, '..', '..', 'data', 'database', 'salt_default.db');
 const dbDir = path.dirname(dbPath);
 
 // Ensure database directory exists
 if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
+}
+
+// If salt.db doesn't exist, copy from salt_default.db
+if (!fs.existsSync(dbPath) && fs.existsSync(defaultDbPath)) {
+    fs.copyFileSync(defaultDbPath, dbPath);
+    console.log('Created salt.db from salt_default.db');
 }
 
 // Create database connection
