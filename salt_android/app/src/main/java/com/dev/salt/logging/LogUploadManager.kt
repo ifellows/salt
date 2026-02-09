@@ -6,7 +6,6 @@ import com.dev.salt.data.SurveyDatabase
 import com.dev.salt.upload.UploadResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
 import org.json.JSONObject
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
@@ -37,12 +36,11 @@ class LogUploadManager(
                 return@withContext UploadResult.ConfigurationError("Server not configured. Please configure server settings.")
             }
 
-            // Build JSON payload (using recruitment payment format as temporary hack)
-            // Send raw log text directly (no compression/encoding)
+            // Build JSON payload with log data and device info
             val jsonData = buildLogUploadJson(logs)
 
             // Upload URL
-            val uploadUrl = "${serverConfig.serverUrl}/api/sync/recruitment-payment/upload"
+            val uploadUrl = "${serverConfig.serverUrl}/api/sync/logs/upload"
 
             // Perform HTTP upload
             performHttpUpload(uploadUrl, jsonData, serverConfig.apiKey)
@@ -50,24 +48,14 @@ class LogUploadManager(
     }
 
     private fun buildLogUploadJson(logs: String): JSONObject {
-        val logUploadId = "LOG_UPLOAD_${UUID.randomUUID()}"
-        val facilityConfig = database.facilityConfigDao().getFacilityConfig()
+        val logId = "LOG_${UUID.randomUUID()}"
 
         return JSONObject().apply {
-            put("paymentId", logUploadId)
-            put("surveyId", "DEV_LOG_UPLOAD")
-            put("subjectId", "SYSTEM")
-            put("phone", null)
-            put("totalAmount", 0.0)
-            put("currency", facilityConfig?.paymentCurrency ?: "USD")
-            put("paymentDate", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US)
+            put("logId", logId)
+            put("logs", logs)
+            put("logDate", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US)
                 .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
                 .format(java.util.Date()))
-            put("confirmationMethod", "dev_log_upload")
-            put("signatureHex", logs) // HACK: raw log text in signature field
-            put("couponCodes", JSONArray().apply {
-                put("DEV_LOG_UPLOAD") // Dummy coupon code to satisfy server validation
-            })
             put("deviceInfo", JSONObject().apply {
                 put("deviceId", android.provider.Settings.Secure.getString(
                     context.contentResolver,
