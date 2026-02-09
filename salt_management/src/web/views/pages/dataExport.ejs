@@ -93,6 +93,26 @@ var body = `
 </div>
 
 <div class="card">
+    <h3 style="margin-bottom: 1.5rem;">
+        <i class="fas fa-money-bill-wave" style="color: #27ae60;"></i> Export Payment Records
+    </h3>
+    <p style="color: #6c757d; margin-bottom: 1.5rem;">
+        Download a CSV of all payment records (participation and recruitment). Includes subject ID, facility, payment type, amount, date, phone number, and fingerprint/signature confirmation status.
+    </p>
+    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #dee2e6; padding-top: 1.5rem;">
+        <div>
+            <small style="color: #6c757d;">
+                <i class="fas fa-info-circle"></i>
+                Sourced directly from uploaded JSON files.
+            </small>
+        </div>
+        <button class="btn" onclick="exportPayments()" style="min-width: 180px;">
+            <i class="fas fa-download"></i> Download Payment CSV
+        </button>
+    </div>
+</div>
+
+<div class="card">
     <h3 style="margin-bottom: 1rem;">Export Information</h3>
     <ul style="list-style: none; padding: 0;">
         <li style="margin-bottom: 0.75rem;">
@@ -214,6 +234,45 @@ var body = `
             button.innerHTML = originalContent;
             button.disabled = false;
             showAlert('Export failed. Please try again.', 'error');
+        });
+    }
+
+    function exportPayments() {
+        const button = event.target.closest('button');
+        const originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing...';
+        button.disabled = true;
+
+        fetch('/api/admin/export/payments', {
+            method: 'GET',
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Export failed');
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const date = new Date().toISOString().split('T')[0];
+            a.href = url;
+            a.download = \`salt_payments_\${date}.csv\`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            button.innerHTML = originalContent;
+            button.disabled = false;
+            showAlert('Payment CSV exported successfully!', 'success');
+        })
+        .catch(error => {
+            console.error('Payment export error:', error);
+            button.innerHTML = originalContent;
+            button.disabled = false;
+            showAlert('Payment export failed. Please try again.', 'error');
         });
     }
 
