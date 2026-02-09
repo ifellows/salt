@@ -1,0 +1,68 @@
+# R/RStudio
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# Android signing credentials - DO NOT COMMIT
+salt_android/signing.properties
+salt_android/app/salt-release-key.jks
+*.jks
+*.keystore
+
+# IDE files
+.idea/workspace.xml
+.idea/caches/
+.idea/vcs.xml
+salt_android/.idea/deploymentTargetSelector.xml
+salt_android/.idea/workspace.xml
+
+# Build artifacts
+.gradle/
+salt_android/.kotlin/
+salt_android/app/build/
+salt_android/build/
+
+# macOS
+.DS_Store
+*/.DS_Store
+
+# Node.js
+node_modules/
+npm-debug.log
+
+# Runtime data (server)
+salt_management/data/audit/
+salt_management/data/uploads/
+salt_management/data/surveys/
+salt_management/data/exports/
+salt_management/data/reports/
+salt_management/data/files/
+salt_management/data/database/*.backup*
+salt_management/data/database/salt.db
+salt_management/salt.db
+
+# Test files
+salt_management/*_cookies.txt
+salt_management/test*.json
+salt_management/test*.html
+salt_management/test*.qmd
+salt_management/test*.csv
+salt_management/*_wide*.csv
+salt_management/*_long*.csv
+salt_management/long_format_example.csv
+salt_management/data_wide.csv
+
+# Temp files
+*~
+~$*
+*.swp
+*.swo
+
+# Archives
+*.tar.gz
+
+# Plan files (temporary development docs)
+*_PLAN.md
+*_plan.md
