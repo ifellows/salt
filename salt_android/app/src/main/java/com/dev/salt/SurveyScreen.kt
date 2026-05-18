@@ -104,6 +104,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -115,6 +116,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -125,6 +129,9 @@ import kotlinx.coroutines.flow.first
 import com.dev.salt.session.SurveyStateManagerInstance
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
@@ -149,6 +156,8 @@ fun SurveyScreen(
     var highlightedButtonIndex by remember { mutableStateOf<Int?>(null) }
     //var mediaPlayer: MediaPlayer? = remember { null }
     var currentMediaPlayer: MediaPlayer? by remember { mutableStateOf(null) }
+    var audioJob: Job? by remember { mutableStateOf(null) }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     val surveyStateManager = SurveyStateManagerInstance.instance
 
@@ -385,6 +394,11 @@ fun SurveyScreen(
                 currentMediaPlayer = null
             } catch (e: Exception){ }
 
+            // Bail before starting a new player if the coroutine was cancelled
+            // (e.g. screen paused). playAudio is non-suspending so cancellation
+            // wouldn't otherwise be checked between the stop above and start below.
+            currentCoroutineContext().ensureActive()
+
             // Play question audio and wait for completion
             currentMediaPlayer = playAudio(context, question.audioFileName) // Store new MediaPlayer
             currentMediaPlayer?.let { player ->
@@ -406,6 +420,8 @@ fun SurveyScreen(
                 currentMediaPlayer?.release()
                 currentMediaPlayer = null
 
+                currentCoroutineContext().ensureActive()
+
                 currentMediaPlayer = playAudio(context, option.audioFileName) // Store new MediaPlayer
                 currentMediaPlayer?.let { player ->
                     player.setOnCompletionListener {
@@ -422,8 +438,60 @@ fun SurveyScreen(
         }
     }
 
+    fun stopAudioPlayback() {
+        audioJob?.cancel()
+        audioJob = null
+        try {
+            currentMediaPlayer?.stop()
+            currentMediaPlayer?.release()
+        } catch (e: Exception) {
+            Log.e("SurveyScreen", "Error stopping audio", e)
+        }
+        currentMediaPlayer = null
+    }
+
+    fun launchAudioPlayback() {
+        audioJob?.cancel()
+        // Don't start playback if the screen is not currently visible. The
+        // ViewModel may advance currentQuestion at the same moment it triggers
+        // a forward navigation; without this gate, LaunchedEffect(currentQuestion)
+        // can fire after ON_PAUSE has already been dispatched, starting audio
+        // on a paused screen that the lifecycle observer will never see again.
+        if (!lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            return
+        }
+        audioJob = coroutineScope.launch {
+            playCurrentQuestion()
+        }
+    }
+
     LaunchedEffect(currentQuestion) {
-        playCurrentQuestion()
+        launchAudioPlayback()
+    }
+
+    // Tie audio playback to screen visibility. Forward navigation keeps this
+    // composable in composition, so DisposableEffect alone wouldn't fire — the
+    // lifecycle events are the reliable signal.
+    //   ON_PAUSE  → stop any audio (screen no longer visible).
+    //   ON_RESUME → start the current question's audio. This covers the case
+    //               where the ViewModel advances currentQuestion at the same
+    //               moment it triggers a forward navigation; the initial
+    //               LaunchedEffect(currentQuestion) is gated out by the
+    //               not-RESUMED check, so we need ON_RESUME to start it once
+    //               the user returns (e.g. after consent or a rapid test).
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> stopAudioPlayback()
+                Lifecycle.Event.ON_RESUME -> launchAudioPlayback()
+                else -> { }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            stopAudioPlayback()
+        }
     }
 
     Scaffold(
@@ -489,11 +557,7 @@ fun SurveyScreen(
 
                 // Replay button
                 IconButton(onClick = {
-                    coroutineScope.launch {
-                        playCurrentQuestion()
-                    }
-                    //currentMediaPlayer?.seekTo(0)
-                    //currentMediaPlayer?.start()
+                    launchAudioPlayback()
                 }) { // Replay logic
                     Icon(Icons.Filled.Replay, contentDescription = stringResource(R.string.cd_replay))
                 }
