@@ -1,0 +1,34 @@
+# SALT Management Server — single-container compose file.
+#
+# Usage:
+#   docker compose up -d
+#
+# Persistent state lives in ./salt-data on the host. Edit the bind mount or
+# swap in a named volume per your ops preferences.
+#
+# TLS is intentionally out of scope here: the app runs HTTP on port 3000 and a
+# reverse proxy (nginx + Let's Encrypt) terminates TLS in front of it. See
+# setup-nginx.sh in this directory for a one-shot installer.
+services:
+  salt:
+    image: fellstat/salt:latest
+    # For local builds, comment the line above and uncomment:
+    # build: .
+    container_name: salt-management
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"   # bind to loopback only — proxy fronts it
+    volumes:
+      - ./salt-data:/app/data
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # SESSION_SECRET auto-generates and persists if unset. Set it here if
+      # you'd rather manage it via your own secret store.
+      # SESSION_SECRET: ${SESSION_SECRET}
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
