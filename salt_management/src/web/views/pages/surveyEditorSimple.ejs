@@ -35,7 +35,10 @@ const sectionsData = typeof sections !== 'undefined' ? sections : [];
 // Build the body HTML
 let bodyHtml = '<link rel="stylesheet" href="/css/survey-editor.css">\n';
 bodyHtml += '<script src="/js/lamejs/lame.min.js"></script>\n';
-bodyHtml += '<h2>Survey Editor: ' + survey.name + ' (v' + survey.version + ')</h2>\n';
+bodyHtml += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">\n';
+bodyHtml += '  <h2 style="margin: 0;">Survey Editor: ' + survey.name + ' (v' + survey.version + ')</h2>\n';
+bodyHtml += '  <a href="/api/admin/surveys/' + survey.id + '/export" class="btn">Export Survey</a>\n';
+bodyHtml += '</div>\n';
 
 // Survey info card
 bodyHtml += '<div class="card">\n';

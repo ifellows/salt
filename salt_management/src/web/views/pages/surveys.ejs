@@ -4,7 +4,11 @@
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
         <h3>Survey Versions</h3>
-        <a href="/surveys/new" class="btn">Create New Survey</a>
+        <div style="display: flex; gap: 0.5rem;">
+            <input type="file" id="importFileInput" accept="application/json,.json" style="display: none;" onchange="importSurvey(this.files[0])">
+            <button class="btn" onclick="document.getElementById('importFileInput').click()">Import Survey</button>
+            <a href="/surveys/new" class="btn">Create New Survey</a>
+        </div>
     </div>
     
     <table>
@@ -131,6 +135,50 @@ async function deleteSurvey(surveyId, surveyName) {
         }
     } catch (error) {
         alert('Error: ' + error.message);
+    }
+}
+
+async function importSurvey(file) {
+    if (!file) return;
+    let bundle;
+    try {
+        const text = await file.text();
+        bundle = JSON.parse(text);
+    } catch (e) {
+        alert('Could not read file as JSON: ' + e.message);
+        return;
+    }
+    const sName = bundle && bundle.survey && bundle.survey.name;
+    const qCount = (bundle && bundle.questions && bundle.questions.length) || 0;
+    if (!sName) {
+        alert('Not a valid SALT survey export — missing survey.name.');
+        document.getElementById('importFileInput').value = '';
+        return;
+    }
+    if (!confirm(\`Import "\${sName}" (\${qCount} questions)? A new survey row will be created (is_active=false, is_draft=true).\`)) {
+        document.getElementById('importFileInput').value = '';
+        return;
+    }
+    try {
+        const response = await fetch('/api/admin/surveys/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bundle)
+        });
+        const result = await response.json();
+        if (!response.ok || result.status !== 'success') {
+            throw new Error(result.message || 'Import failed');
+        }
+        let msg = \`Imported "\${result.name}" v\${result.version}.\`;
+        if (result.warnings && result.warnings.length) {
+            msg += '\\n\\nWarnings:\\n• ' + result.warnings.join('\\n• ');
+        }
+        alert(msg);
+        window.location.href = '/surveys/' + result.surveyId + '/edit';
+    } catch (e) {
+        alert('Import failed: ' + e.message);
+    } finally {
+        document.getElementById('importFileInput').value = '';
     }
 }
 </script>

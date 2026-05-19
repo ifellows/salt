@@ -103,6 +103,7 @@ const webDataExportRoutes = require('./web/routes/dataExport');
 const webReportsRoutes = require('./web/routes/reports');
 const webEditDataRoutes = require('./web/routes/editData');
 const subjectManagementRoutes = require('./api/routes/subjectManagement');
+const surveyExportRoutes = require('./api/routes/surveyExport');
 
 // Initialize report scheduler
 const reportScheduler = require('./services/reportScheduler');
@@ -119,6 +120,7 @@ app.use('/api/admin', labTestsRoutes);
 app.use('/api/admin', labResultsRoutes);
 app.use('/api/admin', dataExportRoutes);
 app.use('/api', subjectManagementRoutes);
+app.use('/api', surveyExportRoutes);
 app.use('/api/admin', consentExportRoutes);
 app.use('/api/admin', paymentExportRoutes);
 app.use('/api/admin', testConfigRoutes);
