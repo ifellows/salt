@@ -33,6 +33,13 @@
     <string name="common_logout">Cerrar sesión</string>
     <string name="common_exit">Salir</string>
     <string name="common_replay">Reproducir</string>
+    <string name="common_return_to_menu">Volver al menú principal</string>
+
+    <!-- Exit app confirmation -->
+    <string name="exit_app_title">¿Salir de la aplicación?</string>
+    <string name="exit_app_message">¿Está seguro de que desea salir de la aplicación?</string>
+    <string name="exit_app_confirm">Salir</string>
+    <string name="exit_app_cancel">Cancelar</string>
 
     <!-- Login/Authentication strings -->
     <string name="login_title">Iniciar sesión</string>
@@ -295,6 +302,13 @@
     <string name="coupon_screen_instructions_done">Listo</string>
     <string name="coupon_screen_no_coupons">No hay cupones para distribuir a este participante.</string>
     <string name="coupon_screen_continue_disabled_hint">Presione \"Instrucciones del Cupón\" primero para que el participante sepa cómo usarlos.</string>
+
+    <!-- Walk-in Recruitment Payment Instructions -->
+    <string name="walkin_recruitment_title">Instrucciones de pago de reclutamiento</string>
+    <string name="walkin_recruitment_your_code">Su código de reclutamiento</string>
+    <string name="walkin_recruitment_instructions">Entregue al participante un «Cupón de pago». Explíquele que este es su identificador y será necesario cuando venga a cobrar por haber reclutado personas. No se realizarán pagos de reclutamiento sin este código, por lo que dígale que no lo pierda.</string>
+    <string name="walkin_recruitment_continue">Continuar al pago</string>
+    <string name="cd_info">Información</string>
 
     <!-- Fingerprint Screen -->
     <string name="fingerprint_instructions">Por favor, siga las instrucciones a continuación para capturar la huella dactilar del participante</string>

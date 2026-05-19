@@ -36,6 +36,14 @@
     <string name="common_login">Մուտք</string>
     <string name="common_none">(ոչ մեկը)</string>
     <string name="common_selected">Ընտրված</string>
+    <string name="common_return_to_menu">Վերադառնալ գլխավոր մենյու</string>
+
+    <!-- Exit app confirmation -->
+    <string name="exit_app_title">Փակե՞լ հավելվածը։</string>
+    <string name="exit_app_message">Վստա՞հ եք, որ ցանկանում եք փակել հավելվածը։</string>
+    <string name="exit_app_confirm">Փակել</string>
+    <string name="exit_app_cancel">Չեղարկել</string>
+
     <string name="login_title">Մուտք</string>
     <string name="login_subtitle">Խնդրում ենք մուտք գործել</string>
     <string name="login_username">Օգտանուն</string>

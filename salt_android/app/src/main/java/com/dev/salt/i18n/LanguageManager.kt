@@ -60,38 +60,39 @@ object LanguageManager {
     }
 
     /**
-     * Check if a language is available by testing if the app has resources for that locale.
-     * We do this by checking if a known string differs when we switch locales.
+     * Probe strings used to detect whether a language is available. The language
+     * is considered installed if ANY of these differ from the English version,
+     * since a single probe is fragile — e.g. French's natural translation of
+     * common_ok is also "OK", which would otherwise make French look absent.
+     */
+    private val LANGUAGE_PROBE_KEYS = listOf(
+        "common_ok", "common_cancel", "common_continue",
+        "login_title", "common_logout"
+    )
+
+    /**
+     * Check if a language is available by testing if any of several probe
+     * strings differs from English when loaded under that locale.
      */
     private fun isLanguageAvailable(context: Context, languageCode: String): Boolean {
         try {
             val locale = Locale(languageCode)
             val config = Configuration(context.resources.configuration)
             config.setLocale(locale)
+            val localizedResources = context.createConfigurationContext(config).resources
 
-            val localizedContext = context.createConfigurationContext(config)
-            val localizedResources = localizedContext.resources
-
-            // Get app_name in the target locale - this string exists in all translations
-            val testStringId = context.resources.getIdentifier("app_name", "string", context.packageName)
-            if (testStringId == 0) return false
-
-            // Get a string that should be translated - common_ok is a good test
-            val commonOkId = context.resources.getIdentifier("common_ok", "string", context.packageName)
-            if (commonOkId == 0) return false
-
-            // Get the English version
             val englishConfig = Configuration(context.resources.configuration)
             englishConfig.setLocale(Locale.ENGLISH)
-            val englishContext = context.createConfigurationContext(englishConfig)
-            val englishString = englishContext.resources.getString(commonOkId)
+            val englishResources = context.createConfigurationContext(englishConfig).resources
 
-            // Get the localized version
-            val localizedString = localizedResources.getString(commonOkId)
-
-            // If they differ, the language is available
-            // Special case: English will match, so we skip it (already added)
-            return localizedString != englishString
+            for (key in LANGUAGE_PROBE_KEYS) {
+                val id = context.resources.getIdentifier(key, "string", context.packageName)
+                if (id == 0) continue
+                if (localizedResources.getString(id) != englishResources.getString(id)) {
+                    return true
+                }
+            }
+            return false
         } catch (e: Exception) {
             return false
         }
