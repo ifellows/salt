@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.dev.salt.data.FacilityConfig
 import com.dev.salt.data.SurveyDatabase
 import com.dev.salt.data.User
+import com.dev.salt.sync.CouponRestoreManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -125,6 +126,36 @@ class FacilitySetupViewModel(
                                 apiKey = apiKey
                             )
                             database.appServerConfigDao().insertOrUpdate(serverConfig)
+                        }
+
+                        // Pull any coupon + completed-survey state the server has
+                        // for this facility, so a tablet that's been wiped doesn't
+                        // forget previously issued coupons / recruitment chains.
+                        // Hard fail: if restore can't complete, roll back the
+                        // facility setup so the user re-enters the setup code
+                        // rather than silently losing the recovery opportunity.
+                        if (apiKey.isNotEmpty()) {
+                            try {
+                                val restored = CouponRestoreManager(database)
+                                    .restoreFromServer(serverUrl, apiKey)
+                                android.util.Log.d("FacilitySetup",
+                                    "Restored coupons=${restored.couponsRestored} " +
+                                    "stubs=${restored.stubsRestored}")
+                            } catch (restoreErr: Exception) {
+                                android.util.Log.e("FacilitySetup",
+                                    "Restore failed; rolling back facility setup", restoreErr)
+                                database.appServerConfigDao().clearServerConfig()
+                                database.facilityConfigDao().deleteAll()
+                                withContext(Dispatchers.Main) {
+                                    _uiState.value = _uiState.value.copy(
+                                        isLoading = false,
+                                        error = "Setup completed but coupon restore " +
+                                                "failed: ${restoreErr.message}. " +
+                                                "Please try the setup code again."
+                                    )
+                                }
+                                return@withContext
+                            }
                         }
 
                         withContext(Dispatchers.Main) {

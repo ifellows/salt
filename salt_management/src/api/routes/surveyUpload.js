@@ -288,15 +288,21 @@ router.post('/survey/upload', requireFacilityApiKey, async (req, res) => {
                 }
             }
 
-            // Track coupon usage
+            // Track coupon usage. Upsert preserves issued_by_survey_id /
+            // issued_at written earlier by the parent survey's upload — the
+            // previous INSERT OR REPLACE here was wiping that side of the row.
             if (surveyData.referralCouponCode) {
                 await runAsync(
-                    `INSERT OR REPLACE INTO coupon_usage (
+                    `INSERT INTO coupon_usage (
                         coupon_code,
                         used_by_survey_id,
                         used_at,
                         facility_id
-                    ) VALUES (?, ?, datetime('now'), ?)`,
+                    ) VALUES (?, ?, datetime('now'), ?)
+                    ON CONFLICT(coupon_code) DO UPDATE SET
+                        used_by_survey_id = excluded.used_by_survey_id,
+                        used_at = excluded.used_at,
+                        facility_id = excluded.facility_id`,
                     [
                         surveyData.referralCouponCode,
                         surveyData.surveyId,
@@ -305,16 +311,22 @@ router.post('/survey/upload', requireFacilityApiKey, async (req, res) => {
                 );
             }
 
-            // Track issued coupons
+            // Track issued coupons. Same upsert pattern so we don't drop
+            // used_by_survey_id / used_at if a row already exists (e.g. if
+            // the child survey somehow uploaded before the parent).
             if (surveyData.issuedCoupons && Array.isArray(surveyData.issuedCoupons)) {
                 for (const coupon of surveyData.issuedCoupons) {
                     await runAsync(
-                        `INSERT OR IGNORE INTO coupon_usage (
+                        `INSERT INTO coupon_usage (
                             coupon_code,
                             issued_by_survey_id,
                             issued_at,
                             facility_id
-                        ) VALUES (?, ?, datetime('now'), ?)`,
+                        ) VALUES (?, ?, datetime('now'), ?)
+                        ON CONFLICT(coupon_code) DO UPDATE SET
+                            issued_by_survey_id = excluded.issued_by_survey_id,
+                            issued_at = excluded.issued_at,
+                            facility_id = excluded.facility_id`,
                         [
                             coupon,
                             surveyData.surveyId,

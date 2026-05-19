@@ -103,7 +103,12 @@ data class Survey(
     @ColumnInfo(name = "hiv_rapid_test_result") var hivRapidTestResult: String? = null, // "positive", "negative", "indeterminate", "not_performed"
     @ColumnInfo(name = "consent_signature_path") var consentSignaturePath: String? = null, // Path to signature PNG file
     @ColumnInfo(name = "is_completed") var isCompleted: Boolean = false,
-    @ColumnInfo(name = "payment_phone_number") var paymentPhoneNumber: String? = null // Phone for payment audit
+    @ColumnInfo(name = "payment_phone_number") var paymentPhoneNumber: String? = null, // Phone for payment audit
+    // Marks rows inserted by facility restore (after a tablet reinstall) as
+    // skeleton records. The tablet has the id + participant + chain info but
+    // not the full questionnaire data, so callers that need real responses
+    // should filter these out.
+    @ColumnInfo(name = "is_stub", defaultValue = "0") var isStub: Boolean = false
 ) {
     @Ignore
     var questions: MutableList<Question> = mutableListOf()
@@ -371,6 +376,11 @@ interface SurveyDao {
     @Insert
     fun insertSurvey(survey: Survey)
 
+    // Used by facility restore: never overwrite a survey the user has already
+    // started/completed locally.
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insertSurveyIfAbsent(survey: Survey): Long
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertAnswer(answer: Answer)
 
@@ -577,6 +587,11 @@ interface CouponDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertCoupon(coupon: Coupon)
 
+    // Used by facility restore: skip codes that already exist locally rather
+    // than overwriting state the tablet may have produced after restore.
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insertCouponIfAbsent(coupon: Coupon): Long
+
     @Query("SELECT * FROM coupons WHERE couponCode = :code LIMIT 1")
     fun getCouponByCode(code: String): Coupon?
 
@@ -679,6 +694,9 @@ interface FacilityConfigDao {
 
     @Query("UPDATE facility_config SET last_sync_time = :time, sync_status = 'SUCCESS' WHERE id = 1")
     fun updateLastSyncSuccess(time: Long)
+
+    @Query("DELETE FROM facility_config")
+    fun deleteAll()
 }
 
 @Dao
@@ -768,12 +786,13 @@ interface AppServerConfigDao {
     fun hasServerConfig(): Boolean
 }
 
-@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, RecruitmentPaymentUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class, LabTestConfiguration::class], version = 69, autoMigrations = [
+@Database(entities = [Section::class, Question::class, Option::class, Survey::class, Answer::class, User::class, SurveyUploadState::class, RecruitmentPaymentUploadState::class, SyncMetadata::class, SurveyConfig::class, SystemMessage::class, Coupon::class, FacilityConfig::class, SeedRecruitment::class, SubjectFingerprint::class, AppServerConfig::class, TestConfiguration::class, TestResult::class, LabTestConfiguration::class], version = 70, autoMigrations = [
     AutoMigration(from = 52, to = 53),
     AutoMigration(from = 65, to = 66),
     AutoMigration(from = 66, to = 67),
     AutoMigration(from = 67, to = 68),
-    AutoMigration(from = 68, to = 69)
+    AutoMigration(from = 68, to = 69),
+    AutoMigration(from = 69, to = 70)
 ])
 abstract class SurveyDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
