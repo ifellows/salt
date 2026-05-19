@@ -1,0 +1,52 @@
+# Dev artifacts
+node_modules
+npm-debug.log
+.env
+.env.local
+
+# Data files — these belong in the host volume, not baked into the image
+data/
+*.db
+*.db-journal
+
+# R local cruft
+*.Rproj
+.Rproj.user
+.Rhistory
+.RData
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docs and IDE
+*.md
+!README-DOCKER.md
+.idea
+.vscode
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dev/test scripts that don't belong in the image
+scripts/test-*.js
+scripts/extract-dev-logs.js
+scripts/clear-survey-data.sh
+scripts/cleanup_simulated_surveys.R
+scripts/simulate_surveys.R
+
+# Misc
+*.log
+*.tmp
+*.csv
+quarto-*.tar.gz
+
+# Docker plumbing not needed inside the image. docker-entrypoint.sh is
+# deliberately NOT excluded — the Dockerfile COPYs it.
+Dockerfile
+docker-compose.yml
+.dockerignore
+setup-nginx.sh
+README-DOCKER.md
