@@ -2,6 +2,77 @@ const { allAsync } = require('../models/database');
 
 class DataExporter {
     /**
+     * Load { short_name -> [option_index, ...] } for every multi_select
+     * question, so multi-select answers can be exploded into one column per
+     * option. UNIONs option indices across all questions sharing a short_name
+     * (defensive — covers schemas where the same short_name appears under
+     * more than one survey version).
+     */
+    async loadMultiSelectMeta() {
+        const rows = await allAsync(`
+            SELECT q.short_name, o.option_index
+            FROM questions q
+            JOIN options o ON o.question_id = q.id
+            WHERE q.question_type = 'multi_select'
+              AND q.short_name IS NOT NULL
+              AND o.option_index IS NOT NULL
+            GROUP BY q.short_name, o.option_index
+            ORDER BY q.short_name, o.option_index
+        `);
+        const meta = {};
+        for (const r of rows) {
+            (meta[r.short_name] = meta[r.short_name] || []).push(r.option_index);
+        }
+        return meta;
+    }
+
+    /**
+     * Expand multi_select rows into one row per option.
+     *
+     *   Input row : { variable: 'q_risk', numeric_value: null,
+     *                 text_value: '0,2', ... }
+     *   Output    : N rows, variable = 'q_risk_<i>', numeric_value = 1 if i is
+     *                 in the selected set, else 0.
+     *
+     * Rows for non-multi-select variables pass through unchanged. Rows for
+     * multi-select questions that aren't in the meta map (e.g. all options
+     * deleted) are dropped, since we can't decide what indicator columns to
+     * emit. Indices in text_value that aren't in the current options map are
+     * ignored — see plan note on schema drift.
+     */
+    expandMultiSelectRows(rows, meta) {
+        const out = [];
+        for (const row of rows) {
+            if (typeof row.variable !== 'string' || !row.variable.startsWith('q_')) {
+                out.push(row);
+                continue;
+            }
+            const shortName = row.variable.slice(2); // strip 'q_'
+            const options = meta[shortName];
+            if (!options) {
+                out.push(row);
+                continue;
+            }
+            const raw = typeof row.text_value === 'string' ? row.text_value : '';
+            const selected = new Set(
+                raw.split(',')
+                    .map(s => parseInt(s.trim(), 10))
+                    .filter(n => Number.isInteger(n))
+            );
+            for (const idx of options) {
+                out.push({
+                    survey_id: row.survey_id,
+                    participant_id: row.participant_id,
+                    variable: `q_${shortName}_${idx}`,
+                    numeric_value: selected.has(idx) ? 1 : 0,
+                    text_value: null
+                });
+            }
+        }
+        return out;
+    }
+
+    /**
      * Export data in long format
      * @returns {Promise<string>} CSV string
      */
@@ -257,7 +328,9 @@ class DataExporter {
             ORDER BY survey_id, variable
         `;
 
-        const rows = await allAsync(query, params);
+        const rawRows = await allAsync(query, params);
+        const multiSelectMeta = await this.loadMultiSelectMeta();
+        const rows = this.expandMultiSelectRows(rawRows, multiSelectMeta);
 
         // Process issued coupons (from JSON) - same as API export
         const surveysWithCoupons = await allAsync(`
@@ -560,7 +633,9 @@ class DataExporter {
             ORDER BY survey_id, variable
         `;
 
-        const longRows = await allAsync(query, params);
+        const rawLongRows = await allAsync(query, params);
+        const multiSelectMeta = await this.loadMultiSelectMeta();
+        const longRows = this.expandMultiSelectRows(rawLongRows, multiSelectMeta);
 
         // Process issued coupons (from JSON) - same as API export
         const surveysWithCoupons = await allAsync(`
@@ -613,6 +688,16 @@ class DataExporter {
         questionOrder.forEach((q, index) => {
             questionOrderMap['q_' + q.short_name] = q.question_index ?? index;
         });
+        // Add fractional order entries for exploded multi-select columns so
+        // q_foo_0, q_foo_1, q_foo_2 stay grouped at the original q_foo
+        // position and are ordered by option_index (handles two-digit indices
+        // correctly, unlike a plain lexicographic fallback).
+        for (const [shortName, optionIndices] of Object.entries(multiSelectMeta)) {
+            const baseOrder = questionOrderMap['q_' + shortName] ?? 999999;
+            for (const idx of optionIndices) {
+                questionOrderMap[`q_${shortName}_${idx}`] = baseOrder + idx / 10000;
+            }
+        }
 
         // Pivot to wide format
         const wideData = {};
