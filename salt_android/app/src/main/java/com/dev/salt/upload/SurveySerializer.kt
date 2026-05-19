@@ -104,17 +104,21 @@ class SurveySerializer {
         val serializedAnswers = answers.map { answer ->
             val question = questions.find { it.questionId == answer.questionId }
             if (question != null) {
-                val (answerValue, answerType, optionText) = when {
-                    answer.isMultiSelect -> {
-                        // For multi-select, return comma-separated indices
-                        Triple(answer.multiSelectIndices ?: "", "multi_select", null)
-                    }
-                    answer.isNumeric -> Triple(answer.numericValue, "numeric", null)
-                    answer.optionQuestionIndex != null -> {
+                // The question schema is the authoritative source of the type.
+                // The previous when-cascade inferred the type from the answer's
+                // isMultiSelect/isNumeric/optionQuestionIndex flags, but those
+                // flags are unset when the participant skipped the question,
+                // which caused empty answers to be uploaded as answerType="text"
+                // regardless of the question's actual type.
+                val answerType = question.questionType
+                val (answerValue, optionText) = when (answerType) {
+                    "multi_select" -> Pair(answer.multiSelectIndices ?: "", null)
+                    "numeric" -> Pair(answer.numericValue, null)
+                    "multiple_choice" -> {
                         val option = options[question.id]?.find { it.optionQuestionIndex == answer.optionQuestionIndex }
-                        Triple(answer.optionQuestionIndex, "multiple_choice", option?.text)
+                        Pair(answer.optionQuestionIndex, option?.text)
                     }
-                    else -> Triple(answer.answerPrimaryLanguageText, "text", null)
+                    else -> Pair(answer.answerPrimaryLanguageText, null) // text and any unknown types
                 }
 
                 SerializedAnswer(

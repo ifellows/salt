@@ -1,0 +1,109 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <h2 style="margin: 0;">Edit Data</h2>
+        <a href="/edit-data/audit-log.csv" class="btn">Download Edit Log</a>
+    </div>
+    <p style="color: #666; margin-bottom: 1rem;">
+        Soft-delete subjects or edit individual responses. Soft-deleted subjects
+        are excluded from data exports but their records are preserved.
+    </p>
+
+    <div class="card">
+        <form method="get" action="/edit-data" style="display: flex; gap: 1rem; align-items: end; margin-bottom: 1rem;">
+            <div>
+                <label for="facility">Facility</label><br>
+                <select id="facility" name="facility">
+                    <option value="">All facilities</option>
+                    <% facilities.forEach(function(f) { %>
+                        <option value="<%= f.id %>" <%= selectedFacility === f.id ? 'selected' : '' %>>
+                            <%= f.name %>
+                        </option>
+                    <% }); %>
+                </select>
+            </div>
+            <div>
+                <label>
+                    <input type="checkbox" name="showDeleted" value="1" <%= showDeleted ? 'checked' : '' %>>
+                    Show deleted
+                </label>
+            </div>
+            <div>
+                <button type="submit" class="btn">Filter</button>
+            </div>
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Participant ID</th>
+                    <th>Facility</th>
+                    <th>Completed</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% subjects.forEach(function(s) { %>
+                    <tr>
+                        <td><%= s.participant_id %></td>
+                        <td><%= s.facility_name || `Facility ${s.facility_id}` %></td>
+                        <td><%= s.completed_at ? new Date(s.completed_at).toLocaleString() : '-' %></td>
+                        <td>
+                            <% if (s.deleted_at) { %>
+                                <span style="color: #c00;">Deleted</span>
+                            <% } else { %>
+                                <span style="color: #060;">Active</span>
+                            <% } %>
+                        </td>
+                        <td>
+                            <a href="/edit-data/<%= s.id %>" class="btn" style="padding: 0.25rem 0.5rem;">View / Edit</a>
+                            <% if (s.deleted_at) { %>
+                                <button onclick="restoreSubject(<%= s.id %>)" class="btn" style="padding: 0.25rem 0.5rem;">Restore</button>
+                            <% } else { %>
+                                <button onclick="deleteSubject(<%= s.id %>, '<%= s.participant_id %>')" class="btn" style="padding: 0.25rem 0.5rem; background: #c00; color: white;">Delete</button>
+                            <% } %>
+                        </td>
+                    </tr>
+                <% }); %>
+                <% if (subjects.length === 0) { %>
+                    <tr><td colspan="5" style="text-align: center;">No subjects match the filter</td></tr>
+                <% } %>
+            </tbody>
+        </table>
+        <p style="color: #999; font-size: 0.85rem; margin-top: 0.5rem;">
+            Showing up to 500 subjects. Filter by facility to narrow down.
+        </p>
+    </div>
+</div>
+
+<script>
+async function deleteSubject(id, participantId) {
+    if (!confirm(`Delete subject ${participantId}? Their data will be excluded from exports but the record is kept.`)) {
+        return;
+    }
+    try {
+        const r = await fetch(`/api/admin/subjects/${id}/delete`, { method: 'POST' });
+        const data = await r.json();
+        if (data.status !== 'success') throw new Error(data.message || 'Delete failed');
+        location.reload();
+    } catch (e) {
+        alert('Delete failed: ' + e.message);
+    }
+}
+
+async function restoreSubject(id) {
+    try {
+        const r = await fetch(`/api/admin/subjects/${id}/restore`, { method: 'POST' });
+        const data = await r.json();
+        if (data.status !== 'success') throw new Error(data.message || 'Restore failed');
+        location.reload();
+    } catch (e) {
+        alert('Restore failed: ' + e.message);
+    }
+}
+</script>
+
+<%- include('../partials/footer') %>

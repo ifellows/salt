@@ -101,6 +101,8 @@ const webLabEntryRoutes = require('./web/routes/labEntry');
 const webLabTestManagementRoutes = require('./web/routes/labTestManagement');
 const webDataExportRoutes = require('./web/routes/dataExport');
 const webReportsRoutes = require('./web/routes/reports');
+const webEditDataRoutes = require('./web/routes/editData');
+const subjectManagementRoutes = require('./api/routes/subjectManagement');
 
 // Initialize report scheduler
 const reportScheduler = require('./services/reportScheduler');
@@ -116,6 +118,7 @@ app.use('/api/admin/users', usersRoutes);
 app.use('/api/admin', labTestsRoutes);
 app.use('/api/admin', labResultsRoutes);
 app.use('/api/admin', dataExportRoutes);
+app.use('/api', subjectManagementRoutes);
 app.use('/api/admin', consentExportRoutes);
 app.use('/api/admin', paymentExportRoutes);
 app.use('/api/admin', testConfigRoutes);
@@ -135,6 +138,7 @@ app.use('/', webLabEntryRoutes);
 app.use('/', webLabTestManagementRoutes);
 app.use('/', webDataExportRoutes);
 app.use('/', webReportsRoutes);
+app.use('/', webEditDataRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

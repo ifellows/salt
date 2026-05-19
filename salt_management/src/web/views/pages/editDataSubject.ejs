@@ -1,0 +1,407 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+    <h2>
+        <a href="/edit-data" style="text-decoration: none;">&larr; Edit Data</a>
+        / Subject <%= subject.participant_id %>
+    </h2>
+
+    <div class="card" style="margin-bottom: 1rem;">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem 2rem;">
+            <div><strong>Participant ID:</strong> <%= subject.participant_id %></div>
+            <div><strong>Facility:</strong> <%= subject.facility_name || `Facility ${subject.facility_id}` %></div>
+            <div><strong>Completed:</strong> <%= subject.completed_at ? new Date(subject.completed_at).toLocaleString() : '-' %></div>
+            <div><strong>Language:</strong> <%= subject.language || '-' %></div>
+            <div><strong>Survey response ID:</strong> <code><%= subject.survey_response_id %></code></div>
+            <div>
+                <strong>Status:</strong>
+                <% if (subject.deleted_at) { %>
+                    <span style="color: #c00;">Deleted at <%= new Date(subject.deleted_at).toLocaleString() %></span>
+                <% } else { %>
+                    <span style="color: #060;">Active</span>
+                <% } %>
+            </div>
+        </div>
+        <div style="margin-top: 1rem;">
+            <% if (subject.deleted_at) { %>
+                <button onclick="restoreSubject(<%= subject.id %>)" class="btn">Restore Subject</button>
+            <% } else { %>
+                <button onclick="deleteSubject(<%= subject.id %>)" class="btn" style="background: #c00; color: white;">Delete Subject</button>
+            <% } %>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Responses</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 20%;">Variable</th>
+                    <th>Question</th>
+                    <th style="width: 12%;">Type</th>
+                    <th style="width: 25%;">Current value</th>
+                    <th style="width: 10%;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% items.forEach(function(it) { %>
+                    <tr>
+                        <td><code>q_<%= it.shortName %></code></td>
+                        <td><%= it.questionText %></td>
+                        <td><%= it.answerType || '-' %></td>
+                        <td>
+                            <% if (it.answerType === 'multi_select') { %>
+                                <% if (it.selectedIndices.length) { %>
+                                    <%= it.selectedIndices.map(function(i) {
+                                        var o = it.options.find(function(x) { return x.index === i; });
+                                        return o ? `${i}: ${o.text}` : `${i}`;
+                                    }).join(', ') %>
+                                <% } else { %>
+                                    <em style="color: #999;">(none)</em>
+                                <% } %>
+                            <% } else if (it.answerType === 'multiple_choice') { %>
+                                <%= it.responseOptionIndex !== null ? `${it.responseOptionIndex}: ${it.responseOptionText || ''}` : '-' %>
+                            <% } else { %>
+                                <%= it.responseValue !== null ? it.responseValue : '-' %>
+                            <% } %>
+                        </td>
+                        <td>
+                            <button class="btn" style="padding: 0.25rem 0.5rem;"
+                                onclick='openEditor(<%- JSON.stringify(it) %>)'>Edit</button>
+                        </td>
+                    </tr>
+                <% }); %>
+                <% if (items.length === 0) { %>
+                    <tr><td colspan="5" style="text-align: center;">No responses recorded for this subject</td></tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card" style="margin-top: 1rem;">
+        <h3>Rapid Tests</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Variable</th>
+                    <th>Test</th>
+                    <th>Result</th>
+                    <th>Recorded</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% rapidTests.forEach(function(rt) { %>
+                    <tr>
+                        <td><code>rapid_<%= rt.test_id %>_result</code></td>
+                        <td><%= rt.test_name %></td>
+                        <td><%= rt.result %></td>
+                        <td><%= rt.recorded_at ? new Date(rt.recorded_at).toLocaleString() : '-' %></td>
+                        <td>
+                            <button class="btn" style="padding: 0.25rem 0.5rem;"
+                                onclick='openRapidEditor(<%- JSON.stringify(rt) %>)'>Edit</button>
+                        </td>
+                    </tr>
+                <% }); %>
+                <% if (rapidTests.length === 0) { %>
+                    <tr><td colspan="5" style="text-align: center;">No rapid tests recorded</td></tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card" style="margin-top: 1rem;">
+        <h3>Lab Tests</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Test</th>
+                    <th>Type</th>
+                    <th>Result</th>
+                    <th>Submitted</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% labItems.forEach(function(lb) { %>
+                    <tr>
+                        <td><%= lb.testName %></td>
+                        <td><%= lb.testType %></td>
+                        <td>
+                            <% if (lb.testType === 'numeric') { %>
+                                <%= lb.resultNumeric !== null ? lb.resultNumeric : '-' %><%= lb.unit ? ' ' + lb.unit : '' %>
+                            <% } else { %>
+                                <%= lb.resultValue !== null ? lb.resultValue : '-' %>
+                            <% } %>
+                        </td>
+                        <td><%= lb.createdAt ? new Date(lb.createdAt).toLocaleString() : '-' %></td>
+                        <td>
+                            <button class="btn" style="padding: 0.25rem 0.5rem;"
+                                onclick='openLabEditor(<%- JSON.stringify(lb) %>)'>Edit</button>
+                        </td>
+                    </tr>
+                <% }); %>
+                <% if (labItems.length === 0) { %>
+                    <tr><td colspan="5" style="text-align: center;">No lab tests recorded</td></tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit modal -->
+<div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: relative; width: 90%; max-width: 600px; margin: 5% auto; background: white; padding: 1.5rem; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 id="editTitle">Edit Response</h3>
+            <button onclick="closeEditor()" class="btn" style="padding: 0.25rem 0.75rem;">&times;</button>
+        </div>
+        <p id="editQuestion" style="margin-bottom: 1rem; color: #555;"></p>
+        <div id="editBody"></div>
+        <div id="editError" style="display: none; color: #c00; margin-top: 0.5rem;"></div>
+        <div style="margin-top: 1rem; display: flex; justify-content: space-between; gap: 0.5rem;">
+            <button id="editMissing" class="btn" style="background: #c80; color: white;">Set to Missing</button>
+            <div style="display: flex; gap: 0.5rem;">
+                <button onclick="closeEditor()" class="btn">Cancel</button>
+                <button id="editSave" class="btn" style="background: #060; color: white;">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const SUBJECT_ID = <%= subject.id %>;
+// currentItem carries a `kind` so save/clear handlers know which API to call:
+//   'response' — survey_responses (legacy default)
+//   'rapid'    — rapid_test_results
+//   'lab'      — lab_results
+let currentItem = null;
+
+function openEditor(item) {
+    item.kind = 'response';
+    currentItem = item;
+    document.getElementById('editTitle').textContent = 'Edit q_' + item.shortName;
+    document.getElementById('editQuestion').textContent = item.questionText;
+    document.getElementById('editError').style.display = 'none';
+    document.getElementById('editMissing').style.display = 'inline-block';
+
+    const body = document.getElementById('editBody');
+    body.innerHTML = '';
+
+    if (item.answerType === 'numeric') {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.id = 'editValueInput';
+        input.step = 'any';
+        input.value = item.responseValue ?? '';
+        input.style.width = '100%';
+        body.appendChild(input);
+    } else if (item.answerType === 'text') {
+        const input = document.createElement('textarea');
+        input.id = 'editValueInput';
+        input.value = item.responseValue ?? '';
+        input.style.width = '100%';
+        input.rows = 4;
+        body.appendChild(input);
+    } else if (item.answerType === 'multiple_choice') {
+        item.options.forEach(o => {
+            const id = 'opt_' + o.index;
+            const wrap = document.createElement('div');
+            wrap.innerHTML = `<label><input type="radio" name="mcOption" value="${o.index}" id="${id}"
+                ${o.index === item.responseOptionIndex ? 'checked' : ''}>
+                ${o.index}: ${escapeHtml(o.text)}</label>`;
+            body.appendChild(wrap);
+        });
+    } else if (item.answerType === 'multi_select') {
+        const selected = new Set(item.selectedIndices);
+        item.options.forEach(o => {
+            const id = 'opt_' + o.index;
+            const wrap = document.createElement('div');
+            wrap.innerHTML = `<label><input type="checkbox" value="${o.index}" id="${id}"
+                ${selected.has(o.index) ? 'checked' : ''}>
+                ${o.index}: ${escapeHtml(o.text)}</label>`;
+            body.appendChild(wrap);
+        });
+        if (item.minSelections !== null || item.maxSelections !== null) {
+            const hint = document.createElement('p');
+            hint.style.color = '#666';
+            hint.style.fontSize = '0.85rem';
+            hint.textContent = 'Selections: min ' + (item.minSelections ?? 0) +
+                              ', max ' + (item.maxSelections ?? '∞');
+            body.appendChild(hint);
+        }
+    } else {
+        body.innerHTML = '<em>Editing this answer type is not supported.</em>';
+    }
+
+    document.getElementById('editModal').style.display = 'block';
+}
+
+function openRapidEditor(rt) {
+    currentItem = { kind: 'rapid', testId: rt.test_id, testName: rt.test_name, result: rt.result };
+    document.getElementById('editTitle').textContent = 'Edit rapid test: ' + rt.test_name;
+    document.getElementById('editQuestion').textContent = 'rapid_' + rt.test_id + '_result';
+    document.getElementById('editError').style.display = 'none';
+    // No "Set to Missing" for rapid tests: it would delete the row entirely
+    // (result is NOT NULL) and there's no UI to re-add it afterward.
+    document.getElementById('editMissing').style.display = 'none';
+    const body = document.getElementById('editBody');
+    body.innerHTML = '';
+    ['positive', 'negative', 'indeterminate'].forEach(v => {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = `<label><input type="radio" name="rapidResult" value="${v}"
+            ${v === rt.result ? 'checked' : ''}> ${v}</label>`;
+        body.appendChild(wrap);
+    });
+    document.getElementById('editModal').style.display = 'block';
+}
+
+function openLabEditor(lb) {
+    currentItem = { kind: 'lab', ...lb };
+    document.getElementById('editTitle').textContent = 'Edit lab test: ' + lb.testName;
+    document.getElementById('editQuestion').textContent =
+        lb.testType === 'numeric'
+            ? `Numeric, range ${lb.minValue ?? '−∞'} to ${lb.maxValue ?? '∞'}${lb.unit ? ' ' + lb.unit : ''}`
+            : 'Dropdown';
+    document.getElementById('editError').style.display = 'none';
+    document.getElementById('editMissing').style.display = 'inline-block';
+    const body = document.getElementById('editBody');
+    body.innerHTML = '';
+    if (lb.testType === 'numeric') {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.id = 'editValueInput';
+        input.step = 'any';
+        if (lb.minValue !== null) input.min = lb.minValue;
+        if (lb.maxValue !== null) input.max = lb.maxValue;
+        input.value = lb.resultNumeric ?? '';
+        input.style.width = '100%';
+        body.appendChild(input);
+    } else if (lb.testType === 'dropdown') {
+        const select = document.createElement('select');
+        select.id = 'editValueInput';
+        select.style.width = '100%';
+        (lb.options || []).forEach(opt => {
+            const o = document.createElement('option');
+            o.value = opt;
+            o.textContent = opt;
+            if (opt === lb.resultValue) o.selected = true;
+            select.appendChild(o);
+        });
+        body.appendChild(select);
+    } else {
+        body.innerHTML = '<em>Unsupported lab test type.</em>';
+    }
+    document.getElementById('editModal').style.display = 'block';
+}
+
+function closeEditor() {
+    document.getElementById('editModal').style.display = 'none';
+    currentItem = null;
+}
+
+function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+}
+
+document.getElementById('editMissing').addEventListener('click', async () => {
+    if (!currentItem) return;
+    const errEl = document.getElementById('editError');
+    errEl.style.display = 'none';
+
+    let confirmMsg, url;
+    if (currentItem.kind === 'response') {
+        confirmMsg = 'Set q_' + currentItem.shortName + ' to missing? The value will be cleared and the ' +
+                     'response will appear as blank in exports. The question stays editable.';
+        url = `/api/admin/subjects/${SUBJECT_ID}/responses/${encodeURIComponent(currentItem.shortName)}/clear`;
+    } else if (currentItem.kind === 'lab') {
+        confirmMsg = 'Remove lab result "' + currentItem.testName + '"? This deletes the record entirely.';
+        url = `/api/admin/lab-results/${currentItem.id}/clear`;
+    } else {
+        return;
+    }
+
+    if (!confirm(confirmMsg)) return;
+    try {
+        const r = await fetch(url, { method: 'POST' });
+        const data = await r.json();
+        if (data.status !== 'success') throw new Error(data.message || 'Clear failed');
+        location.reload();
+    } catch (e) {
+        errEl.textContent = e.message;
+        errEl.style.display = 'block';
+    }
+});
+
+document.getElementById('editSave').addEventListener('click', async () => {
+    if (!currentItem) return;
+    const errEl = document.getElementById('editError');
+    errEl.style.display = 'none';
+
+    let body, url, method = 'PUT';
+    if (currentItem.kind === 'response') {
+        if (currentItem.answerType === 'numeric' || currentItem.answerType === 'text') {
+            body = { value: document.getElementById('editValueInput').value };
+        } else if (currentItem.answerType === 'multiple_choice') {
+            const checked = document.querySelector('input[name="mcOption"]:checked');
+            if (!checked) { errEl.textContent = 'Pick an option'; errEl.style.display = 'block'; return; }
+            body = { optionIndex: Number(checked.value) };
+        } else if (currentItem.answerType === 'multi_select') {
+            const checked = Array.from(document.querySelectorAll('#editBody input[type="checkbox"]:checked'));
+            body = { optionIndices: checked.map(c => Number(c.value)) };
+        } else {
+            return;
+        }
+        url = `/api/admin/subjects/${SUBJECT_ID}/responses/${encodeURIComponent(currentItem.shortName)}`;
+    } else if (currentItem.kind === 'rapid') {
+        const checked = document.querySelector('input[name="rapidResult"]:checked');
+        if (!checked) { errEl.textContent = 'Pick a result'; errEl.style.display = 'block'; return; }
+        body = { result: checked.value };
+        url = `/api/admin/subjects/${SUBJECT_ID}/rapid-tests/${encodeURIComponent(currentItem.testId)}`;
+    } else if (currentItem.kind === 'lab') {
+        body = { value: document.getElementById('editValueInput').value };
+        url = `/api/admin/lab-results/${currentItem.id}`;
+    } else {
+        return;
+    }
+
+    try {
+        const r = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await r.json();
+        if (data.status !== 'success') throw new Error(data.message || 'Save failed');
+        location.reload();
+    } catch (e) {
+        errEl.textContent = e.message;
+        errEl.style.display = 'block';
+    }
+});
+
+async function deleteSubject(id) {
+    if (!confirm('Delete this subject? Their data will be excluded from exports.')) return;
+    const r = await fetch(`/api/admin/subjects/${id}/delete`, { method: 'POST' });
+    const data = await r.json();
+    if (data.status === 'success') location.reload();
+    else alert('Delete failed: ' + (data.message || ''));
+}
+
+async function restoreSubject(id) {
+    const r = await fetch(`/api/admin/subjects/${id}/restore`, { method: 'POST' });
+    const data = await r.json();
+    if (data.status === 'success') location.reload();
+    else alert('Restore failed: ' + (data.message || ''));
+}
+
+document.getElementById('editModal').addEventListener('click', e => {
+    if (e.target.id === 'editModal') closeEditor();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEditor(); });
+</script>
+
+<%- include('../partials/footer') %>

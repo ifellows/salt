@@ -53,7 +53,12 @@ class DataExporter {
                 out.push(row);
                 continue;
             }
-            const raw = typeof row.text_value === 'string' ? row.text_value : '';
+            const raw = typeof row.text_value === 'string' ? row.text_value.trim() : '';
+            // Empty / null response_multi_indices means the response was cleared
+            // (or never had a value). Emit no rows so the cells stay blank in
+            // wide format and the question is absent from long format — matches
+            // the unanswered-question semantics used elsewhere.
+            if (raw === '') continue;
             const selected = new Set(
                 raw.split(',')
                     .map(s => parseInt(s.trim(), 10))
@@ -78,7 +83,10 @@ class DataExporter {
      */
     async exportLongFormat() {
         // Use the exact same query structure as the API export endpoint
-        const whereClause = '1=1';  // No filtering for reports
+        // Exclude soft-deleted subjects (per Feature 4). Only the analytic
+        // exports honor the flag — operational tables (uploads, audit) stay
+        // unfiltered.
+        const whereClause = 'cs.deleted_at IS NULL';
         const params = [];
 
         const query = `
@@ -335,7 +343,7 @@ class DataExporter {
         // Process issued coupons (from JSON) - same as API export
         const surveysWithCoupons = await allAsync(`
             SELECT survey_response_id, participant_id, issued_coupons
-            FROM completed_surveys
+            FROM completed_surveys cs
             WHERE ${whereClause} AND issued_coupons IS NOT NULL
         `, params);
 
@@ -382,7 +390,10 @@ class DataExporter {
      */
     async exportWideFormat(valueType = 'text') {
         // Use the exact same query structure as the API export endpoint
-        const whereClause = '1=1';  // No filtering for reports
+        // Exclude soft-deleted subjects (per Feature 4). Only the analytic
+        // exports honor the flag — operational tables (uploads, audit) stay
+        // unfiltered.
+        const whereClause = 'cs.deleted_at IS NULL';
         const params = [];
 
         // First get the long format data - MUST match the long format export exactly
@@ -640,7 +651,7 @@ class DataExporter {
         // Process issued coupons (from JSON) - same as API export
         const surveysWithCoupons = await allAsync(`
             SELECT survey_response_id, participant_id, issued_coupons
-            FROM completed_surveys
+            FROM completed_surveys cs
             WHERE ${whereClause} AND issued_coupons IS NOT NULL
         `, params);
 
