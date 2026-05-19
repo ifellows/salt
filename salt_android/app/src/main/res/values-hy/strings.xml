@@ -158,7 +158,11 @@
     <string name="lab_title">Կենսաբանական նմուշների հավաքում</string>
     <string name="lab_subject_id">Նյութի ID</string>
     <string name="lab_instructions">Հրահանգներ</string>
-    <string name="lab_instructions_text">1. Հավաքեք կենսաբանական նմուշները ըստ արձանագրության\n2. Նշեք յուրաքանչյուր նմուշը վերևում նշված Նյութի ID-ով\n3. Պահեք նմուշները ըստ ուղեցույցների\n4. Հաստատեք հավաքագրումը կամ նշեք, եթե մասնակիցը մերժել է</string>
+    <string name="lab_instructions_text">1. Հավաքեք կենսաբանական նմուշները ըստ արձանագրության\n2. Նշեք յուրաքանչյուր նմուշը \"%1$s\"-ով\n3. Պահեք նմուշները ըստ ուղեցույցների\n4. Հաստատեք հավաքագրումը կամ նշեք, եթե մասնակիցը մերժել է</string>
+    <string name="lab_step_1">Հավաքեք կենսաբանական նմուշները ըստ արձանագրության</string>
+    <string name="lab_step_2_label">Նշեք յուրաքանչյուր նմուշը հետևյալով՝</string>
+    <string name="lab_step_3">Պահեք նմուշները ըստ ուղեցույցների</string>
+    <string name="lab_step_4">Հաստատեք հավաքագրումը կամ նշեք, եթե մասնակիցը մերժել է</string>
     <string name="lab_refused">Մասնակիցը մերժել է</string>
     <string name="lab_collected">Նմուշները հավաքագրվել և նշված են</string>
     <string name="completion_title">Հարցումն ավարտված է</string>
@@ -229,6 +233,18 @@
     <string name="coupon_issued_number">Կտրոն %1$d</string>
     <string name="coupon_issued_usage">Յուրաքանչյուր կտրոնը կարող է օգտագործվել մեկ անգամ</string>
     <string name="coupon_issued_continue_payment">Շարունակել վճարման</string>
+    <!-- Referral Coupons screen -->
+    <string name="coupon_screen_section_title">Տրամադրել հավաքագրման կտրոններ</string>
+    <string name="coupon_screen_step_1">Վերցրեք %1$d դատարկ հավաքագրման կտրոնի քարտ։</string>
+    <string name="coupon_screen_step_2">Յուրաքանչյուրի վրա գրեք կտրոնի կոդը՝ օգտագործելով ստորև բերված կոդերը։</string>
+    <string name="coupon_screen_step_3">Կտրոնները հանձնեք մասնակցին։</string>
+    <string name="coupon_screen_step_4">Երբ պատրաստ եք, պլանշետը շրջեք դեպի մասնակիցը և սեղմեք ստորև գտնվող կոճակը։ Նրանց կտրվեն հրահանգներ, թե ինչպես օգտագործել կտրոնները։</string>
+    <string name="coupon_screen_instructions_button">Կտրոնի հրահանգներ</string>
+    <string name="coupon_screen_instructions_modal_title">Կտրոնի հրահանգներ</string>
+    <string name="coupon_screen_instructions_fallback">Կտրոնի հրահանգները դեռևս կարգավորված չեն — խնդրում ենք կապվել ձեր ադմինիստրատորի հետ։</string>
+    <string name="coupon_screen_instructions_done">Պատրաստ է</string>
+    <string name="coupon_screen_no_coupons">Այս մասնակցին բաշխելու համար կտրոններ չկան։</string>
+    <string name="coupon_screen_continue_disabled_hint">Նախ սեղմեք \"Կտրոնի հրահանգներ\", որպեսզի մասնակիցը իմանա, թե ինչպես օգտագործել դրանք։</string>
     <string name="fingerprint_instructions">Խնդրում ենք հետևել ստորև նշված հրահանգներին</string>
     <string name="fingerprint_step1">Համոզվեք, որ SecuGen սարքը միացված է</string>
     <string name="fingerprint_step2">Խնդրեք մասնակցին դնել աջ ցուցամատը սկաների վրա</string>
@@ -722,7 +738,7 @@
     <!-- Walk-in Recruitment Payment Instructions -->
     <string name="walkin_recruitment_title">Ներգրավման վճարման հրահանգներ</string>
     <string name="walkin_recruitment_your_code">Ձեր ներգրավման կոդը</string>
-    <string name="walkin_recruitment_instructions">Տրամադրեք մեկ այլ կտրոն այս կոդով։ Նաև գրեք «Ձեր կտրոն» տեքստը դրա վրա։ Բացատրեք մասնակցին, որ սա իրենց ID-ն է և կպահանջվի, երբ նրանք գան ստանալու վճարումը մարդկանց ներգրավելու համար։ Առանց այս կոդի ներգրավման վճարումներ չեն կատարվի, ուստի ասեք նրանց չկորցնել այն։</string>
+    <string name="walkin_recruitment_instructions">Տրամադրեք մասնակցին «Վճարման կտրոն»։ Բացատրեք մասնակցին, որ սա իրենց ID-ն է և կպահանջվի, երբ նրանք գան ստանալու վճարումը մարդկանց ներգրավելու համար։ Առանց այս կոդի ներգրավման վճարումներ չեն կատարվի, ուստի ասեք նրանց չկորցնել այն։</string>
     <string name="walkin_recruitment_continue">Շարունակել վճարմանը</string>
     <string name="cd_info">Տեղեկատվություն</string>
 

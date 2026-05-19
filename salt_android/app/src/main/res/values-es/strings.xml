@@ -189,7 +189,11 @@
     <string name="lab_title">Recolección de muestras biológicas</string>
     <string name="lab_subject_id">ID del sujeto</string>
     <string name="lab_instructions">Instrucciones</string>
-    <string name="lab_instructions_text">1. Recolecte muestras biológicas según el protocolo\n2. Etiquete cada muestra con el ID del sujeto mostrado arriba\n3. Almacene las muestras según las pautas\n4. Confirme la recolección o indique si el sujeto se negó</string>
+    <string name="lab_instructions_text">1. Recolecte muestras biológicas según el protocolo\n2. Etiquete cada muestra con \"%1$s\"\n3. Almacene las muestras según las pautas\n4. Confirme la recolección o indique si el sujeto se negó</string>
+    <string name="lab_step_1">Recolecte muestras biológicas según el protocolo</string>
+    <string name="lab_step_2_label">Etiquete cada muestra con:</string>
+    <string name="lab_step_3">Almacene las muestras según las pautas</string>
+    <string name="lab_step_4">Confirme la recolección o indique si el sujeto se negó</string>
     <string name="lab_refused">El sujeto se negó</string>
     <string name="lab_collected">Muestras recolectadas y etiquetadas</string>
 
@@ -279,6 +283,18 @@
     <string name="coupon_issued_number">Cupón %1$d</string>
     <string name="coupon_issued_usage">Cada cupón se puede usar una vez para participar en la encuesta</string>
     <string name="coupon_issued_continue_payment">Continuar al pago</string>
+    <!-- Referral Coupons screen -->
+    <string name="coupon_screen_section_title">Emitir cupones de reclutamiento</string>
+    <string name="coupon_screen_step_1">Tome %1$d tarjetas de cupón de reclutamiento en blanco.</string>
+    <string name="coupon_screen_step_2">Escriba un código de cupón en cada una usando los códigos a continuación.</string>
+    <string name="coupon_screen_step_3">Entregue los cupones al participante.</string>
+    <string name="coupon_screen_step_4">Cuando esté listo, gire la tableta hacia el participante y presione el botón de abajo. Recibirá instrucciones sobre cómo usar los cupones.</string>
+    <string name="coupon_screen_instructions_button">Instrucciones del Cupón</string>
+    <string name="coupon_screen_instructions_modal_title">Instrucciones del Cupón</string>
+    <string name="coupon_screen_instructions_fallback">Las instrucciones del cupón aún no se han configurado — por favor contacte a su administrador.</string>
+    <string name="coupon_screen_instructions_done">Listo</string>
+    <string name="coupon_screen_no_coupons">No hay cupones para distribuir a este participante.</string>
+    <string name="coupon_screen_continue_disabled_hint">Presione \"Instrucciones del Cupón\" primero para que el participante sepa cómo usarlos.</string>
 
     <!-- Fingerprint Screen -->
     <string name="fingerprint_instructions">Por favor, siga las instrucciones a continuación para capturar la huella dactilar del participante</string>

@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import android.media.MediaPlayer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
+import com.dev.salt.playAudio
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +27,8 @@ import com.dev.salt.logging.AppLogger as Log
 import androidx.compose.ui.res.stringResource
 import com.dev.salt.R
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,10 +70,101 @@ fun CouponIssuedScreen(
         }
     }
 
+    // Tracks whether the staff has shown the participant the coupon
+    // instructions modal at least once. Continue button is disabled until
+    // they do so, so the participant always gets the explainer.
+    var instructionsShown by remember { mutableStateOf(false) }
+    var showInstructionsModal by remember { mutableStateOf(false) }
+    var instructionsMessage by remember { mutableStateOf<String?>(null) }
+    var instructionsAudioPath by remember { mutableStateOf<String?>(null) }
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    // Load the coupon_instructions system message + audio when the modal is
+    // first opened. We keep it loaded so reopening doesn't re-fetch.
+    LaunchedEffect(showInstructionsModal) {
+        if (!showInstructionsModal || instructionsMessage != null) return@LaunchedEffect
+        try {
+            val key = "coupon_instructions"
+            val survey = withContext(Dispatchers.IO) {
+                if (!surveyId.isNullOrBlank()) actualDatabase.surveyDao().getSurveyById(surveyId) else null
+            }
+            val lang = survey?.language ?: "en"
+            val msg = withContext(Dispatchers.IO) {
+                actualDatabase.systemMessageDao().getSystemMessage(key, lang)
+                    ?: actualDatabase.systemMessageDao().getSystemMessage(key, "en")
+                    ?: actualDatabase.systemMessageDao().getSystemMessage(key, "English")
+                    ?: actualDatabase.systemMessageDao().getSystemMessageAnyLanguage(key)
+            }
+            instructionsMessage = msg?.messageText?.takeIf { it.isNotBlank() }
+            instructionsAudioPath = msg?.audioFileName?.takeIf { it.isNotBlank() }
+            Log.d("CouponIssuedScreen", "coupon_instructions loaded: hasText=${instructionsMessage != null} hasAudio=${instructionsAudioPath != null}")
+        } catch (e: Exception) {
+            Log.e("CouponIssuedScreen", "Failed to load coupon_instructions message", e)
+        }
+    }
+
+    // Start/stop audio with the modal visibility. audioFileName from
+    // SystemMessage is just a basename (saved by SurveySyncManager into
+    // context.filesDir/audio/); the playAudio helper resolves that path and
+    // sets the right audio attributes — calling MediaPlayer.setDataSource()
+    // on the basename directly throws ENOENT.
+    LaunchedEffect(showInstructionsModal, instructionsAudioPath) {
+        if (showInstructionsModal && !instructionsAudioPath.isNullOrEmpty()) {
+            try {
+                mediaPlayer?.release()
+                mediaPlayer = playAudio(context, instructionsAudioPath!!)?.also { it.start() }
+            } catch (e: Exception) {
+                Log.e("CouponIssuedScreen", "Failed to play coupon_instructions audio", e)
+            }
+        } else {
+            try { mediaPlayer?.stop() } catch (_: Exception) {}
+            mediaPlayer?.release()
+            mediaPlayer = null
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            try { mediaPlayer?.stop() } catch (_: Exception) {}
+            mediaPlayer?.release()
+            mediaPlayer = null
+        }
+    }
+
+    fun continueToNext() {
+        if (surveyId.isNullOrBlank()) {
+            Log.e("CouponIssuedScreen", "No survey ID provided")
+            return
+        }
+        scope.launch {
+            val surveyConfig = actualDatabase.surveyConfigDao().getSurveyConfig()
+            val facilityConfig = actualDatabase.facilityConfigDao().getFacilityConfig()
+            val survey = withContext(Dispatchers.IO) {
+                actualDatabase.surveyDao().getSurveyById(surveyId)
+            }
+
+            val isWalkIn = survey?.referralCouponCode == null
+            val isFingerprintDisabled = surveyConfig?.fingerprintEnabled == false
+            val hasRecruitmentPayment = (facilityConfig?.recruitmentPaymentAmount ?: 0.0) > 0.0
+            val shouldShowWalkInInstructions = isWalkIn && isFingerprintDisabled && hasRecruitmentPayment
+
+            if (shouldShowWalkInInstructions) {
+                navController.navigate("${AppDestinations.WALKIN_RECRUITMENT_PAYMENT}/$surveyId")
+            } else {
+                val isHivTestEnabled = surveyConfig?.hivRapidTestEnabled == true
+                if (isHivTestEnabled) {
+                    navController.navigate("${AppDestinations.HIV_TEST_RESULT}/$surveyId")
+                } else {
+                    navController.navigate("${AppDestinations.SUBJECT_PAYMENT}/$surveyId?coupons=${actualCoupons.joinToString(",")}")
+                }
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             SaltTopAppBar(
-                title = stringResource(R.string.coupon_issued_title),
+                title = stringResource(R.string.coupon_issued_referral_title),
                 navController = navController,
                 showBackButton = true,
                 showHomeButton = true
@@ -83,165 +178,261 @@ fun CouponIssuedScreen(
                 .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (actualCoupons.isEmpty()) {
+                // 0-coupon variant (e.g. seed participants, facilities issuing
+                // no coupons). Just acknowledge there's nothing to hand out and
+                // let the staff continue.
+                Text(
+                    text = stringResource(R.string.coupon_screen_no_coupons),
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(vertical = 32.dp)
+                )
+
+                Button(
+                    onClick = { continueToNext() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.coupon_issued_continue_payment),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            } else {
+                // Staff instruction list — each step in its own well. Step 2
+                // is custom: under its label we render the coupon codes grid
+                // ("the codes below" is literal — they're inside the same
+                // well), so the staff doesn't have to scan elsewhere to find
+                // what they're writing.
+                Text(
+                    text = stringResource(R.string.coupon_screen_section_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp, bottom = 4.dp)
+                )
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    CouponInstructionStep(1, stringResource(R.string.coupon_screen_step_1, actualCoupons.size))
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                StepBadge(2)
+                                Spacer(modifier = Modifier.width(14.dp))
+                                Text(
+                                    text = stringResource(R.string.coupon_screen_step_2),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            CouponCodeGrid(actualCoupons)
+                        }
+                    }
+
+                    CouponInstructionStep(3, stringResource(R.string.coupon_screen_step_3))
+                    CouponInstructionStep(4, stringResource(R.string.coupon_screen_step_4))
+                }
+
+                // Coupon Instructions button — primary action while pending.
+                Button(
+                    onClick = {
+                        instructionsShown = true
+                        showInstructionsModal = true
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.coupon_screen_instructions_button),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+
+                // Continue button — gated on instructions having been shown.
+                Button(
+                    onClick = { continueToNext() },
+                    enabled = instructionsShown,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.coupon_issued_continue_payment),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                if (!instructionsShown) {
+                    Text(
+                        text = stringResource(R.string.coupon_screen_continue_disabled_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
-            
-            // Success icon
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = stringResource(R.string.cd_success),
-                modifier = Modifier.size(80.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            
-            // Thank you message
+        }
+    }
+
+    if (showInstructionsModal) {
+        AlertDialog(
+            onDismissRequest = { showInstructionsModal = false },
+            title = {
+                Text(text = stringResource(R.string.coupon_screen_instructions_modal_title))
+            },
+            text = {
+                Text(
+                    text = instructionsMessage
+                        ?: stringResource(R.string.coupon_screen_instructions_fallback),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showInstructionsModal = false }) {
+                    Text(stringResource(R.string.coupon_screen_instructions_done))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun CouponInstructionStep(number: Int, text: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            StepBadge(number)
+            Spacer(modifier = Modifier.width(14.dp))
             Text(
-                text = stringResource(R.string.coupon_issued_thank_you),
-                style = MaterialTheme.typography.headlineLarge,
+                text = text,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun StepBadge(number: Int) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(20.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = number.toString(),
+            color = MaterialTheme.colorScheme.onPrimary,
+            fontWeight = FontWeight.Bold,
+            fontSize = 20.sp
+        )
+    }
+}
+
+/**
+ * Coupon code list. Single column when there are <= 3 codes, two columns when
+ * there are more (so a 5- or 6-coupon facility doesn't push the buttons off
+ * the bottom of the screen).
+ */
+@Composable
+private fun CouponCodeGrid(codes: List<String>) {
+    val twoColumns = codes.size > 3
+    val rows: List<List<String>> = if (twoColumns) codes.chunked(2) else codes.map { listOf(it) }
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        rows.forEachIndexed { rowIndex, rowCodes ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                rowCodes.forEachIndexed { colIndex, code ->
+                    val flatIndex = if (twoColumns) rowIndex * 2 + colIndex else rowIndex
+                    CouponCodeCell(
+                        number = flatIndex + 1,
+                        code = code,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                // If this is the last row of an odd count in 2-col mode, pad
+                // the empty slot so the lone code doesn't stretch full-width.
+                if (twoColumns && rowCodes.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CouponCodeCell(number: Int, code: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = stringResource(R.string.coupon_issued_number, number),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = code,
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 4.sp
+                ),
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
-            
-            Text(
-                text = stringResource(R.string.coupon_issued_message),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
-            
-            // Coupons section
-            if (actualCoupons.isNotEmpty()) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.coupon_issued_referral_title),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        
-                        Text(
-                            text = stringResource(R.string.coupon_issued_instructions, actualCoupons.size),
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center
-                        )
-                        
-                        // Display each coupon with a number
-                        actualCoupons.forEachIndexed { index, couponCode ->
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.coupon_issued_number, index + 1),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
-                                    modifier = Modifier.padding(bottom = 4.dp)
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(
-                                            color = MaterialTheme.colorScheme.surface,
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
-                                        .border(
-                                            width = 2.dp,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = couponCode,
-                                        style = MaterialTheme.typography.headlineMedium.copy(
-                                            fontFamily = FontFamily.Monospace,
-                                            letterSpacing = 4.sp
-                                        ),
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                        
-                        Text(
-                            text = stringResource(R.string.coupon_issued_usage),
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-            }
-            
-            // Continue to payment button
-            Button(
-                onClick = {
-                    if (!surveyId.isNullOrBlank()) {
-                        scope.launch {
-                            val surveyConfig = actualDatabase.surveyConfigDao().getSurveyConfig()
-                            val facilityConfig = actualDatabase.facilityConfigDao().getFacilityConfig()
-                            val survey = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                                actualDatabase.surveyDao().getSurveyById(surveyId)
-                            }
-
-                            // Check if we should show walk-in recruitment payment instructions
-                            val isWalkIn = survey?.referralCouponCode == null
-                            val isFingerprintDisabled = surveyConfig?.fingerprintEnabled == false
-                            val hasRecruitmentPayment = (facilityConfig?.recruitmentPaymentAmount ?: 0.0) > 0.0
-                            val shouldShowWalkInInstructions = isWalkIn && isFingerprintDisabled && hasRecruitmentPayment
-
-                            Log.d("CouponIssuedScreen", "Navigation decision:")
-                            Log.d("CouponIssuedScreen", "  isWalkIn: $isWalkIn")
-                            Log.d("CouponIssuedScreen", "  isFingerprintDisabled: $isFingerprintDisabled")
-                            Log.d("CouponIssuedScreen", "  hasRecruitmentPayment: $hasRecruitmentPayment")
-                            Log.d("CouponIssuedScreen", "  shouldShowWalkInInstructions: $shouldShowWalkInInstructions")
-
-                            if (shouldShowWalkInInstructions) {
-                                // Navigate to walk-in recruitment payment instructions
-                                navController.navigate("${AppDestinations.WALKIN_RECRUITMENT_PAYMENT}/$surveyId")
-                            } else {
-                                // Original logic: check for HIV test or go directly to payment
-                                val isHivTestEnabled = surveyConfig?.hivRapidTestEnabled == true
-
-                                if (isHivTestEnabled) {
-                                    // Navigate to HIV test result screen
-                                    navController.navigate("${AppDestinations.HIV_TEST_RESULT}/$surveyId")
-                                } else {
-                                    // Navigate to payment screen
-                                    navController.navigate("${AppDestinations.SUBJECT_PAYMENT}/$surveyId?coupons=${actualCoupons.joinToString(",")}")
-                                }
-                            }
-                        }
-                    } else {
-                        // No surveyId provided, error state
-                        Log.e("CouponIssuedScreen", "No survey ID provided")
-                    }
-                },
-                enabled = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.coupon_issued_continue_payment),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

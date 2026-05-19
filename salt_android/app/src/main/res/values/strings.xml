@@ -196,7 +196,11 @@
     <string name="lab_title">Biological Sample Collection</string>
     <string name="lab_subject_id">Subject ID</string>
     <string name="lab_instructions">Instructions</string>
-    <string name="lab_instructions_text">1. Collect biological samples according to protocol\n2. Label each sample with the Subject ID shown above\n3. Store samples as per guidelines\n4. Confirm collection or indicate if subject refused</string>
+    <string name="lab_instructions_text">1. Collect biological samples according to protocol\n2. Label each sample with \"%1$s\"\n3. Store samples as per guidelines\n4. Confirm collection or indicate if subject refused</string>
+    <string name="lab_step_1">Collect biological samples according to protocol</string>
+    <string name="lab_step_2_label">Label each sample with:</string>
+    <string name="lab_step_3">Store samples as per guidelines</string>
+    <string name="lab_step_4">Confirm collection or indicate if subject refused</string>
     <string name="lab_refused">Subject Refused</string>
     <string name="lab_collected">Samples Collected &amp; Labeled</string>
 
@@ -285,11 +289,23 @@
     <string name="coupon_issued_number">Coupon %1$d</string>
     <string name="coupon_issued_usage">Each coupon can be used once for survey participation</string>
     <string name="coupon_issued_continue_payment">Continue to Payment</string>
+    <!-- Referral Coupons screen (replaces old Survey Complete layout) -->
+    <string name="coupon_screen_section_title">Issue Recruitment Coupons</string>
+    <string name="coupon_screen_step_1">Get %1$d blank recruitment coupon cards.</string>
+    <string name="coupon_screen_step_2">Write a coupon code on each one using the codes below.</string>
+    <string name="coupon_screen_step_3">Give the coupons to the participant.</string>
+    <string name="coupon_screen_step_4">When ready, face the tablet toward the participant and press the button below. They will be provided instructions on how to use the coupons.</string>
+    <string name="coupon_screen_instructions_button">Coupon Instructions</string>
+    <string name="coupon_screen_instructions_modal_title">Coupon Instructions</string>
+    <string name="coupon_screen_instructions_fallback">Coupon instructions have not been configured yet — please contact your administrator.</string>
+    <string name="coupon_screen_instructions_done">Done</string>
+    <string name="coupon_screen_no_coupons">No coupons to distribute for this participant.</string>
+    <string name="coupon_screen_continue_disabled_hint">Press \"Coupon Instructions\" first so the participant knows how to use them.</string>
 
     <!-- Walk-in Recruitment Payment Instructions -->
     <string name="walkin_recruitment_title">Recruitment Payment Instructions</string>
     <string name="walkin_recruitment_your_code">Your Recruitment Code</string>
-    <string name="walkin_recruitment_instructions">Provide another coupon with this code on it. Also write the text \'Your coupon\' to it. Explain to the participant that this is their ID and will be required when they come in to be paid for recruiting people. No recruitment payments will be made without this code, so tell them not to lose it.</string>
+    <string name="walkin_recruitment_instructions">Provide the participant with a \'Payment Coupon\'. Explain to the participant that this is their ID and will be required when they come in to be paid for recruiting people. No recruitment payments will be made without this code, so tell them not to lose it.</string>
     <string name="walkin_recruitment_continue">Continue to Payment</string>
     <string name="cd_info">Information</string>
 

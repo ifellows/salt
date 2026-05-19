@@ -178,56 +178,10 @@ fun LabCollectionScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Subject ID Card
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = stringResource(R.string.lab_subject_id),
-                            fontSize = 14.sp,
-                            color = Color.Gray,
-                            fontWeight = FontWeight.Medium
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Large ID Display
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    Color.White,
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .border(
-                                    width = 2.dp,
-                                    color = Color(0xFF1976D2),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .padding(vertical = 24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = subjectId,
-                                fontSize = 48.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace,
-                                color = Color(0xFF1976D2),
-                                letterSpacing = 4.sp
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-                }
+                // (Subject ID card removed — the inline ID badge in step 2
+                // of the Instructions section is the only place the ID is
+                // shown now, so the staff focuses on the one they need to
+                // write on the tubes.)
 
                 // Required Lab Tests Card
                 Card(
@@ -412,28 +366,70 @@ fun LabCollectionScreen(
                     }
                 }
 
-                // Instructions Card
+                // Instructions section. Each step gets its own well so the
+                // staff member can't blur them together — especially step 2,
+                // which renders the literal subject ID in a large monospace
+                // badge so the operator never has to look back at the Subject
+                // ID card to figure out what to write on the tube.
+                Text(
+                    text = stringResource(R.string.lab_instructions),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 26.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                )
+
+                StepWell(number = 1, text = stringResource(R.string.lab_step_1))
+
+                // Step 2 — extended well that pairs the label with a giant
+                // ID badge below it.
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFECB3))
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.Top
                     ) {
-                        Text(
-                            text = stringResource(R.string.lab_instructions),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            color = Color(0xFFE65100)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = stringResource(R.string.lab_instructions_text),
-                            fontSize = 14.sp,
-                            color = Color(0xFF5D4037)
-                        )
+                        StepNumberBadge(2)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.lab_step_2_label),
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Medium,
+                                lineHeight = 30.sp,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                                    .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
+                                    .padding(vertical = 20.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = subjectId,
+                                    fontSize = 40.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    letterSpacing = 3.sp
+                                )
+                            }
+                        }
                     }
                 }
+
+                StepWell(number = 3, text = stringResource(R.string.lab_step_3))
+                StepWell(number = 4, text = stringResource(R.string.lab_step_4))
 
                 // Action Buttons
                 Row(
@@ -463,6 +459,52 @@ fun LabCollectionScreen(
                 }
 
             }
+        }
+    }
+}
+
+@Composable
+private fun StepNumberBadge(number: Int) {
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(22.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = number.toString(),
+            color = MaterialTheme.colorScheme.onPrimary,
+            fontWeight = FontWeight.Bold,
+            fontSize = 22.sp
+        )
+    }
+}
+
+@Composable
+private fun StepWell(number: Int, text: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            StepNumberBadge(number)
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = text,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Medium,
+                lineHeight = 30.sp,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
