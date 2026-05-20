@@ -845,4 +845,45 @@
     <string name="fingerprint_attempt_of">Tentative %1$d sur %2$d</string>
 
     <!-- Additional label strings (label_username, label_password, staff_validation_login already exist) -->
+
+    <!-- Coupon Logging Screen -->
+    <string name="coupon_log_title">Journal des coupons</string>
+    <string name="coupon_log_search_hint">Rechercher par code de coupon ou ID du sujet</string>
+    <string name="coupon_log_no_data">Aucune donnée de coupon trouvée</string>
+    <string name="coupon_log_col_recruit_id">ID du recruté</string>
+    <string name="coupon_log_col_status">Statut</string>
+    <string name="coupon_log_col_start">Début</string>
+    <string name="coupon_log_col_issued">Coupons émis</string>
+    <string name="coupon_log_seed_prefix">Graine : %1$s</string>
+    <string name="coupon_log_na">S.O.</string>
+    <string name="coupon_log_none">Aucun</string>
+
+    <!-- Developer Settings Screen -->
+    <string name="dev_settings_title">Paramètres développeur</string>
+    <string name="dev_settings_warning_title">Développement uniquement</string>
+    <string name="dev_settings_warning_body">Ces paramètres sont destinés aux tests et au développement. Ne les activez pas pendant la collecte de données en production.</string>
+    <string name="dev_settings_jexl_title">Déboguer les instructions conditionnelles</string>
+    <string name="dev_settings_jexl_desc">Affiche une boîte de dialogue de débogage interactive avant l\'évaluation de chaque expression JEXL. Permet de tester la logique de saut, les scripts de validation et les conditions d\'éligibilité.</string>
+    <string name="dev_settings_jexl_info_header">Lorsqu\'elle est activée, la boîte de débogage affichera :</string>
+    <string name="dev_settings_jexl_info_context">• Contexte : toutes les variables et leurs valeurs actuelles</string>
+    <string name="dev_settings_jexl_info_statement">• Instruction : l\'expression JEXL (modifiable pour les tests)</string>
+    <string name="dev_settings_jexl_info_result">• Résultat : résultat de l\'évaluation en direct ou message d\'erreur</string>
+    <string name="dev_settings_jexl_info_note">Remarque : les modifications dans la boîte de dialogue sont uniquement pour les tests et ne seront pas enregistrées dans l\'enquête.</string>
+    <string name="dev_settings_logs_section">Journaux de développement</string>
+    <string name="dev_settings_logs_default_note">Par défaut : activé dans les builds de débogage, désactivé en production. Le modifier ici remplace la valeur par défaut pour cet appareil.</string>
+    <string name="dev_settings_file_logging">Journalisation dans un fichier</string>
+    <string name="dev_settings_file_logging_desc">Écrire les journaux dans un fichier pour le téléversement et le débogage</string>
+    <string name="dev_settings_logcat">Journalisation Logcat</string>
+    <string name="dev_settings_logcat_desc">Écrire les journaux dans le logcat Android pour le débogage en temps réel</string>
+    <string name="dev_settings_log_status">État de la collecte des journaux</string>
+    <string name="dev_settings_log_size">Taille actuelle du fichier journal : %1$s</string>
+    <string name="dev_settings_log_auto_note">Les journaux sont collectés automatiquement pour le débogage</string>
+    <string name="dev_settings_uploading">Téléversement des journaux…</string>
+    <string name="dev_settings_upload_button">Téléverser les journaux de développement</string>
+    <string name="dev_settings_clear_button">Effacer tous les journaux</string>
+    <string name="dev_settings_upload_success_title">Téléversement réussi</string>
+    <string name="dev_settings_upload_failed_title">Échec du téléversement</string>
+    <string name="dev_settings_upload_success_msg">Journaux de développement téléversés avec succès</string>
+    <string name="dev_settings_server_error">Erreur du serveur %1$d : %2$s</string>
+    <string name="dev_settings_unknown_error">Erreur inconnue</string>
 </resources>

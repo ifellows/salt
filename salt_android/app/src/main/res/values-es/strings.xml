@@ -843,4 +843,45 @@
     <string name="usb_permission_message">Por favor otorgue permiso USB para usar el escáner de huellas dactilares.</string>
     <string name="usb_permission_message_full">Por favor otorgue permiso USB para usar el escáner de huellas dactilares. Cuando se le solicite, toque \'OK\' para permitir acceso al dispositivo.</string>
     <string name="usb_permission_title">Permiso USB requerido</string>
+
+    <!-- Coupon Logging Screen -->
+    <string name="coupon_log_title">Registro de cupones</string>
+    <string name="coupon_log_search_hint">Buscar por código de cupón o ID del sujeto</string>
+    <string name="coupon_log_no_data">No se encontraron datos de cupones</string>
+    <string name="coupon_log_col_recruit_id">ID de recluta</string>
+    <string name="coupon_log_col_status">Estado</string>
+    <string name="coupon_log_col_start">Inicio</string>
+    <string name="coupon_log_col_issued">Cupones emitidos</string>
+    <string name="coupon_log_seed_prefix">Semilla: %1$s</string>
+    <string name="coupon_log_na">N/D</string>
+    <string name="coupon_log_none">Ninguno</string>
+
+    <!-- Developer Settings Screen -->
+    <string name="dev_settings_title">Configuración de desarrollador</string>
+    <string name="dev_settings_warning_title">Solo para desarrollo</string>
+    <string name="dev_settings_warning_body">Esta configuración es para pruebas y desarrollo. No la active durante la recolección de datos en producción.</string>
+    <string name="dev_settings_jexl_title">Depurar sentencias condicionales</string>
+    <string name="dev_settings_jexl_desc">Muestra un cuadro de diálogo de depuración interactivo antes de evaluar cada expresión JEXL. Permite probar la lógica de omisión, los scripts de validación y las condiciones de elegibilidad.</string>
+    <string name="dev_settings_jexl_info_header">Cuando está activado, el cuadro de depuración mostrará:</string>
+    <string name="dev_settings_jexl_info_context">• Contexto: todas las variables y sus valores actuales</string>
+    <string name="dev_settings_jexl_info_statement">• Sentencia: la expresión JEXL (editable para pruebas)</string>
+    <string name="dev_settings_jexl_info_result">• Resultado: resultado de la evaluación en vivo o mensaje de error</string>
+    <string name="dev_settings_jexl_info_note">Nota: las ediciones en el cuadro de diálogo son solo para pruebas y no se guardarán en la encuesta.</string>
+    <string name="dev_settings_logs_section">Registros de desarrollo</string>
+    <string name="dev_settings_logs_default_note">Predeterminado: activado en compilaciones de depuración, desactivado en producción. Cambiarlo aquí anula el valor predeterminado para este dispositivo.</string>
+    <string name="dev_settings_file_logging">Registro en archivo</string>
+    <string name="dev_settings_file_logging_desc">Escribir registros en un archivo para carga y depuración</string>
+    <string name="dev_settings_logcat">Registro en Logcat</string>
+    <string name="dev_settings_logcat_desc">Escribir registros en el logcat de Android para depuración en tiempo real</string>
+    <string name="dev_settings_log_status">Estado de recolección de registros</string>
+    <string name="dev_settings_log_size">Tamaño actual del archivo de registro: %1$s</string>
+    <string name="dev_settings_log_auto_note">Los registros se recolectan automáticamente para depuración</string>
+    <string name="dev_settings_uploading">Subiendo registros…</string>
+    <string name="dev_settings_upload_button">Subir registros de desarrollo</string>
+    <string name="dev_settings_clear_button">Borrar todos los registros</string>
+    <string name="dev_settings_upload_success_title">Carga exitosa</string>
+    <string name="dev_settings_upload_failed_title">Carga fallida</string>
+    <string name="dev_settings_upload_success_msg">Registros de desarrollo subidos exitosamente</string>
+    <string name="dev_settings_server_error">Error del servidor %1$d: %2$s</string>
+    <string name="dev_settings_unknown_error">Error desconocido</string>
 </resources>

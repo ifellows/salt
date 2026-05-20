@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Release / default network security policy.
+
+    Cleartext (plain HTTP) is FORBIDDEN. A release-build production tablet can
+    only ever connect over HTTPS — there is no way for it to send survey data,
+    PII, or any payload in plaintext, to the internet or anywhere else.
+
+    Local-network plain-HTTP debugging is handled by a separate, permissive
+    copy of this file under src/debug/res/xml/ which overrides this one for
+    debug builds only.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

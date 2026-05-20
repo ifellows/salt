@@ -1790,14 +1790,14 @@ fun AdminDashboardScreen(
                 onClick = { navController.navigate(AppDestinations.COUPON_LOGGING) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Coupon Logging")
+                Text(stringResource(R.string.coupon_log_title))
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = { navController.navigate(AppDestinations.DEVELOPER_SETTINGS) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Developer Settings")
+                Text(stringResource(R.string.dev_settings_title))
             }
             // Add other admin functions
         }

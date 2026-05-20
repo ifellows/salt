@@ -752,4 +752,45 @@
     <string name="payment_phone_placeholder">Մուտքագրեք հեռախոսահամար</string>
     <string name="payment_phone_required">Հեռախոսահամարը պարտադիր է</string>
     <string name="payment_phone_audit_note">Վճարման աուդիտի նպատակների համար</string>
+
+    <!-- Coupon Logging Screen -->
+    <string name="coupon_log_title">Կտրոնների գրանցում</string>
+    <string name="coupon_log_search_hint">Որոնել ըստ կտրոնի կոդի կամ սուբյեկտի ID-ի</string>
+    <string name="coupon_log_no_data">Կտրոնների տվյալներ չեն գտնվել</string>
+    <string name="coupon_log_col_recruit_id">Հավաքագրվածի ID</string>
+    <string name="coupon_log_col_status">Կարգավիճակ</string>
+    <string name="coupon_log_col_start">Սկիզբ</string>
+    <string name="coupon_log_col_issued">Տրված կտրոններ</string>
+    <string name="coupon_log_seed_prefix">Սերմ՝ %1$s</string>
+    <string name="coupon_log_na">Չ/Կ</string>
+    <string name="coupon_log_none">Չկա</string>
+
+    <!-- Developer Settings Screen -->
+    <string name="dev_settings_title">Մշակողի կարգավորումներ</string>
+    <string name="dev_settings_warning_title">Միայն մշակման համար</string>
+    <string name="dev_settings_warning_body">Այս կարգավորումները նախատեսված են փորձարկման և մշակման համար։ Մի՛ միացրեք դրանք արտադրական տվյալների հավաքագրման ընթացքում։</string>
+    <string name="dev_settings_jexl_title">Վրիպազերծել պայմանական արտահայտությունները</string>
+    <string name="dev_settings_jexl_desc">Ցույց է տալիս ինտերակտիվ վրիպազերծման պատուհան յուրաքանչյուր JEXL արտահայտություն գնահատելուց առաջ։ Թույլ է տալիս փորձարկել բացթողման տրամաբանությունը, վավերացման սկրիպտները և իրավասության պայմանները։</string>
+    <string name="dev_settings_jexl_info_header">Միացված լինելու դեպքում վրիպազերծման պատուհանը ցույց կտա՝</string>
+    <string name="dev_settings_jexl_info_context">• Համատեքստ՝ բոլոր փոփոխականները և դրանց ընթացիկ արժեքները</string>
+    <string name="dev_settings_jexl_info_statement">• Արտահայտություն՝ JEXL արտահայտությունը (խմբագրելի փորձարկման համար)</string>
+    <string name="dev_settings_jexl_info_result">• Արդյունք՝ կենդանի գնահատման արդյունք կամ սխալի հաղորդագրություն</string>
+    <string name="dev_settings_jexl_info_note">Նշում՝ պատուհանում կատարված խմբագրումները միայն փորձարկման համար են և չեն պահպանվի հարցման մեջ։</string>
+    <string name="dev_settings_logs_section">Մշակման մատյաններ</string>
+    <string name="dev_settings_logs_default_note">Կանխադրված՝ միացված է վրիպազերծման կառուցումներում, անջատված՝ արտադրության մեջ։ Այստեղ փոխելը անտեսում է կանխադրվածն այս սարքի համար։</string>
+    <string name="dev_settings_file_logging">Մատյանագրում ֆայլում</string>
+    <string name="dev_settings_file_logging_desc">Գրել մատյանները ֆայլում՝ վերբեռնման և վրիպազերծման համար</string>
+    <string name="dev_settings_logcat">Logcat մատյանագրում</string>
+    <string name="dev_settings_logcat_desc">Գրել մատյանները Android logcat-ում՝ իրական ժամանակում վրիպազերծման համար</string>
+    <string name="dev_settings_log_status">Մատյանների հավաքագրման կարգավիճակ</string>
+    <string name="dev_settings_log_size">Մատյանի ֆայլի ընթացիկ չափը՝ %1$s</string>
+    <string name="dev_settings_log_auto_note">Մատյանները ավտոմատ կերպով հավաքագրվում են վրիպազերծման համար</string>
+    <string name="dev_settings_uploading">Մատյանների վերբեռնում…</string>
+    <string name="dev_settings_upload_button">Վերբեռնել մշակման մատյանները</string>
+    <string name="dev_settings_clear_button">Մաքրել բոլոր մատյանները</string>
+    <string name="dev_settings_upload_success_title">Վերբեռնումը հաջողվեց</string>
+    <string name="dev_settings_upload_failed_title">Վերբեռնումը ձախողվեց</string>
+    <string name="dev_settings_upload_success_msg">Մշակման մատյանները հաջողությամբ վերբեռնվեցին</string>
+    <string name="dev_settings_server_error">Սերվերի սխալ %1$d՝ %2$s</string>
+    <string name="dev_settings_unknown_error">Անհայտ սխալ</string>
 </resources>

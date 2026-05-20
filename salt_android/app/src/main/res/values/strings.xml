@@ -845,4 +845,45 @@
     <string name="fingerprint_attempt_of">Attempt %1$d of %2$d</string>
 
     <!-- Additional label strings (label_username, label_password, staff_validation_login already exist) -->
+
+    <!-- Coupon Logging Screen -->
+    <string name="coupon_log_title">Coupon Logging</string>
+    <string name="coupon_log_search_hint">Search by coupon code or subject ID</string>
+    <string name="coupon_log_no_data">No coupon data found</string>
+    <string name="coupon_log_col_recruit_id">Recruit ID</string>
+    <string name="coupon_log_col_status">Status</string>
+    <string name="coupon_log_col_start">Start</string>
+    <string name="coupon_log_col_issued">Issued Coupons</string>
+    <string name="coupon_log_seed_prefix">Seed: %1$s</string>
+    <string name="coupon_log_na">N/A</string>
+    <string name="coupon_log_none">None</string>
+
+    <!-- Developer Settings Screen -->
+    <string name="dev_settings_title">Developer Settings</string>
+    <string name="dev_settings_warning_title">Development Only</string>
+    <string name="dev_settings_warning_body">These settings are for testing and development. Do not enable during production data collection.</string>
+    <string name="dev_settings_jexl_title">Debug Conditional Statements</string>
+    <string name="dev_settings_jexl_desc">Show an interactive debug dialog before each JEXL expression is evaluated. Allows testing skip logic, validation scripts, and eligibility conditions.</string>
+    <string name="dev_settings_jexl_info_header">When enabled, the debug dialog will show:</string>
+    <string name="dev_settings_jexl_info_context">• Context: All variables and their current values</string>
+    <string name="dev_settings_jexl_info_statement">• Statement: The JEXL expression (editable for testing)</string>
+    <string name="dev_settings_jexl_info_result">• Result: Live evaluation result or error message</string>
+    <string name="dev_settings_jexl_info_note">Note: Edits in the dialog are for testing only and will not be saved to the survey.</string>
+    <string name="dev_settings_logs_section">Development Logs</string>
+    <string name="dev_settings_logs_default_note">Default: on in debug builds, off in production. Toggling here overrides the default for this device.</string>
+    <string name="dev_settings_file_logging">File Logging</string>
+    <string name="dev_settings_file_logging_desc">Write logs to file for upload and debugging</string>
+    <string name="dev_settings_logcat">Logcat Logging</string>
+    <string name="dev_settings_logcat_desc">Write logs to Android logcat for real-time debugging</string>
+    <string name="dev_settings_log_status">Log Collection Status</string>
+    <string name="dev_settings_log_size">Current log file size: %1$s</string>
+    <string name="dev_settings_log_auto_note">Logs are collected automatically for debugging</string>
+    <string name="dev_settings_uploading">Uploading Logs…</string>
+    <string name="dev_settings_upload_button">Upload Development Logs</string>
+    <string name="dev_settings_clear_button">Clear All Logs</string>
+    <string name="dev_settings_upload_success_title">Upload Successful</string>
+    <string name="dev_settings_upload_failed_title">Upload Failed</string>
+    <string name="dev_settings_upload_success_msg">Development logs uploaded successfully</string>
+    <string name="dev_settings_server_error">Server error %1$d: %2$s</string>
+    <string name="dev_settings_unknown_error">Unknown error</string>
 </resources>

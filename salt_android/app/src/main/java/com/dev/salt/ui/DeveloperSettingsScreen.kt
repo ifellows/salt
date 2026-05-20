@@ -12,10 +12,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.dev.salt.BuildConfig
+import com.dev.salt.R
 import com.dev.salt.debug.DeveloperSettingsManager
 import com.dev.salt.data.SurveyDatabase
 import com.dev.salt.logging.AppLogger
@@ -90,12 +92,12 @@ fun DeveloperSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Developer Settings") },
+                title = { Text(stringResource(R.string.dev_settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             Icons.Default.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.cd_back)
                         )
                     }
                 }
@@ -128,13 +130,13 @@ fun DeveloperSettingsScreen(
                     )
                     Column {
                         Text(
-                            text = "Development Only",
+                            text = stringResource(R.string.dev_settings_warning_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.error
                         )
                         Text(
-                            text = "These settings are for testing and development. Do not enable during production data collection.",
+                            text = stringResource(R.string.dev_settings_warning_body),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
@@ -157,13 +159,13 @@ fun DeveloperSettingsScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = "Debug Conditional Statements",
+                            text = stringResource(R.string.dev_settings_jexl_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Medium
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Show an interactive debug dialog before each JEXL expression is evaluated. Allows testing skip logic, validation scripts, and eligibility conditions.",
+                            text = stringResource(R.string.dev_settings_jexl_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
@@ -192,25 +194,25 @@ fun DeveloperSettingsScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "When enabled, the debug dialog will show:",
+                            text = stringResource(R.string.dev_settings_jexl_info_header),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "• Context: All variables and their current values",
+                            text = stringResource(R.string.dev_settings_jexl_info_context),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
-                            text = "• Statement: The JEXL expression (editable for testing)",
+                            text = stringResource(R.string.dev_settings_jexl_info_statement),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
-                            text = "• Result: Live evaluation result or error message",
+                            text = stringResource(R.string.dev_settings_jexl_info_result),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Note: Edits in the dialog are for testing only and will not be saved to the survey.",
+                            text = stringResource(R.string.dev_settings_jexl_info_note),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
@@ -223,12 +225,12 @@ fun DeveloperSettingsScreen(
 
             // Development Logs Section
             Text(
-                text = "Development Logs",
+                text = stringResource(R.string.dev_settings_logs_section),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Default: on in debug builds, off in production. Toggling here overrides the default for this device.",
+                text = stringResource(R.string.dev_settings_logs_default_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
@@ -248,13 +250,13 @@ fun DeveloperSettingsScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = "File Logging",
+                            text = stringResource(R.string.dev_settings_file_logging),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Medium
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Write logs to file for upload and debugging",
+                            text = stringResource(R.string.dev_settings_file_logging_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
@@ -286,13 +288,13 @@ fun DeveloperSettingsScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = "Logcat Logging",
+                            text = stringResource(R.string.dev_settings_logcat),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Medium
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Write logs to Android logcat for real-time debugging",
+                            text = stringResource(R.string.dev_settings_logcat_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
@@ -329,16 +331,16 @@ fun DeveloperSettingsScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Log Collection Status",
+                            text = stringResource(R.string.dev_settings_log_status),
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Text("Current log file size: ${formatBytes(logSize)}")
+                    Text(stringResource(R.string.dev_settings_log_size, formatBytes(logSize)))
                     Text(
-                        text = "Logs are collected automatically for debugging",
+                        text = stringResource(R.string.dev_settings_log_auto_note),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -357,11 +359,11 @@ fun DeveloperSettingsScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Uploading Logs...")
+                    Text(stringResource(R.string.dev_settings_uploading))
                 } else {
                     Icon(Icons.Default.Upload, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Upload Development Logs")
+                    Text(stringResource(R.string.dev_settings_upload_button))
                 }
             }
 
@@ -373,7 +375,7 @@ fun DeveloperSettingsScreen(
             ) {
                 Icon(Icons.Default.Delete, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Clear All Logs")
+                Text(stringResource(R.string.dev_settings_clear_button))
             }
 
             // Upload result dialog
@@ -383,29 +385,29 @@ fun DeveloperSettingsScreen(
                     title = {
                         Text(
                             text = when (uploadResult) {
-                                is UploadResult.Success -> "Upload Successful"
-                                else -> "Upload Failed"
+                                is UploadResult.Success -> stringResource(R.string.dev_settings_upload_success_title)
+                                else -> stringResource(R.string.dev_settings_upload_failed_title)
                             }
                         )
                     },
                     text = {
                         Text(
                             text = when (uploadResult) {
-                                is UploadResult.Success -> "Development logs uploaded successfully"
+                                is UploadResult.Success -> stringResource(R.string.dev_settings_upload_success_msg)
                                 is UploadResult.NetworkError -> (uploadResult as UploadResult.NetworkError).message
                                 is UploadResult.ServerError -> {
                                     val error = uploadResult as UploadResult.ServerError
-                                    "Server error ${error.code}: ${error.message}"
+                                    stringResource(R.string.dev_settings_server_error, error.code, error.message)
                                 }
                                 is UploadResult.ConfigurationError -> (uploadResult as UploadResult.ConfigurationError).message
                                 is UploadResult.UnknownError -> (uploadResult as UploadResult.UnknownError).message
-                                else -> "Unknown error"
+                                else -> stringResource(R.string.dev_settings_unknown_error)
                             }
                         )
                     },
                     confirmButton = {
                         TextButton(onClick = { uploadResult = null }) {
-                            Text("OK")
+                            Text(stringResource(R.string.common_ok))
                         }
                     }
                 )

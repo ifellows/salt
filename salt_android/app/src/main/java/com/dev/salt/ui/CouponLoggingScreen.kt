@@ -15,9 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.dev.salt.R
 import com.dev.salt.data.SurveyDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -141,10 +143,10 @@ fun CouponLoggingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Coupon Logging") },
+                title = { Text(stringResource(R.string.coupon_log_title)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                     }
                 }
             )
@@ -161,7 +163,7 @@ fun CouponLoggingScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Search by coupon code or subject ID") },
+                label = { Text(stringResource(R.string.coupon_log_search_hint)) },
                 singleLine = true
             )
 
@@ -179,7 +181,7 @@ fun CouponLoggingScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("No coupon data found")
+                    Text(stringResource(R.string.coupon_log_no_data))
                 }
             } else {
                 // Make the entire table scrollable both directions
@@ -196,25 +198,25 @@ fun CouponLoggingScreen(
                         horizontalArrangement = Arrangement.Start
                     ) {
                         Text(
-                            "Recruit ID",
+                            stringResource(R.string.coupon_log_col_recruit_id),
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.width(120.dp),
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            "Status",
+                            stringResource(R.string.coupon_log_col_status),
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.width(120.dp),
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            "Start",
+                            stringResource(R.string.coupon_log_col_start),
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.width(140.dp),
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            "Issued Coupons",
+                            stringResource(R.string.coupon_log_col_issued),
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.width(400.dp),
                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -252,7 +254,7 @@ fun CouponLogRow(
         // Combined Recruit ID column (shows referral coupon if not seed, otherwise subject ID)
         Text(
             text = if (entry.referralCoupon.isNullOrEmpty()) {
-                "Seed: ${entry.subjectId ?: "N/A"}"
+                stringResource(R.string.coupon_log_seed_prefix, entry.subjectId ?: stringResource(R.string.coupon_log_na))
             } else {
                 entry.referralCoupon
             },
@@ -286,7 +288,8 @@ fun CouponLogRow(
 
         // Start time column
         Text(
-            text = entry.surveyStartTime?.let { dateFormatter.format(Date(it)) } ?: "N/A",
+            text = entry.surveyStartTime?.let { dateFormatter.format(Date(it)) }
+                ?: stringResource(R.string.coupon_log_na),
             modifier = Modifier.width(140.dp)
         )
 
@@ -297,7 +300,7 @@ fun CouponLogRow(
         ) {
             if (entry.issuedCoupons.isEmpty()) {
                 Text(
-                    text = "None",
+                    text = stringResource(R.string.coupon_log_none),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
