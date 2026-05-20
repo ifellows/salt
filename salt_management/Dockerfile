@@ -41,6 +41,12 @@ RUN curl -fsSL -o /tmp/quarto.deb \
     && rm /tmp/quarto.deb \
     && rm -rf /var/lib/apt/lists/*
 
+# TinyTeX — the LaTeX engine Quarto needs to render PDF output. The
+# rocker/tidyverse base ships no TeX distribution, so any report with
+# `format: pdf` fails without this. TinyTeX is ~200 MB (vs multi-GB for a
+# full TeX Live) and auto-installs missing LaTeX packages on demand.
+RUN quarto install tinytex --no-prompt
+
 # R packages used by the reports executor.
 RUN install2.r --error --skipinstalled \
         RDS DBI RSQLite httr jsonlite lubridate scales uuid \
@@ -61,6 +67,7 @@ COPY scripts/ ./scripts/
 RUN mkdir -p \
         /app/data/database \
         /app/data/audit \
+        /app/data/files \
         /app/data/uploads/surveys \
         /app/data/uploads/recruitment_payments \
         /app/data/uploads/labs \

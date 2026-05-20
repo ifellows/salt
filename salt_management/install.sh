@@ -24,8 +24,13 @@
 #   --image IMAGE       Docker image to run (default: build locally from the checkout).
 #                       Pass e.g. "fellstat/salt:latest" once the image is published.
 #   --upstream PORT     Container's published port on the host (default: 3000)
-#   --skip-firewall     Don't touch ufw
+#   --skip-firewall     Don't touch ufw at all
+#   --enable-firewall   Also activate ufw (allow 22/80/443) if it's inactive.
+#                       Without this, ufw rules are added but ufw is NOT
+#                       enabled — so an existing iptables setup isn't disturbed.
 #   --skip-nginx        Don't run setup-nginx.sh (no TLS termination)
+#   --proceed           Forwarded to setup-nginx.sh — required to continue
+#                       when an existing nginx with enabled sites is found.
 #   -h, --help          Show this help and exit
 #
 # What this script does, in order:
@@ -54,7 +59,9 @@ REPO_BRANCH="main"
 IMAGE=""              # empty = build locally
 UPSTREAM_PORT=3000
 SKIP_FIREWALL=0
+ENABLE_FIREWALL=0
 SKIP_NGINX=0
+PROCEED=0
 
 # REPO_DIR is the salt_management/ directory we'll run subcommands from.
 # When this script is curl-piped to bash, $0 is "bash" or similar — there's no
@@ -79,7 +86,9 @@ while [[ $# -gt 0 ]]; do
         --image)        IMAGE="$2"; shift 2 ;;
         --upstream)     UPSTREAM_PORT="$2"; shift 2 ;;
         --skip-firewall) SKIP_FIREWALL=1; shift ;;
+        --enable-firewall) ENABLE_FIREWALL=1; shift ;;
         --skip-nginx)   SKIP_NGINX=1; shift ;;
+        --proceed)      PROCEED=1; shift ;;
         -h|--help)      usage ;;
         -*)             echo "Unknown flag: $1" >&2; usage ;;
         *)
@@ -166,6 +175,19 @@ fi
 log "Preparing $INSTALL_DIR..."
 mkdir -p "$INSTALL_DIR/salt-data"
 
+# The Android APK is served by the app from data/files/. Since data/ is a
+# volume mount (and dockerignored), the APK never reaches the container via
+# the image — copy it from the repo checkout into the host volume so
+# /files/salt.apk works. Repo is the source of truth for the shipped version.
+APK_SRC_DIR="$REPO_DIR/data/files"
+if [[ -d "$APK_SRC_DIR" ]] && compgen -G "$APK_SRC_DIR/*.apk" >/dev/null; then
+    log "Copying APK(s) into $INSTALL_DIR/salt-data/files/..."
+    mkdir -p "$INSTALL_DIR/salt-data/files"
+    cp -f "$APK_SRC_DIR"/*.apk "$INSTALL_DIR/salt-data/files/"
+else
+    log "No APK found at $APK_SRC_DIR — /files/salt.apk will 404 until you add one."
+fi
+
 # ---- 4. Image: pull or build ----------------------------------------------
 if [[ -n "$IMAGE" ]]; then
     log "Pulling image: $IMAGE"
@@ -203,6 +225,13 @@ services:
       timeout: 5s
       retries: 3
       start_period: 45s
+    # Cap container log growth — morgan logs every request, so json-file
+    # logs grow unbounded without this. Keeps at most 50 MB (5 x 10 MB).
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 COMPOSE
 
 # ---- 6. Start container ---------------------------------------------------
@@ -223,23 +252,36 @@ for i in $(seq 1 60); do
 done
 
 # ---- 8. Firewall ----------------------------------------------------------
+# Adding ufw allow-rules is harmless whether ufw is active or not. ENABLING
+# ufw is not: on a host firewalled some other way (raw iptables, cloud
+# firewall) it could cut off services on other ports. So enabling is opt-in
+# via --enable-firewall.
 if [[ "$SKIP_FIREWALL" -eq 0 ]]; then
-    log "Configuring ufw (allow 22/tcp, 80/tcp, 443/tcp)..."
+    log "Adding ufw allow rules (22/tcp, 80/tcp, 443/tcp)..."
     ufw allow 22/tcp >/dev/null
     ufw allow 80/tcp >/dev/null
     ufw allow 443/tcp >/dev/null
-    # Only enable ufw non-interactively if it's currently inactive AND user
-    # didn't ask to skip — don't surprise an admin who already has a policy.
     if ufw status | grep -q "Status: inactive"; then
-        log "Enabling ufw..."
-        echo "y" | ufw enable >/dev/null
+        if [[ "$ENABLE_FIREWALL" -eq 1 ]]; then
+            log "Enabling ufw (--enable-firewall given)..."
+            echo "y" | ufw enable >/dev/null
+        else
+            log "ufw is inactive — leaving it that way. Rules are staged; run 'ufw enable' yourself, or re-run with --enable-firewall."
+        fi
     fi
 fi
 
 # ---- 9. Reverse proxy + TLS -----------------------------------------------
 if [[ "$SKIP_NGINX" -eq 0 ]]; then
     log "Setting up nginx + Let's Encrypt for $DOMAIN..."
-    bash "$REPO_DIR/setup-nginx.sh" "$DOMAIN" "$EMAIL" --upstream "$UPSTREAM_PORT"
+    NGINX_ARGS=("$DOMAIN" "$EMAIL" --upstream "$UPSTREAM_PORT")
+    [[ "$PROCEED" -eq 1 ]] && NGINX_ARGS+=(--proceed)
+    # setup-nginx.sh exits non-zero (blast-radius guard) if it finds an
+    # existing nginx and --proceed wasn't passed. Surface that clearly
+    # instead of letting `set -e` abort with no context.
+    if ! bash "$REPO_DIR/setup-nginx.sh" "${NGINX_ARGS[@]}"; then
+        fail "Reverse proxy setup did not complete. If an existing nginx was detected, review the warning above and re-run install.sh with --proceed (or --skip-nginx to wire your own proxy at 127.0.0.1:$UPSTREAM_PORT)."
+    fi
 fi
 
 # ---- 10. Summary ----------------------------------------------------------

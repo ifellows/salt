@@ -20,6 +20,7 @@ DATA_ROOT=/app/data
 mkdir -p \
     "$DATA_ROOT/database" \
     "$DATA_ROOT/audit" \
+    "$DATA_ROOT/files" \
     "$DATA_ROOT/uploads/surveys" \
     "$DATA_ROOT/uploads/recruitment_payments" \
     "$DATA_ROOT/uploads/labs" \

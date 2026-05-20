@@ -32,3 +32,10 @@ services:
       timeout: 5s
       retries: 3
       start_period: 45s
+    # Cap container log growth — morgan logs every request, so json-file
+    # logs grow unbounded without this. Keeps at most 50 MB (5 × 10 MB).
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

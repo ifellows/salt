@@ -26,15 +26,20 @@ set -euo pipefail
 DOMAIN=""
 EMAIL=""
 UPSTREAM_PORT=3000
+PROCEED=0
 
 usage() {
     sed -n '3,18p' "$0"
+    echo
+    echo "  --proceed   Required to continue when an existing nginx with enabled"
+    echo "              sites is detected (blast-radius guard)."
     exit 1
 }
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --upstream) UPSTREAM_PORT="$2"; shift 2 ;;
+        --proceed)  PROCEED=1; shift ;;
         -h|--help) usage ;;
         -*) echo "Unknown flag: $1" >&2; usage ;;
         *)
@@ -58,6 +63,45 @@ fi
 
 if ! grep -qiE 'debian|ubuntu' /etc/os-release 2>/dev/null; then
     echo "Warning: this installer was written for Debian/Ubuntu. Continuing, but apt commands may fail on other distros." >&2
+fi
+
+# --- Blast-radius guard ----------------------------------------------------
+# If nginx is ALREADY installed and has enabled sites, this is a non-trivial
+# host. This script adds a 'salt' site, disables the 'default' site, and runs
+# certbot — all of which touch shared nginx state. Make the operator opt in.
+if command -v nginx >/dev/null 2>&1; then
+    EXISTING_SITES=()
+    if [[ -d /etc/nginx/sites-enabled ]]; then
+        for site in /etc/nginx/sites-enabled/*; do
+            [[ -e "$site" || -L "$site" ]] || continue
+            base="$(basename "$site")"
+            [[ "$base" == "salt" ]] && continue   # our own site from a prior run
+            EXISTING_SITES+=("$base")
+        done
+    fi
+    if [[ ${#EXISTING_SITES[@]} -gt 0 && "$PROCEED" -ne 1 ]]; then
+        cat >&2 <<WARN
+
+================================================================
+WARNING: existing nginx detected with enabled site(s):
+    ${EXISTING_SITES[*]}
+
+This script will, on this host:
+  - add an nginx site 'salt' (server_name $DOMAIN)
+  - disable the 'default' site (its config is backed up to
+    /etc/nginx/sites-available/default_old — not deleted)
+  - run certbot, which edits nginx config in place and reloads
+
+Other sites are left alone, but a server_name collision or a
+pre-existing config error will surface here.
+
+Re-run with --proceed once you've reviewed this. To skip nginx
+entirely and wire your own proxy at 127.0.0.1:$UPSTREAM_PORT, run
+install.sh with --skip-nginx.
+================================================================
+WARN
+        exit 1
+    fi
 fi
 
 echo "[setup-nginx] Installing nginx + certbot..."
@@ -111,10 +155,24 @@ NGINX
 
 ln -sf "$SITE_CONF" "$ENABLED_LINK"
 
-# Pull the stock default site out of the way (it claims port 80 on '_').
-if [[ -L "$DEFAULT_LINK" ]]; then
-    echo "[setup-nginx] Disabling default nginx site"
-    rm -f "$DEFAULT_LINK"
+# Pull the default site out of the way (it claims port 80 on the '_'
+# catch-all). Back it up rather than deleting it — an admin may have
+# customized it.
+if [[ -L "$DEFAULT_LINK" || -e "$DEFAULT_LINK" ]]; then
+    DEFAULT_BACKUP=/etc/nginx/sites-available/default_old
+    if [[ -L "$DEFAULT_LINK" ]]; then
+        # Symlink: copy the real config it points at, then drop the link.
+        DEFAULT_TARGET="$(readlink -f "$DEFAULT_LINK" 2>/dev/null || true)"
+        if [[ -n "$DEFAULT_TARGET" && -f "$DEFAULT_TARGET" && ! -e "$DEFAULT_BACKUP" ]]; then
+            cp -a "$DEFAULT_TARGET" "$DEFAULT_BACKUP"
+        fi
+        rm -f "$DEFAULT_LINK"
+    else
+        # Regular file directly in sites-enabled: move it out.
+        [[ -e "$DEFAULT_BACKUP" ]] || mv "$DEFAULT_LINK" "$DEFAULT_BACKUP"
+        rm -f "$DEFAULT_LINK"
+    fi
+    echo "[setup-nginx] Default site disabled (config preserved at $DEFAULT_BACKUP)"
 fi
 
 echo "[setup-nginx] Testing nginx config"

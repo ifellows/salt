@@ -189,6 +189,15 @@ won't add new *columns* to existing tables. If a future image adds new
 columns, a schema-evolution path will ship with that release. (As of v1.0
 no in-place column additions are needed.)
 
+**`/files/salt.apk` returns 404**
+The Android APK is served from `data/files/`. `install.sh` copies any
+`*.apk` from the repo checkout into `salt-data/files/` automatically. To
+update or add one manually:
+```bash
+cp salt-new.apk /opt/salt/salt-data/files/salt.apk
+```
+No restart needed — it's served straight off the volume.
+
 **Reset the admin password**
 ```bash
 docker exec -it salt sqlite3 /app/data/database/salt.db \
