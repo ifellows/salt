@@ -108,11 +108,14 @@ On a fresh database the init script creates:
   use it on a tablet to register against this facility).
 - **Three HIV lab tests**: HIV Confirmatory (dropdown), CD4 Count (numeric,
   cells/mm³), HIV Viral Load (numeric, copies/mL).
-- **Sample survey** (6 questions, English + Swahili) as a starter for the
-  survey editor.
+- **Short MSM Survey** — a complete, ready-to-run link-tracing survey,
+  seeded **active** so a tablet can sync it immediately.
+- **Sample survey** ("SALT HIV Survey", 6 questions) — a small **inactive**
+  starter for experimenting with the survey editor.
 
-All seeds are skipped if the corresponding tables already have rows, so
-restoring an existing volume into a new container preserves your data.
+Surveys are seeded only when the database has no surveys at all; the other
+seeds are skipped if their tables already have rows. Restoring an existing
+volume into a new container preserves your data.
 
 ## Operations
 
