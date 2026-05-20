@@ -22,16 +22,18 @@ container with a persistent volume + auto-restart, opens the firewall, runs
 key on success. Browse to `https://your-domain.example.org` and log in as
 `admin` / `admin123` (change the password immediately).
 
-Flags: `--install-dir`, `--image fellstat/salt:latest`, `--upstream PORT`,
+Flags: `--install-dir`, `--image IMAGE`, `--upstream PORT`,
 `--repo URL`, `--branch NAME`, `--skip-firewall`, `--skip-nginx`. Run
 `install.sh --help` for details.
 
-### Already have the image and just want to run it
+### Build the image and run it yourself
 
-On any host with Docker installed:
+No image is published, so build it from a checkout of this repo's
+`salt_management/` directory. On any host with Docker installed:
 
 ```bash
-docker run -d --name salt -p 127.0.0.1:3000:3000 -v "$PWD/salt-data:/app/data" --restart unless-stopped fellstat/salt:latest
+docker build -t salt-management .
+docker run -d --name salt -p 127.0.0.1:3000:3000 -v "$PWD/salt-data:/app/data" --restart unless-stopped salt-management
 sudo ./setup-nginx.sh your-domain.example.org admin@example.org
 ```
 
@@ -47,7 +49,8 @@ existing reverse proxy / Cloudflare Tunnel / load balancer at it.
 ### Local development / testing without HTTPS
 
 ```bash
-docker run -d --name salt -p 3000:3000 -v "$PWD/salt-data:/app/data" fellstat/salt:latest
+docker build -t salt-management .
+docker run -d --name salt -p 3000:3000 -v "$PWD/salt-data:/app/data" salt-management
 ```
 
 Visit `http://localhost:3000`.
@@ -137,12 +140,15 @@ The SQLite DB is small (typically < 100 MB even with thousands of subjects);
 audio files are stored inline in the DB, so the database file holds
 essentially everything.
 
-### Upgrade to a newer image
+### Upgrade
+
+Pull the latest source and rebuild:
 
 ```bash
-docker pull fellstat/salt:latest
+git pull
+docker build -t salt-management .
 docker stop salt && docker rm salt
-docker run -d --name salt -p 127.0.0.1:3000:3000 -v "$PWD/salt-data:/app/data" --restart unless-stopped fellstat/salt:latest
+docker run -d --name salt -p 127.0.0.1:3000:3000 -v "$PWD/salt-data:/app/data" --restart unless-stopped salt-management
 ```
 
 The entrypoint re-runs `init-database.js`, which is idempotent — it picks
@@ -208,17 +214,3 @@ docker exec -it salt sqlite3 /app/data/database/salt.db \
 docker exec salt node scripts/init-database.js
 ```
 The init script will re-create the `admin` / `admin123` row.
-
-## Publishing the image
-
-For maintainers only:
-
-```bash
-docker login
-docker buildx create --name multiplatform --use   # one-time
-docker buildx build \
-    --platform linux/amd64,linux/arm64 \
-    -t fellstat/salt:latest \
-    -t fellstat/salt:1.0.0 \
-    --push .
-```

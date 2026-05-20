@@ -42,5 +42,4 @@ termination, a prebuilt image, or local testing)? See
 | [Docker deployment](salt_management/README-DOCKER.md) | Running the server on an existing host — options, upgrades, backups, reverse proxy |
 | [Management server guide](salt_management/README.md) | Configuring surveys, facilities, users, lab tests, and data export |
 | [Android tablet setup](salt_android/README.md) | Installing and configuring the field data-collection app |
-| [Survey import / export](salt_management/SURVEY_IMPORT_EXPORT.md) | The survey bundle format and the import/export endpoints |
 | [SALT methodology](SALT.pdf) | The sampling design and statistical approach behind SALT |

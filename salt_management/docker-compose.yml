@@ -11,9 +11,8 @@
 # setup-nginx.sh in this directory for a one-shot installer.
 services:
   salt:
-    image: fellstat/salt:latest
-    # For local builds, comment the line above and uncomment:
-    # build: .
+    # No image is published — build locally from this directory.
+    build: .
     container_name: salt-management
     restart: unless-stopped
     ports:
