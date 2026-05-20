@@ -23,6 +23,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         openssl \
         sqlite3 \
         python3 \
+        libglpk40 \
+        libxml2 \
+        fonts-noto-core \
     && rm -rf /var/lib/apt/lists/*
 
 # Node.js 18 from NodeSource.

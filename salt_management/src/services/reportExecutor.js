@@ -40,6 +40,11 @@ class ReportExecutor {
         const finalRunDir = path.join(this.runsDir, runId);
 
         let runRecordId;
+        // Hoisted so the catch block can persist the real Quarto output to
+        // the DB. Without this the failure path saved error.stack — which is
+        // just the JS backtrace for the generic "Quarto execution failed"
+        // throw, not the actual R/Quarto error the user needs.
+        let quartoLogs = '';
 
         try {
             // 0. Check if Quarto is available
@@ -89,6 +94,7 @@ class ReportExecutor {
 
             // 6. Execute Quarto to generate all formats
             const { logs, success } = await this.runQuarto(tempRunDir);
+            quartoLogs = logs;
 
             // 7. Move outputs to permanent storage
             await fs.mkdir(finalRunDir, { recursive: true });
@@ -160,6 +166,10 @@ class ReportExecutor {
             // Update run record with error - with additional error handling
             if (runRecordId) {
                 try {
+                    // Persist the actual Quarto/R output when we have it (a
+                    // failed render); fall back to the JS stack only for
+                    // earlier failures where no render ran.
+                    const logOutput = quartoLogs || error.stack || '';
                     await runAsync(
                         `UPDATE report_runs
                          SET status = 'failed',
@@ -167,7 +177,7 @@ class ReportExecutor {
                              error_message = ?,
                              log_output = ?
                          WHERE id = ?`,
-                        [error.message, error.stack || '', runRecordId]
+                        [error.message, logOutput, runRecordId]
                     );
                 } catch (dbError) {
                     console.error('Failed to update database with error status:', dbError);
@@ -230,7 +240,13 @@ class ReportExecutor {
                 'quarto render report.qmd --to html,pdf,docx',
                 {
                     cwd: workDir,
-                    timeout: 300000, // 5 minute timeout
+                    // 4 hours. Reports with bootstrap/resampling steps can run
+                    // a long time; the timeout is only a backstop against a
+                    // genuinely stuck render.
+                    timeout: 14400000,
+                    // exec() buffers stdout/stderr in memory; the 1 MB default
+                    // would ENOBUFS-kill a long, chatty render. 64 MB headroom.
+                    maxBuffer: 64 * 1024 * 1024,
                     env: { ...process.env, LANG: 'en_US.UTF-8' }
                 },
                 (error, stdout, stderr) => {
