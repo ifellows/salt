@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.dev.salt.BuildConfig
 import com.dev.salt.debug.DeveloperSettingsManager
 import com.dev.salt.data.SurveyDatabase
 import com.dev.salt.logging.AppLogger
@@ -39,13 +40,15 @@ fun DeveloperSettingsScreen(
         mutableStateOf(DeveloperSettingsManager.isJexlDebugEnabled(context))
     }
 
-    // Logging preferences
+    // Logging preferences. Default = BuildConfig.DEBUG so the switches read
+    // OFF on a fresh production build and ON in debug builds, matching
+    // AppLogger's own defaults.
     val prefs = remember { context.getSharedPreferences("dev_settings", android.content.Context.MODE_PRIVATE) }
     var fileLoggingEnabled by remember {
-        mutableStateOf(prefs.getBoolean("file_logging_enabled", true))
+        mutableStateOf(prefs.getBoolean("file_logging_enabled", BuildConfig.DEBUG))
     }
     var logcatEnabled by remember {
-        mutableStateOf(prefs.getBoolean("logcat_enabled", true))
+        mutableStateOf(prefs.getBoolean("logcat_enabled", BuildConfig.DEBUG))
     }
 
     // Log upload state
@@ -223,6 +226,11 @@ fun DeveloperSettingsScreen(
                 text = "Development Logs",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Default: on in debug builds, off in production. Toggling here overrides the default for this device.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
 
             // File logging toggle

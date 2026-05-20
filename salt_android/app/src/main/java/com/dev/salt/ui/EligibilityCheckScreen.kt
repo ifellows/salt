@@ -456,13 +456,6 @@ fun EligibilityCheckScreen(
                         singleLine = true
                     )
 
-                    // Show hint for testing
-                    Text(
-                        text = stringResource(R.string.eligibility_test_hint),
-                        fontSize = 12.sp,
-                        color = Color.Gray
-                    )
-
                     errorMessage?.let { error ->
                         Text(
                             text = error,

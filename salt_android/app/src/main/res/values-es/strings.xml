@@ -69,7 +69,6 @@
     <string name="staff_validation_title">Validación del personal requerida</string>
     <string name="staff_validation_dialog_title">Inicio de sesión del personal</string>
     <string name="staff_validation_attempts_remaining">Intentos restantes: %1$d</string>
-    <string name="staff_validation_test_credentials">Credenciales de prueba: admin/123 o staff/123</string>
     <string name="staff_validation_cancelled">Autenticación cancelada</string>
     <string name="staff_validation_invalid">Nombre de usuario o contraseña inválidos</string>
 
@@ -400,7 +399,6 @@
     <string name="staff_validation_login">Inicio de Sesión del Personal</string>
     <string name="staff_validation_username">Nombre de usuario</string>
     <string name="staff_validation_password">Contraseña</string>
-    <string name="staff_validation_test_hint">Credenciales de prueba: admin/123 o staff/123</string>
     <string name="staff_validation_invalid_credentials">Nombre de usuario o contraseña inválidos</string>
     <string name="staff_validation_max_attempts">Se excedió el número máximo de intentos. Por favor reinicie la aplicación.</string>
     <string name="staff_validation_no_staff">No hay usuarios del personal configurados. Por favor use nombre de usuario y contraseña.</string>
@@ -654,7 +652,6 @@
     <string name="eligibility_password_button">Usar contraseña</string>
     <string name="eligibility_replay_audio">Reproducir mensaje de audio</string>
     <string name="eligibility_scanning">Escaneando...</string>
-    <string name="eligibility_test_hint">Cuentas de prueba: admin/123 o staff/123</string>
     <string name="eligibility_title">Gracias</string>
 
     <!-- Fingerprint Errors -->

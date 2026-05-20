@@ -2,6 +2,7 @@ package com.dev.salt.logging
 
 import android.content.Context
 import android.util.Log as AndroidLog
+import com.dev.salt.BuildConfig
 import java.io.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -15,9 +16,13 @@ object AppLogger {
     private const val LOG_DIR_NAME = "dev_logs"
     private const val CURRENT_LOG_FILE = "salt_dev_log.current.txt"
 
-    // Hardcoded for now (future: read from settings)
-    private var isFileLoggingEnabled = true
-    private var isLogcatEnabled = true
+    // Logging defaults to ON in debug builds and OFF in release/production
+    // builds. The effective value is loaded from the "dev_settings" prefs in
+    // init(); these initializers cover anything that logs before init() runs.
+    // An explicit toggle in Developer Settings persists and overrides the
+    // build-type default.
+    private var isFileLoggingEnabled = BuildConfig.DEBUG
+    private var isLogcatEnabled = BuildConfig.DEBUG
 
     private var logDir: File? = null
     private val executor = Executors.newSingleThreadExecutor()
@@ -25,10 +30,11 @@ object AppLogger {
     private val dateFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
 
     fun init(context: Context) {
-        // Load settings from SharedPreferences
+        // Load settings from SharedPreferences. Default = BuildConfig.DEBUG,
+        // so a fresh release install logs nothing until an admin opts in.
         val prefs = context.getSharedPreferences("dev_settings", Context.MODE_PRIVATE)
-        isFileLoggingEnabled = prefs.getBoolean("file_logging_enabled", true)
-        isLogcatEnabled = prefs.getBoolean("logcat_enabled", true)
+        isFileLoggingEnabled = prefs.getBoolean("file_logging_enabled", BuildConfig.DEBUG)
+        isLogcatEnabled = prefs.getBoolean("logcat_enabled", BuildConfig.DEBUG)
 
         logDir = File(context.filesDir, LOG_DIR_NAME)
         val created = logDir?.mkdirs() ?: false
@@ -197,8 +203,8 @@ object AppLogger {
     // Update settings from SharedPreferences
     fun updateSettings(context: Context) {
         val prefs = context.getSharedPreferences("dev_settings", Context.MODE_PRIVATE)
-        isFileLoggingEnabled = prefs.getBoolean("file_logging_enabled", true)
-        isLogcatEnabled = prefs.getBoolean("logcat_enabled", true)
+        isFileLoggingEnabled = prefs.getBoolean("file_logging_enabled", BuildConfig.DEBUG)
+        isLogcatEnabled = prefs.getBoolean("logcat_enabled", BuildConfig.DEBUG)
 
         AndroidLog.i("AppLogger", "Settings updated: fileLogging=$isFileLoggingEnabled, logcat=$isLogcatEnabled")
     }

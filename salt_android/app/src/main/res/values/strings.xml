@@ -69,7 +69,6 @@
     <string name="staff_validation_title">Staff Validation Required</string>
     <string name="staff_validation_dialog_title">Staff Login</string>
     <string name="staff_validation_attempts_remaining">Attempts remaining: %1$d</string>
-    <string name="staff_validation_test_credentials">Test credentials: admin/123 or staff/123</string>
     <string name="staff_validation_cancelled">Authentication cancelled</string>
     <string name="staff_validation_invalid">Invalid username or password</string>
 
@@ -411,7 +410,6 @@
     <string name="staff_validation_login">Staff Login</string>
     <string name="staff_validation_username">Username</string>
     <string name="staff_validation_password">Password</string>
-    <string name="staff_validation_test_hint">Test credentials: admin/123 or staff/123</string>
     <string name="staff_validation_invalid_credentials">Invalid username or password</string>
     <string name="staff_validation_max_attempts">Maximum attempts exceeded. Please restart the application.</string>
     <string name="staff_validation_no_staff">No staff users configured. Please use username and password.</string>
@@ -613,7 +611,6 @@
     <string name="eligibility_fingerprint_button">Authenticate with Fingerprint</string>
     <string name="eligibility_password_button">Use Password</string>
     <string name="eligibility_scanning">Scanning...</string>
-    <string name="eligibility_test_hint">Test accounts: admin/123 or staff/123</string>
 
     <!-- Fingerprint Error strings -->
     <string name="error_no_fingerprints_enrolled">No staff members have enrolled fingerprints</string>

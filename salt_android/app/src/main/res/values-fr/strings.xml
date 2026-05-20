@@ -69,7 +69,6 @@
     <string name="staff_validation_title">Validation du personnel requise</string>
     <string name="staff_validation_dialog_title">Connexion du personnel</string>
     <string name="staff_validation_attempts_remaining">Tentatives restantes : %1$d</string>
-    <string name="staff_validation_test_credentials">Identifiants de test : admin/123 ou staff/123</string>
     <string name="staff_validation_cancelled">Authentification annulée</string>
     <string name="staff_validation_invalid">Nom d\'utilisateur ou mot de passe invalide</string>
 
@@ -411,7 +410,6 @@
     <string name="staff_validation_login">Connexion du personnel</string>
     <string name="staff_validation_username">Nom d\'utilisateur</string>
     <string name="staff_validation_password">Mot de passe</string>
-    <string name="staff_validation_test_hint">Identifiants de test : admin/123 ou staff/123</string>
     <string name="staff_validation_invalid_credentials">Nom d\'utilisateur ou mot de passe invalide</string>
     <string name="staff_validation_max_attempts">Nombre maximum de tentatives dépassé. Veuillez redémarrer l\'application.</string>
     <string name="staff_validation_no_staff">Aucun utilisateur du personnel configuré. Veuillez utiliser le nom d\'utilisateur et le mot de passe.</string>
@@ -613,7 +611,6 @@
     <string name="eligibility_fingerprint_button">S\'authentifier avec l\'empreinte</string>
     <string name="eligibility_password_button">Utiliser le mot de passe</string>
     <string name="eligibility_scanning">Scan en cours…</string>
-    <string name="eligibility_test_hint">Comptes de test : admin/123 ou staff/123</string>
 
     <!-- Fingerprint Error strings -->
     <string name="error_no_fingerprints_enrolled">Aucun membre du personnel n\'a enregistré d\'empreinte</string>

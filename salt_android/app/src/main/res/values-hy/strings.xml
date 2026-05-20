@@ -70,7 +70,6 @@
     <string name="staff_validation_title">Անձնակազմի ստուգում է պահանջվում</string>
     <string name="staff_validation_dialog_title">Անձնակազմի մուտք</string>
     <string name="staff_validation_attempts_remaining">Մնացած փորձեր՝ %1$d</string>
-    <string name="staff_validation_test_credentials">Փորձարկման տվյալներ՝ admin/123 կամ staff/123</string>
     <string name="staff_validation_cancelled">Նույնականացումը չեղարկվեց</string>
     <string name="staff_validation_invalid">Սխալ օգտանուն կամ գաղտնաբառ</string>
     <string name="session_expiring_title">Սեսիան ավարտվում է</string>
@@ -336,7 +335,6 @@
     <string name="staff_validation_login">Անձնակազմի մուտք</string>
     <string name="staff_validation_username">Օգտանուն</string>
     <string name="staff_validation_password">Գաղտնաբառ</string>
-    <string name="staff_validation_test_hint">Փորձարկման տվյալներ՝ admin/123 կամ staff/123</string>
     <string name="staff_validation_invalid_credentials">Սխալ օգտանուն կամ գաղտնաբառ</string>
     <string name="staff_validation_max_attempts">Փորձերի առավելագույն քանակը գերազանցվեց։</string>
     <string name="staff_validation_no_staff">Անձնակազմի օգտատերեր չկան։</string>
@@ -510,7 +508,6 @@
     <string name="eligibility_fingerprint_button">Նույնականացվել մատնահետքով</string>
     <string name="eligibility_password_button">Օգտագործել գաղտնաբառ</string>
     <string name="eligibility_scanning">Սկանավորվում է...</string>
-    <string name="eligibility_test_hint">Փորձարկման հաշիվներ՝ admin/123 կամ staff/123</string>
 
     <!-- Fingerprint Error strings -->
     <string name="error_no_fingerprints_enrolled">Անձնակազմի գրանցված մատնահետքեր չկան</string>
