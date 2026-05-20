@@ -23,18 +23,8 @@ const express = require('express');
 const { getAsync, allAsync, runAsync } = require('../../models/database');
 const { requireAdmin } = require('../middleware/auth');
 const { logAudit } = require('../../services/auditService');
+const { importSurveyBundle, SCHEMA_VERSION } = require('../../services/surveyImport');
 const router = express.Router();
-
-const SCHEMA_VERSION = 1;
-
-const SURVEY_COLUMNS = [
-    'name', 'description', 'languages', 'version', 'is_active', 'eligibility_script',
-    'eligibility_message_json', 'base_survey_id', 'parent_survey_id', 'version_notes',
-    'is_draft', 'fingerprint_enabled', 're_enrollment_days',
-    'staff_validation_message_json', 'hiv_rapid_test_enabled', 'contact_info_enabled',
-    'staff_eligibility_screening', 'rapid_test_samples_after_eligibility',
-    'payment_audit_phone_enabled'
-];
 
 function safeFilename(s) {
     return String(s || 'survey').replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 60);
@@ -109,183 +99,51 @@ router.get('/admin/surveys/:id/export', requireAdmin, async (req, res) => {
 });
 
 router.post('/admin/surveys/import', requireAdmin, async (req, res) => {
-    const bundle = req.body;
-    if (!bundle || typeof bundle !== 'object') {
-        return res.status(400).json({ status: 'error', message: 'Body must be a survey export JSON object' });
-    }
-    if (bundle.schema_version !== SCHEMA_VERSION) {
-        return res.status(400).json({
-            status: 'error',
-            message: `Unsupported schema_version ${bundle.schema_version} — this server expects ${SCHEMA_VERSION}.`
-        });
-    }
-    const src = bundle.survey;
-    if (!src || typeof src !== 'object' || !src.name) {
-        return res.status(400).json({ status: 'error', message: 'Bundle is missing the survey object' });
-    }
-    const srcQuestions = Array.isArray(bundle.questions) ? bundle.questions : [];
-    if (srcQuestions.length === 0) {
-        return res.status(400).json({ status: 'error', message: 'Bundle has no questions' });
-    }
-    const srcSections = Array.isArray(bundle.sections) ? bundle.sections : [];
-    const srcOptions = Array.isArray(bundle.options) ? bundle.options : [];
-    const srcMessages = Array.isArray(bundle.survey_messages) ? bundle.survey_messages : [];
-    const srcTestConfigs = Array.isArray(bundle.test_configurations) ? bundle.test_configurations : [];
-
-    const warnings = [];
-
-    // Determine the next version number for this survey name so re-importing
-    // doesn't collide with an existing (name, version) tuple already on disk.
-    let importVersion = src.version || 1;
-    const existing = await allAsync(
-        'SELECT version FROM surveys WHERE name = ? ORDER BY version DESC', [src.name]
-    );
-    if (existing.length) {
-        importVersion = (existing[0].version || 0) + 1;
-        warnings.push(`Survey named "${src.name}" already exists; imported as version ${importVersion}.`);
-    }
-
-    // Warn if the bundle's test_configurations reference rapid test IDs the
-    // target catalog doesn't know about (the bundle stores test_id as a
-    // string; we just look them up to surface drift).
-    if (srcTestConfigs.length) {
-        const bundleTestIds = srcTestConfigs.map(t => t.test_id).filter(Boolean);
-        // No global test catalog table on the server — test ids live only in
-        // test_configurations + on the tablet. We just pass them through and
-        // note them in warnings so the admin can sanity-check.
-        warnings.push(`Imported ${bundleTestIds.length} rapid test configuration(s); verify they match the tablet build's rapid test ids.`);
-    }
-
-    // Lab tests are global; flag that they're not part of the bundle.
-    warnings.push('Lab test configurations are global to this deployment and were NOT included in the bundle — configure them via the Lab Tests admin if needed.');
-
+    // Core import logic lives in services/surveyImport so the fresh-deploy
+    // seeder (scripts/init-database.js) shares exactly this code path.
+    let result;
     try {
-        await runAsync('BEGIN');
-
-        // Build the survey row, forcing defaults that matter:
-        //   - new survey: not active, draft
-        //   - version: collision-avoiding (see above)
-        //   - parent/base ids dropped to avoid cross-deployment dangling FKs
-        const surveyCols = SURVEY_COLUMNS.slice();
-        const surveyVals = surveyCols.map(col => {
-            switch (col) {
-                case 'is_active': return 0;
-                case 'is_draft': return 1;
-                case 'version': return importVersion;
-                case 'base_survey_id':
-                case 'parent_survey_id': return null;
-                default:
-                    return col in src ? src[col] : null;
-            }
-        });
-        const placeholders = surveyCols.map(() => '?').join(',');
-        const surveyInsert = await runAsync(
-            `INSERT INTO surveys (${surveyCols.join(',')}) VALUES (${placeholders})`,
-            surveyVals
+        result = await importSurveyBundle(
+            { run: runAsync, all: allAsync },
+            req.body
         );
-        const newSurveyId = surveyInsert.id;
-
-        // Sections — remap section ids.
-        const sectionIdMap = new Map();
-        for (const s of srcSections) {
-            const r = await runAsync(
-                `INSERT INTO sections (survey_id, section_index, section_type, name, description)
-                 VALUES (?, ?, ?, ?, ?)`,
-                [newSurveyId, s.section_index, s.section_type, s.name, s.description || null]
-            );
-            sectionIdMap.set(s.id, r.id);
+    } catch (err) {
+        if (err && err.validation) {
+            return res.status(400).json({ status: 'error', message: err.message });
         }
+        console.error('Survey import error:', err);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Failed to import survey: ' + (err.message || err)
+        });
+    }
 
-        // Questions — remap survey_id + section_id.
-        const questionIdMap = new Map();
-        for (const q of srcQuestions) {
-            const remappedSection = q.section_id != null ? sectionIdMap.get(q.section_id) || null : null;
-            if (q.section_id != null && remappedSection == null) {
-                warnings.push(`Question "${q.short_name}" referenced section_id ${q.section_id} that wasn't in the bundle; section reference dropped.`);
-            }
-            const r = await runAsync(
-                `INSERT INTO questions (
-                    survey_id, question_index, short_name, question_text_json,
-                    audio_files_json, question_type, validation_script,
-                    validation_error_json, pre_script, section_id,
-                    min_selections, max_selections, skip_to_script, skip_to_target
-                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    newSurveyId, q.question_index, q.short_name, q.question_text_json,
-                    q.audio_files_json || null, q.question_type, q.validation_script || null,
-                    q.validation_error_json || null, q.pre_script || null, remappedSection,
-                    q.min_selections == null ? null : q.min_selections,
-                    q.max_selections == null ? null : q.max_selections,
-                    q.skip_to_script || null, q.skip_to_target || null
-                ]
-            );
-            questionIdMap.set(q.id, r.id);
-        }
-
-        // Options — remap question_id.
-        for (const o of srcOptions) {
-            const remappedQuestion = questionIdMap.get(o.question_id);
-            if (!remappedQuestion) continue; // skip orphan option
-            await runAsync(
-                `INSERT INTO options (question_id, option_index, option_text_json, audio_files_json, option_value)
-                 VALUES (?, ?, ?, ?, ?)`,
-                [remappedQuestion, o.option_index, o.option_text_json, o.audio_files_json || null, o.option_value || null]
-            );
-        }
-
-        // Survey messages — remap survey_id.
-        for (const m of srcMessages) {
-            await runAsync(
-                `INSERT INTO survey_messages
-                    (survey_id, message_key, display_order, message_text_json, audio_files_json, message_type)
-                 VALUES (?, ?, ?, ?, ?, ?)`,
-                [newSurveyId, m.message_key, m.display_order || 0,
-                 m.message_text_json, m.audio_files_json || '{}', m.message_type || 'system']
-            );
-        }
-
-        // Test configurations — remap survey_id.
-        for (const t of srcTestConfigs) {
-            await runAsync(
-                `INSERT INTO test_configurations (survey_id, test_id, test_name, enabled, display_order)
-                 VALUES (?, ?, ?, ?, ?)`,
-                [newSurveyId, t.test_id, t.test_name, t.enabled ? 1 : 0, t.display_order || 0]
-            );
-        }
-
-        await runAsync('COMMIT');
-
+    // The import already committed — a failed audit write must not 500 it.
+    try {
         await logAudit(
             req.user ? req.user.id : null,
             'IMPORT_SURVEY',
             'survey',
-            String(newSurveyId),
+            String(result.surveyId),
             null,
-            { name: src.name, version: importVersion,
-              questions: srcQuestions.length, sections: srcSections.length,
-              messages: srcMessages.length, test_configurations: srcTestConfigs.length,
-              source_version: src.version }
+            { name: result.name, version: result.version,
+              questions: result.counts.questions, sections: result.counts.sections,
+              messages: result.counts.survey_messages,
+              test_configurations: result.counts.test_configurations,
+              source_version: req.body && req.body.survey ? req.body.survey.version : undefined }
         );
-
-        res.json({
-            status: 'success',
-            surveyId: newSurveyId,
-            name: src.name,
-            version: importVersion,
-            counts: {
-                sections: srcSections.length,
-                questions: srcQuestions.length,
-                options: srcOptions.length,
-                survey_messages: srcMessages.length,
-                test_configurations: srcTestConfigs.length
-            },
-            warnings
-        });
-    } catch (err) {
-        try { await runAsync('ROLLBACK'); } catch (_) { /* ignore */ }
-        console.error('Survey import error:', err);
-        res.status(500).json({ status: 'error', message: 'Failed to import survey: ' + (err.message || err) });
+    } catch (auditErr) {
+        console.error('Audit log for IMPORT_SURVEY failed:', auditErr);
     }
+
+    res.json({
+        status: 'success',
+        surveyId: result.surveyId,
+        name: result.name,
+        version: result.version,
+        counts: result.counts,
+        warnings: result.warnings
+    });
 });
 
 module.exports = router;

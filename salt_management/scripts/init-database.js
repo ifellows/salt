@@ -16,9 +16,14 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const { importSurveyBundle } = require('../src/services/surveyImport');
 
-const dbPath = path.join(__dirname, '..', 'data', 'database', 'salt.db');
+const dbPath = process.env.SALT_DB_PATH
+    || path.join(__dirname, '..', 'data', 'database', 'salt.db');
 const dbDir = path.dirname(dbPath);
+
+// Survey export bundle seeded into a fresh database — see seedShortMsmSurvey().
+const SEED_SURVEY_PATH = path.join(__dirname, 'crane4_short_msm_survey.json');
 
 if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
@@ -539,6 +544,14 @@ function getAsync(db, sql, params = []) {
     });
 }
 
+function allAsync(db, sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) reject(err); else resolve(rows || []);
+        });
+    });
+}
+
 function execAsync(db, sql) {
     return new Promise((resolve, reject) => {
         db.exec(sql, (err) => {
@@ -602,7 +615,7 @@ async function ensureHivLabTests(db) {
             unit: null,
             description: 'Confirmatory lab test for subjects whose rapid HIV test was positive.',
             display_order: 1,
-            jexl_condition: "hiv == 'positive'"
+            jexl_condition: "hivrapid == 'positive'"
         },
         {
             test_name: 'CD4 Count',
@@ -614,7 +627,7 @@ async function ensureHivLabTests(db) {
             unit: 'cells/mm³',
             description: 'Absolute CD4 cell count for HIV-positive subjects.',
             display_order: 2,
-            jexl_condition: "hiv == 'positive'"
+            jexl_condition: "hivrapid == 'positive'"
         },
         {
             test_name: 'HIV Viral Load',
@@ -626,7 +639,7 @@ async function ensureHivLabTests(db) {
             unit: 'copies/mL',
             description: 'HIV-1 RNA viral load for HIV-positive subjects.',
             display_order: 3,
-            jexl_condition: "hiv == 'positive'"
+            jexl_condition: "hivrapid == 'positive'"
         }
     ];
     for (const lab of labs) {
@@ -644,16 +657,15 @@ async function ensureHivLabTests(db) {
     console.log(`Seeded ${labs.length} HIV lab tests (HIV Confirmatory, CD4, Viral Load).`);
 }
 
-async function ensureSampleSurvey(db) {
-    const existing = await getAsync(db, 'SELECT COUNT(*) AS n FROM surveys');
-    if (existing && existing.n > 0) {
-        console.log('Surveys already present, skipping sample survey creation.');
-        return;
-    }
+async function seedSampleSurvey(db) {
+    // Seeded inactive — the Short MSM Survey is the only active survey.
+    // hiv_rapid_test_enabled=0: HIV testing goes through the generic
+    // test_configurations `hivrapid` entry below, matching the Short MSM Survey.
     const surveyResult = await runAsync(
         db,
-        'INSERT INTO surveys (version, name, description, languages, is_active) VALUES (?, ?, ?, ?, ?)',
-        [1, SAMPLE_SURVEY.name, SAMPLE_SURVEY.description, SAMPLE_SURVEY.languages, 1]
+        `INSERT INTO surveys (version, name, description, languages, is_active, hiv_rapid_test_enabled)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [1, SAMPLE_SURVEY.name, SAMPLE_SURVEY.description, SAMPLE_SURVEY.languages, 0, 0]
     );
     const surveyId = surveyResult.lastID;
     for (let i = 0; i < SAMPLE_SURVEY.questions.length; i++) {
@@ -678,7 +690,63 @@ async function ensureSampleSurvey(db) {
             }
         }
     }
-    console.log(`Sample survey created (id=${surveyId}, ${SAMPLE_SURVEY.questions.length} questions).`);
+    // HIV rapid test — same `hivrapid` test_id the Short MSM Survey uses, so
+    // the global lab tests (gated on `hivrapid == 'positive'`) apply here too.
+    await runAsync(
+        db,
+        `INSERT INTO test_configurations (survey_id, test_id, test_name, enabled, display_order)
+         VALUES (?, ?, ?, ?, ?)`,
+        [surveyId, 'hivrapid', 'HIV Rapid Test', 1, 0]
+    );
+    console.log(`Sample survey created (id=${surveyId}, ${SAMPLE_SURVEY.questions.length} questions, inactive).`);
+}
+
+// Seed the packaged Short MSM Survey export bundle. Reuses the exact import
+// code path the admin import endpoint uses (services/surveyImport), bound to
+// this script's own sqlite handle. Imported active so a fresh deployment is
+// ready to use without a manual activation step. A missing or malformed
+// bundle is logged and skipped — it must never break database init.
+async function seedShortMsmSurvey(db) {
+    if (!fs.existsSync(SEED_SURVEY_PATH)) {
+        console.warn(`Seed survey bundle not found at ${SEED_SURVEY_PATH}; skipping Short MSM survey.`);
+        return;
+    }
+    let bundle;
+    try {
+        bundle = JSON.parse(fs.readFileSync(SEED_SURVEY_PATH, 'utf8'));
+    } catch (err) {
+        console.error(`Could not parse seed survey bundle (${err.message}); skipping Short MSM survey.`);
+        return;
+    }
+    // importSurveyBundle is connection-agnostic — give it run/all bound to our
+    // handle, normalising runAsync's resolved statement to { id, changes }.
+    const dbx = {
+        run: (sql, params) => runAsync(db, sql, params)
+            .then(r => ({ id: r.lastID, changes: r.changes })),
+        all: (sql, params) => allAsync(db, sql, params)
+    };
+    try {
+        const result = await importSurveyBundle(dbx, bundle, { activate: true });
+        for (const w of result.warnings) console.log(`  [seed] ${w}`);
+        console.log(`Short MSM survey seeded (id=${result.surveyId}, v${result.version}: `
+            + `${result.counts.questions} questions, ${result.counts.sections} sections, `
+            + `${result.counts.options} options, ${result.counts.survey_messages} messages, `
+            + `${result.counts.test_configurations} rapid tests). Active.`);
+    } catch (err) {
+        console.error(`Short MSM survey seed failed: ${err.message}`);
+    }
+}
+
+// Surveys are seeded only into a fresh database (empty surveys table), so an
+// existing deployment is never disturbed and re-runs are no-ops.
+async function ensureSeedSurveys(db) {
+    const existing = await getAsync(db, 'SELECT COUNT(*) AS n FROM surveys');
+    if (existing && existing.n > 0) {
+        console.log('Surveys already present, skipping survey seeding.');
+        return;
+    }
+    await seedSampleSurvey(db);
+    await seedShortMsmSurvey(db);
 }
 
 async function main() {
@@ -695,7 +763,7 @@ async function main() {
         await ensureDefaultAdmin(db);
         await ensureDemoFacility(db);
         await ensureHivLabTests(db);
-        await ensureSampleSurvey(db);
+        await ensureSeedSurveys(db);
         console.log('Database initialization complete.');
     } catch (err) {
         console.error('Initialization failed:', err);

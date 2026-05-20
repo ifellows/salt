@@ -1,0 +1,1677 @@
+{
+  "schema_version": 1,
+  "exported_at": "2026-05-20T21:15:28.422502Z",
+  "source": {
+    "survey_name": "Short MSM Survey",
+    "survey_version": 1,
+    "host": "generated-from-docx"
+  },
+  "survey": {
+    "name": "Short MSM Survey",
+    "version": 1,
+    "description": "A short survey for surveying men who have sex with men.",
+    "languages": "[\"English\"]",
+    "eligibility_script": "tutsex == 1 && tutage != null && tutage >= 18 && eltgsx == 0 && elmssxt == 0 && (elcoup == 0 || elcoup == 1)",
+    "eligibility_message_json": "{\"English\": \"The computer has determined that you are not eligible to participate in the survey. Thank you for your time and interest. Please contact the survey staff to complete the process.\"}",
+    "staff_validation_message_json": "{\"English\": \"Please hand the tablet to a staff member.\"}",
+    "version_notes": "Generated from 'CRANE 4 SURVEY Short MSM' docx (Version Date 11 Nov 2025).",
+    "fingerprint_enabled": 0,
+    "re_enrollment_days": 90,
+    "hiv_rapid_test_enabled": 0,
+    "contact_info_enabled": 0,
+    "staff_eligibility_screening": 1,
+    "rapid_test_samples_after_eligibility": 1,
+    "payment_audit_phone_enabled": 0
+  },
+  "sections": [
+    {
+      "id": 1,
+      "section_index": 0,
+      "section_type": "eligibility",
+      "name": "Eligibility",
+      "description": "Staff-completed eligibility screening (sex, age, sexual history, coupon source)."
+    },
+    {
+      "id": 2,
+      "section_index": 1,
+      "section_type": "main",
+      "name": "Main",
+      "description": "Main CRANE 4 questionnaire, completed by the participant via ACASI."
+    }
+  ],
+  "questions": [
+    {
+      "id": 101,
+      "question_index": 0,
+      "short_name": "tutsex",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Were you born female or male?\"}",
+      "section_id": 1
+    },
+    {
+      "id": 102,
+      "question_index": 1,
+      "short_name": "tutage",
+      "question_type": "numeric",
+      "question_text_json": "{\"English\": \"How old are you?\"}",
+      "section_id": 1,
+      "validation_script": "value >= 15 && value <= 89",
+      "validation_error_json": "{\"English\": \"Please enter an age between 15 and 89.\"}"
+    },
+    {
+      "id": 103,
+      "question_index": 2,
+      "short_name": "eltgsx",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Have you ever had sex? By sex, we mean either vaginal sex or anal sex. With vaginal sex we mean a penis enters a vagina. With anal sex we mean a penis enters a person's anus.\"}",
+      "section_id": 1
+    },
+    {
+      "id": 104,
+      "question_index": 3,
+      "short_name": "elmssxt",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"How long ago did you last have anal sex with a man?\"}",
+      "section_id": 1,
+      "pre_script": "eltgsx != 0"
+    },
+    {
+      "id": 105,
+      "question_index": 4,
+      "short_name": "elcoup",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Choose the response that best describes who or how you got the coupon that you are using to participate in the survey.\"}",
+      "section_id": 1,
+      "pre_script": "elmssxt != 0"
+    },
+    {
+      "id": 106,
+      "question_index": 5,
+      "short_name": "tutmss",
+      "question_type": "info",
+      "question_text_json": "{\"English\": \"Welcome to the interview. It is simple and short. You can listen to and read the questions. To answer, you simply touch the answer that fits best. Please answer all questions; there are no \\\"right\\\" or \\\"wrong\\\" answers. If you want to go back to the previous question, simply touch the \\\"BACK\\\" button. If you have any problem during the interview, just call our staff. Please touch the NEXT button to continue.\"}",
+      "section_id": 2
+    },
+    {
+      "id": 107,
+      "question_index": 6,
+      "short_name": "tutedu",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"What is the highest level of school education you have received?\"}",
+      "section_id": 2
+    },
+    {
+      "id": 108,
+      "question_index": 7,
+      "short_name": "dg1msg",
+      "question_type": "info",
+      "question_text_json": "{\"English\": \"Now I am going to ask you a few questions about how many people you know.\"}",
+      "section_id": 2
+    },
+    {
+      "id": 109,
+      "question_index": 8,
+      "short_name": "dgbehav",
+      "question_type": "numeric",
+      "question_text_json": "{\"English\": \"How many people do you know who have had anal sex with another man? By \\\"know\\\", we mean you know this person's name and they know your name.\"}",
+      "section_id": 2,
+      "validation_script": "value >= 1",
+      "validation_error_json": "{\"English\": \"Please enter a number of 1 or more.\"}"
+    },
+    {
+      "id": 110,
+      "question_index": 9,
+      "short_name": "dgage",
+      "question_type": "numeric",
+      "question_text_json": "{\"English\": \"Of the people you mentioned, how many are aged 18 or older?\"}",
+      "section_id": 2,
+      "validation_script": "value >= 0 && value <= dgbehav",
+      "validation_error_json": "{\"English\": \"This number cannot be larger than the number of people you reported knowing.\"}"
+    },
+    {
+      "id": 111,
+      "question_index": 10,
+      "short_name": "dgseen",
+      "question_type": "numeric",
+      "question_text_json": "{\"English\": \"Of the people aged 18 or older that you mentioned, how many have you seen in the last 14 days?\"}",
+      "section_id": 2,
+      "validation_script": "value >= 0 && value <= dgage",
+      "validation_error_json": "{\"English\": \"This number cannot be larger than the number you gave in the previous question.\"}"
+    },
+    {
+      "id": 112,
+      "question_index": 11,
+      "short_name": "tutnat",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"What is your nationality?\"}",
+      "section_id": 2
+    },
+    {
+      "id": 113,
+      "question_index": 12,
+      "short_name": "demarsta",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"What is your current marital status?\"}",
+      "section_id": 2
+    },
+    {
+      "id": 114,
+      "question_index": 13,
+      "short_name": "nrpt",
+      "question_type": "numeric",
+      "question_text_json": "{\"English\": \"In the past six months, with how many men have you had anal sex? With anal sex, I mean a penis enters a person's anus. Please give your best guess.\"}",
+      "section_id": 2,
+      "validation_script": "value >= 1 && value <= 95",
+      "validation_error_json": "{\"English\": \"Please enter a number between 1 and 95.\"}"
+    },
+    {
+      "id": 115,
+      "question_index": 14,
+      "short_name": "cond",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Think about the last time you had anal sex with another man. Did you use a condom? By anal sex, I mean a penis enters a person's anus.\"}",
+      "section_id": 2
+    },
+    {
+      "id": 116,
+      "question_index": 15,
+      "short_name": "condno",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Why didn't you use a condom the last time you had anal sex with another man? By anal sex, I mean a penis enters a person's anus.\"}",
+      "section_id": 2,
+      "pre_script": "cond != 1"
+    },
+    {
+      "id": 117,
+      "question_index": 16,
+      "short_name": "trsex",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Did you ever have anal sex with another man for money, gifts, or other support or help? Do not count your spouse or partner. By anal sex, I mean a penis enters a person's anus.\"}",
+      "section_id": 2
+    },
+    {
+      "id": 118,
+      "question_index": 17,
+      "short_name": "svcevfr",
+      "question_type": "numeric",
+      "question_text_json": "{\"English\": \"In your lifetime, how many times has anyone ever tricked you, lied to you, or threatened you in order to make you have sex with them when you didn't want to?\"}",
+      "section_id": 2,
+      "validation_script": "value >= 0 && value <= 99",
+      "validation_error_json": "{\"English\": \"Please enter a number between 0 and 99.\"}"
+    },
+    {
+      "id": 119,
+      "question_index": 18,
+      "short_name": "svrevfr",
+      "question_type": "numeric",
+      "question_text_json": "{\"English\": \"In your lifetime, how many times has anyone ever physically forced you to have sex when you didn't want to?\"}",
+      "section_id": 2,
+      "validation_script": "value >= 0 && value <= 99",
+      "validation_error_json": "{\"English\": \"Please enter a number between 0 and 99.\"}"
+    },
+    {
+      "id": 120,
+      "question_index": 19,
+      "short_name": "alcmss",
+      "question_type": "info",
+      "question_text_json": "{\"English\": \"Thank you. The next few questions are about alcohol. Please touch \\\"NEXT\\\".\"}",
+      "section_id": 2
+    },
+    {
+      "id": 121,
+      "question_index": 20,
+      "short_name": "alcfreq",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Now I am going to ask you some questions about your use of alcohol during the last 12 months. How often do you have a drink containing alcohol?\"}",
+      "section_id": 2
+    },
+    {
+      "id": 122,
+      "question_index": 21,
+      "short_name": "alcday",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"How many drinks containing alcohol do you have on a typical day when you are drinking? For example, one bottle of beer or one sachet of Waragi counts as two drinks.\"}",
+      "section_id": 2,
+      "pre_script": "alcfreq == 0"
+    },
+    {
+      "id": 123,
+      "question_index": 22,
+      "short_name": "alcbinge",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"How often do you have three or more drinks on one occasion? For example, one bottle of beer or one sachet of Waragi counts as one drink.\"}",
+      "section_id": 2,
+      "pre_script": "alcfreq == 0"
+    },
+    {
+      "id": 124,
+      "question_index": 23,
+      "short_name": "drmss",
+      "question_type": "info",
+      "question_text_json": "{\"English\": \"Thank you. Now some questions about drugs. People sometimes take drugs to feel better or get high. Such drugs include, for example, marijuana, amphetamines, ecstasy, opiates, cocaine, or sleep medications such as valium. I do not mean cigarettes, alcohol, or medicine you take when you are ill. People can swallow, sniff, smoke, or inject drugs with a needle. Please touch \\\"NEXT\\\" to start.\"}",
+      "section_id": 2
+    },
+    {
+      "id": 125,
+      "question_index": 24,
+      "short_name": "elinj",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Have you ever in your life shot up or injected any drugs other than those recommended or given by a health care worker? By shooting up, I mean any time you might have used drugs with a needle, either by mainlining, skin popping, or muscling.\"}",
+      "section_id": 2
+    },
+    {
+      "id": 126,
+      "question_index": 25,
+      "short_name": "drshare",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Have you ever shared needles or syringes?\"}",
+      "section_id": 2,
+      "pre_script": "elinj != 0"
+    },
+    {
+      "id": 127,
+      "question_index": 26,
+      "short_name": "phqmss",
+      "question_type": "info",
+      "question_text_json": "{\"English\": \"Thank you. Now two questions about how you feel. Touch \\\"NEXT\\\".\"}",
+      "section_id": 2
+    },
+    {
+      "id": 128,
+      "question_index": 27,
+      "short_name": "phq1",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Over the past two weeks, how often have you been bothered by having little interest or pleasure in doing things?\"}",
+      "section_id": 2
+    },
+    {
+      "id": 129,
+      "question_index": 28,
+      "short_name": "phq2",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Over the past two weeks, how often have you been bothered by feeling down, depressed, or hopeless?\"}",
+      "section_id": 2
+    },
+    {
+      "id": 130,
+      "question_index": 29,
+      "short_name": "mhys",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Have you ever harmed yourself?\"}",
+      "section_id": 2
+    },
+    {
+      "id": 131,
+      "question_index": 30,
+      "short_name": "hcmss",
+      "question_type": "info",
+      "question_text_json": "{\"English\": \"Thank you. Now a few questions about health care. Please touch \\\"NEXT\\\".\"}",
+      "section_id": 2
+    },
+    {
+      "id": 132,
+      "question_index": 31,
+      "short_name": "stgdeny",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"In the last 12 months, I have felt that a healthcare provider denied me services because of having sex with men.\"}",
+      "section_id": 2
+    },
+    {
+      "id": 133,
+      "question_index": 32,
+      "short_name": "hctell",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"When asked, are you comfortable telling a health care provider that you have sex with men?\"}",
+      "section_id": 2
+    },
+    {
+      "id": 134,
+      "question_index": 33,
+      "short_name": "stgavoid",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"In the last 12 months, I have avoided seeking health or social services because I worried I may be discriminated against because I have sex with men.\"}",
+      "section_id": 2
+    },
+    {
+      "id": 135,
+      "question_index": 34,
+      "short_name": "csonline",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Have you ever accessed information or services related to HIV or sexual health online?\"}",
+      "section_id": 2
+    },
+    {
+      "id": 136,
+      "question_index": 35,
+      "short_name": "outexp",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Have any outreach workers or peer educators talked to you about HIV/STI prevention?\"}",
+      "section_id": 2
+    },
+    {
+      "id": 137,
+      "question_index": 36,
+      "short_name": "tsever",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Have you ever tested for HIV?\"}",
+      "section_id": 2
+    },
+    {
+      "id": 138,
+      "question_index": 37,
+      "short_name": "tsevno",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Why have you never tested? Please select the best answer.\"}",
+      "section_id": 2,
+      "pre_script": "tsever != 1",
+      "skip_to_script": "tsever == 1",
+      "skip_to_target": "stdiag"
+    },
+    {
+      "id": 139,
+      "question_index": 38,
+      "short_name": "tsetwlmth",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Have you tested for HIV in the past 12 months?\"}",
+      "section_id": 2,
+      "pre_script": "tsever != 0"
+    },
+    {
+      "id": 140,
+      "question_index": 39,
+      "short_name": "ts1yrno",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Why have you not tested in the last 12 months? Please select the best answer.\"}",
+      "section_id": 2,
+      "pre_script": "tsetwlmth != 1"
+    },
+    {
+      "id": 141,
+      "question_index": 40,
+      "short_name": "tsres",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Before today, what was your last HIV test result?\"}",
+      "section_id": 2,
+      "pre_script": "tsever != 0"
+    },
+    {
+      "id": 142,
+      "question_index": 41,
+      "short_name": "tsprovpos",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Has a health care provider ever told you that you have HIV?\"}",
+      "section_id": 2,
+      "pre_script": "tsever != 0 || tsres == 0",
+      "skip_to_script": "tsprovpos != 0",
+      "skip_to_target": "prmss"
+    },
+    {
+      "id": 143,
+      "question_index": 42,
+      "short_name": "artmsg",
+      "question_type": "info",
+      "question_text_json": "{\"English\": \"Now some questions on anti-retroviral treatment, also called ART or ARVs, to treat HIV.\"}",
+      "section_id": 2
+    },
+    {
+      "id": 144,
+      "question_index": 43,
+      "short_name": "artevr",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Have you ever taken ARVs for HIV treatment?\"}",
+      "section_id": 2
+    },
+    {
+      "id": 145,
+      "question_index": 44,
+      "short_name": "artnow",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Do you take ARVs now for treatment?\"}",
+      "section_id": 2,
+      "pre_script": "artevr != 0"
+    },
+    {
+      "id": 146,
+      "question_index": 45,
+      "short_name": "artprov",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Where do you get your ARVs from?\"}",
+      "section_id": 2,
+      "pre_script": "artnow != 0"
+    },
+    {
+      "id": 147,
+      "question_index": 46,
+      "short_name": "artdup",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"People sometimes collect their ARVs from several places. Do you collect ARVs from multiple places?\"}",
+      "section_id": 2,
+      "pre_script": "artnow != 0"
+    },
+    {
+      "id": 148,
+      "question_index": 47,
+      "short_name": "uuvltest",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Have you been tested for viral load?\"}",
+      "section_id": 2,
+      "pre_script": "artnow != 0"
+    },
+    {
+      "id": 149,
+      "question_index": 48,
+      "short_name": "csvlrs1",
+      "question_type": "multi_select",
+      "question_text_json": "{\"English\": \"Was your last viral load test \\\"Suppressed\\\" or \\\"Not suppressed\\\"/\\\"Unsuppressed\\\"? Viral load results can be \\\"Suppressed,\\\" \\\"Undetectable,\\\" \\\"Not suppressed,\\\" or \\\"Unsuppressed.\\\" Suppressed means there is very low or no virus in your blood. Undetectable means there is so little virus that the test cannot measure it. Not suppressed or unsuppressed means there is still plenty of virus in your blood. Select all that apply.\"}",
+      "section_id": 2,
+      "pre_script": "artnow != 0 || (uuvltest != 0 && uuvltest != 1)",
+      "min_selections": 1,
+      "max_selections": null
+    },
+    {
+      "id": 150,
+      "question_index": 49,
+      "short_name": "uuvlres",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Did you understand your last viral load result?\"}",
+      "section_id": 2,
+      "pre_script": "artnow != 0 || uuvltest == 2 || uuvltest == 3"
+    },
+    {
+      "id": 151,
+      "question_index": 50,
+      "short_name": "uuknow",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"A question about viral load: have you heard of U=U, or Undetectable = Untransmittable?\"}",
+      "section_id": 2
+    },
+    {
+      "id": 152,
+      "question_index": 51,
+      "short_name": "uubel",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"U=U means someone taking ARVs can have very little or no HIV in their blood. It means that they cannot pass HIV on to others, even without using condoms or PrEP. How true do you believe U=U to be?\"}",
+      "section_id": 2,
+      "skip_to_script": "tsres == 0 || tsprovpos == 0",
+      "skip_to_target": "tbmss"
+    },
+    {
+      "id": 153,
+      "question_index": 52,
+      "short_name": "prmss",
+      "question_type": "info",
+      "question_text_json": "{\"English\": \"Thank you. Now we will ask some questions about pre-exposure prophylaxis, also called PrEP. PrEP is a medicine that can prevent HIV. It is taken by HIV-negative people.\"}",
+      "section_id": 2,
+      "skip_to_script": "tsres == 2",
+      "skip_to_target": "stdiag"
+    },
+    {
+      "id": 154,
+      "question_index": 53,
+      "short_name": "pprknow",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Have you heard of PrEP?\"}",
+      "section_id": 2
+    },
+    {
+      "id": 155,
+      "question_index": 54,
+      "short_name": "proffer",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Has a health care provider offered you PrEP?\"}",
+      "section_id": 2,
+      "pre_script": "pprknow != 0"
+    },
+    {
+      "id": 156,
+      "question_index": 55,
+      "short_name": "prget",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Do you know where to get PrEP?\"}",
+      "section_id": 2,
+      "pre_script": "pprknow != 0"
+    },
+    {
+      "id": 157,
+      "question_index": 56,
+      "short_name": "prtake",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Have you used PrEP?\"}",
+      "section_id": 2,
+      "pre_script": "pprknow != 0"
+    },
+    {
+      "id": 158,
+      "question_index": 57,
+      "short_name": "prwant",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Do you want to use PrEP?\"}",
+      "section_id": 2,
+      "skip_to_script": "tsres == 1",
+      "skip_to_target": "stdiag"
+    },
+    {
+      "id": 159,
+      "question_index": 58,
+      "short_name": "tbmss",
+      "question_type": "info",
+      "question_text_json": "{\"English\": \"Thank you. Now some questions about TB.\"}",
+      "section_id": 2
+    },
+    {
+      "id": 160,
+      "question_index": 59,
+      "short_name": "tbscrnp",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"After you tested HIV-positive, did they ask you about TB symptoms? With symptoms, I mean a long-standing cough, night sweats, fever, and weight loss.\"}",
+      "section_id": 2
+    },
+    {
+      "id": 161,
+      "question_index": 60,
+      "short_name": "tbdx",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Did a health care provider tell you that you have TB?\"}",
+      "section_id": 2
+    },
+    {
+      "id": 162,
+      "question_index": 61,
+      "short_name": "tbpt",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Did they give you TB drugs to prevent TB disease?\"}",
+      "section_id": 2,
+      "pre_script": "tbdx != 2"
+    },
+    {
+      "id": 163,
+      "question_index": 62,
+      "short_name": "tbtx",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"Were you treated for TB?\"}",
+      "section_id": 2,
+      "pre_script": "tbdx != 1"
+    },
+    {
+      "id": 164,
+      "question_index": 63,
+      "short_name": "stdiag",
+      "question_type": "multiple_choice",
+      "question_text_json": "{\"English\": \"In the last 12 months, did a healthcare provider tell you that you had a sexually transmitted infection, other than HIV?\"}",
+      "section_id": 2
+    }
+  ],
+  "options": [
+    {
+      "question_id": 101,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Female\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 101,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Male\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 103,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 103,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 104,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Within the last 6 months\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 104,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"More than 6 months ago\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 104,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"Don't know\"}",
+      "option_value": "7"
+    },
+    {
+      "question_id": 105,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Friend\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 105,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Family member\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 105,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"Stranger\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 105,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"Found it\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 105,
+      "option_index": 4,
+      "option_text_json": "{\"English\": \"Bought the coupon\"}",
+      "option_value": "7"
+    },
+    {
+      "question_id": 107,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Never went to school\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 107,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Some primary\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 107,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"Completed primary\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 107,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"Some secondary\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 107,
+      "option_index": 4,
+      "option_text_json": "{\"English\": \"Completed secondary or higher\"}",
+      "option_value": "5"
+    },
+    {
+      "question_id": 112,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Ugandan\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 112,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Other\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 113,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Single, never married\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 113,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Married\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 113,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"Separated/divorced\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 113,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"Widowed\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 113,
+      "option_index": 4,
+      "option_text_json": "{\"English\": \"Don't know\"}",
+      "option_value": "7"
+    },
+    {
+      "question_id": 113,
+      "option_index": 5,
+      "option_text_json": "{\"English\": \"Prefer not to answer\"}",
+      "option_value": "8"
+    },
+    {
+      "question_id": 115,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 115,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 115,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"Don't know\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 115,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"Refused to answer\"}",
+      "option_value": "7"
+    },
+    {
+      "question_id": 116,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"I was using PrEP\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 116,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"I am virally suppressed\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 116,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"I am on HIV treatment\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 116,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"Other\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 116,
+      "option_index": 4,
+      "option_text_json": "{\"English\": \"Don't know\"}",
+      "option_value": "5"
+    },
+    {
+      "question_id": 116,
+      "option_index": 5,
+      "option_text_json": "{\"English\": \"Refused to answer\"}",
+      "option_value": "6"
+    },
+    {
+      "question_id": 117,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 117,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 121,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Never\"}",
+      "option_value": "0"
+    },
+    {
+      "question_id": 121,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Monthly or less\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 121,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"2-4 times a month\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 121,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"2-3 times a week\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 121,
+      "option_index": 4,
+      "option_text_json": "{\"English\": \"4 or more times a week\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 122,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"One or less\"}",
+      "option_value": "0"
+    },
+    {
+      "question_id": 122,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"About two\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 122,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"About three\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 122,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"About four\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 122,
+      "option_index": 4,
+      "option_text_json": "{\"English\": \"Five or more\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 123,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Never\"}",
+      "option_value": "0"
+    },
+    {
+      "question_id": 123,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Less than monthly\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 123,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"Monthly\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 123,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"Weekly\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 123,
+      "option_index": 4,
+      "option_text_json": "{\"English\": \"Daily or almost daily\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 125,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 125,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 125,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"Don't know\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 125,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"Refused to answer\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 126,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes, in the last 6 months\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 126,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Yes, but more than 6 months ago\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 126,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"Never shared needles or syringes\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 128,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Not at all\"}",
+      "option_value": "0"
+    },
+    {
+      "question_id": 128,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Several days\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 128,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"More than half the days\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 128,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"Nearly every day\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 129,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Not at all\"}",
+      "option_value": "0"
+    },
+    {
+      "question_id": 129,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Several days\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 129,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"More than half the days\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 129,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"Nearly every day\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 130,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 130,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 132,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Never\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 132,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Once\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 132,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"A few times\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 132,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"Often\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 132,
+      "option_index": 4,
+      "option_text_json": "{\"English\": \"Does not apply because no one knows I have sex with men\"}",
+      "option_value": "5"
+    },
+    {
+      "question_id": 132,
+      "option_index": 5,
+      "option_text_json": "{\"English\": \"Don't know\"}",
+      "option_value": "7"
+    },
+    {
+      "question_id": 132,
+      "option_index": 6,
+      "option_text_json": "{\"English\": \"Prefer not to answer\"}",
+      "option_value": "8"
+    },
+    {
+      "question_id": 133,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 133,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 134,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Never\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 134,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Once\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 134,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"A few times\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 134,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"Often\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 134,
+      "option_index": 4,
+      "option_text_json": "{\"English\": \"Does not apply because no one knows I have sex with men\"}",
+      "option_value": "5"
+    },
+    {
+      "question_id": 134,
+      "option_index": 5,
+      "option_text_json": "{\"English\": \"Don't know\"}",
+      "option_value": "7"
+    },
+    {
+      "question_id": 134,
+      "option_index": 6,
+      "option_text_json": "{\"English\": \"Prefer not to answer\"}",
+      "option_value": "8"
+    },
+    {
+      "question_id": 135,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Never\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 135,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Once\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 135,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"A few times\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 135,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"Often\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 136,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes, in the last 6 months\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 136,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Yes, but more than 6 months ago\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 136,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"Never\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 137,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 137,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 138,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"I don't feel at risk\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 138,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"I fear testing positive\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 138,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"I fear stigma by a health care provider\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 138,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"I fear others may learn my result\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 139,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 139,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 140,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"I don't feel at risk\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 140,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"I fear testing positive\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 140,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"I fear stigma by a health care provider\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 140,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"I fear others may learn my result\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 140,
+      "option_index": 4,
+      "option_text_json": "{\"English\": \"I already know I am positive\"}",
+      "option_value": "5"
+    },
+    {
+      "question_id": 141,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Positive\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 141,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Negative\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 141,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"I don't know\"}",
+      "option_value": "995"
+    },
+    {
+      "question_id": 142,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 142,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 144,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 144,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 145,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 145,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 146,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Directly at a hospital or clinic\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 146,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"At an NGO with services for people like me\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 146,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"At a drop-in centre\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 146,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"At a pharmacy or drug shop\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 146,
+      "option_index": 4,
+      "option_text_json": "{\"English\": \"Other\"}",
+      "option_value": "96"
+    },
+    {
+      "question_id": 147,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 147,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 148,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes, in the last 12 months\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 148,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Yes, but more than 12 months ago\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 148,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"Never tested for viral load\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 148,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"Don't know / don't remember\"}",
+      "option_value": "995"
+    },
+    {
+      "question_id": 149,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Suppressed\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 149,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Undetectable\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 149,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"Not suppressed/unsuppressed\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 149,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"They did not tell me the result\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 149,
+      "option_index": 4,
+      "option_text_json": "{\"English\": \"Don't know\"}",
+      "option_value": "7"
+    },
+    {
+      "question_id": 149,
+      "option_index": 5,
+      "option_text_json": "{\"English\": \"Prefer not to answer\"}",
+      "option_value": "8"
+    },
+    {
+      "question_id": 150,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"I understood my viral load result\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 150,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"I did not understand my result\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 150,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"I did not get the result\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 150,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"I don't know or don't remember\"}",
+      "option_value": "995"
+    },
+    {
+      "question_id": 151,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 151,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 151,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"Not sure\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 152,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"It's true\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 152,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"I'm not sure if it's true\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 152,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"It's not true\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 154,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 154,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 154,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"Don't know\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 154,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"Prefer not to answer\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 155,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 155,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 156,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 156,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 157,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes, in the last 7 days\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 157,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"Yes, in the last 6 months\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 157,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"Yes, more than 6 months ago\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 157,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"No, I have never taken PrEP\"}",
+      "option_value": "4"
+    },
+    {
+      "question_id": 158,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 158,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 158,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"Don't know\"}",
+      "option_value": "995"
+    },
+    {
+      "question_id": 160,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes, I was asked about TB symptoms\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 160,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No, I was not asked\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 160,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"I don't remember\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 161,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"No one talked to me about TB\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 161,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"The provider told me I have TB\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 161,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"The provider told me I do not have TB\"}",
+      "option_value": "3"
+    },
+    {
+      "question_id": 162,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 162,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 163,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 163,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 164,
+      "option_index": 0,
+      "option_text_json": "{\"English\": \"Yes\"}",
+      "option_value": "1"
+    },
+    {
+      "question_id": 164,
+      "option_index": 1,
+      "option_text_json": "{\"English\": \"No\"}",
+      "option_value": "2"
+    },
+    {
+      "question_id": 164,
+      "option_index": 2,
+      "option_text_json": "{\"English\": \"Don't know\"}",
+      "option_value": "7"
+    },
+    {
+      "question_id": 164,
+      "option_index": 3,
+      "option_text_json": "{\"English\": \"Prefer not to answer\"}",
+      "option_value": "8"
+    }
+  ],
+  "survey_messages": [
+    {
+      "message_key": "eligibility_not_eligible",
+      "message_text_json": "{\"English\": \"The computer has determined that you are not eligible to participate in the survey. Thank you for your time and interest. Please contact the survey staff to complete the process.\"}",
+      "audio_files_json": "{}",
+      "message_type": "system",
+      "display_order": 0
+    },
+    {
+      "message_key": "consent_agreement",
+      "message_text_json": "{\"English\": \"Written Informed Consent for Participation in Biological and Behavioral Research on HIV Infection\\n\\nThis study aims to assess the prevalence of HIV and other infections, as well as risk behaviors, within the group. The information we collect will help us implement or strengthen HIV and other infection prevention programs.\\n\\nIf you agree to participate in the study, you will need to undergo an interview and provide a blood sample for testing for HIV, hepatitis B and C, and syphilis. The interview will take approximately 20-25 minutes. You can receive your test results and, if necessary, be referred to the appropriate services. Please be aware that you are free to discontinue your participation at any time.\\n\\nNo information that could identify you will be recorded on the questionnaire or on the specimens. Your honest and direct answers to our questions are highly valued.\\n\\nHaving reviewed the information provided to me by the staff conducting the study, the objectives of the study, as well as the procedures that the participant must undergo if they consent, I have decided to participate in the aforementioned research.\\n\\nI understand the benefits of participating in the study, as well as all possible risks and consequences for me. I have been informed that I may discontinue my participation in the study at any time, without providing any explanation.\\n\\nIt has been explained to me that no data identifying me will be recorded either during the completion of the questionnaire or during the testing of the blood sample.\\n\\nI hereby give my written informed consent to participate in the research on HIV infection, hepatitis B and C, and syphilis.\"}",
+      "audio_files_json": "{}",
+      "message_type": "confirmation",
+      "display_order": 0
+    },
+    {
+      "message_key": "staff_validation",
+      "message_text_json": "{\"English\": \"Please hand the tablet to a staff member.\"}",
+      "audio_files_json": "{}",
+      "message_type": "instruction",
+      "display_order": 0
+    },
+    {
+      "message_key": "payment_confirmation",
+      "message_text_json": "{\"English\": \"Thank you for your participation. You will now be paid the amount below.\"}",
+      "audio_files_json": "{}",
+      "message_type": "confirmation",
+      "display_order": 0
+    },
+    {
+      "message_key": "coupon_instructions",
+      "message_text_json": "{\"English\": \"These coupons are invitations to participate in this study and can only be used once. Please hand these to any men at least 18 years old who have sex with other men and you know relatively well. Please do not give coupons to strangers or attempt to sell them.\"}",
+      "audio_files_json": "{}",
+      "message_type": "instruction",
+      "display_order": 0
+    }
+  ],
+  "test_configurations": [
+    {
+      "test_id": "hivrapid",
+      "test_name": "HIV Rapid Test",
+      "enabled": 1,
+      "display_order": 0
+    },
+    {
+      "test_id": "syprapid",
+      "test_name": "Syphilis Rapid Test",
+      "enabled": 1,
+      "display_order": 1
+    }
+  ]
+}
