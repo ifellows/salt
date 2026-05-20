@@ -1,12 +1,27 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
+const rateLimit = require('express-rate-limit');
 const { body, validationResult } = require('express-validator');
 const { getAsync, runAsync } = require('../../models/database');
 const { ROLES, getRoleDisplayName } = require('../../constants/roles');
 const router = express.Router();
 
+// Brute-force guard on the admin login. Keyed by client IP (app.js sets
+// `trust proxy`, so req.ip is the real client behind nginx). Only FAILED
+// attempts count — a legitimate admin logging in successfully never burns
+// the budget — so this throttles password guessing without annoying real
+// users sharing an office IP.
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,   // 15 minutes
+    max: 10,                    // 10 failed attempts per IP per window
+    skipSuccessfulRequests: true,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many login attempts. Please try again later.' }
+});
+
 // Admin login
-router.post('/login', [
+router.post('/login', loginLimiter, [
     body('username').notEmpty().trim(),
     body('password').notEmpty()
 ], async (req, res) => {

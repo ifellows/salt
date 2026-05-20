@@ -35,10 +35,26 @@ app.use(helmet({
     hsts: isProduction,
 }));
 
-// CORS configuration
-app.use(cors({
-    origin: process.env.CORS_ORIGIN || '*',
-    credentials: true
+// CORS — locked to this server's own origin.
+//
+// Nothing legitimately needs cross-origin browser access: the admin web UI
+// is same-origin, and the Android tablet is a native HTTP client that
+// ignores CORS entirely. The allowed set is computed per request from the
+// Host header, so every deployment / subdomain locks to itself with zero
+// configuration. CORS_ORIGIN (comma-separated) can add extra origins if a
+// future browser-based consumer ever needs one.
+app.use(cors((req, callback) => {
+    const host = req.headers.host;
+    const allowed = [];
+    if (host) {
+        allowed.push(`https://${host}`, `http://${host}`);
+    }
+    const extra = (process.env.CORS_ORIGIN || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+    allowed.push(...extra);
+    callback(null, { origin: allowed, credentials: true });
 }));
 
 // Compression
