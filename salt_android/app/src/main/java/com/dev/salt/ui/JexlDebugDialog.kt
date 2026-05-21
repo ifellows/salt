@@ -47,7 +47,11 @@ fun JexlDebugDialog(
     scriptType: String = "JEXL",
     onContinue: () -> Unit
 ) {
-    var editableStatement by remember { mutableStateOf(originalStatement) }
+    // Keyed on originalStatement: when this dialog is reused for a new debug
+    // request, the editable statement must reset to the new request's script
+    // (an unkeyed remember would keep the previous one). An in-dialog edit
+    // still persists — editing changes editableStatement, not the key.
+    var editableStatement by remember(originalStatement) { mutableStateOf(originalStatement) }
     var result by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
 

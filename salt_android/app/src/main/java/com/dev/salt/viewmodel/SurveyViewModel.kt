@@ -571,11 +571,10 @@ class SurveyViewModel(
             currentQuestionIndex = targetIndex
             updateCurrentQuestion()
 
-            // Check if the target question should be skipped
-            val action = evaluateCurrentQuestionPreScript()
-            if (action == "skip") {
-                loadNextQuestion()
-            }
+            // If the target (or a hidden run after it) should be skipped,
+            // settle on the first visible question — a hidden question's
+            // skip_to/validation must not run.
+            advancePastHiddenQuestions()
         } else {
             Log.w("SurveyViewModel", "Skip-to target not found: $targetIndex")
             // If target not found, just proceed normally
@@ -596,11 +595,10 @@ class SurveyViewModel(
             currentQuestionIndex = targetIndex
             updateCurrentQuestion()
 
-            // Check if the target question should be skipped
-            val action = evaluateCurrentQuestionPreScript()
-            if (action == "skip") {
-                loadNextQuestion()
-            }
+            // If the target (or a hidden run after it) should be skipped,
+            // settle on the first visible question — a hidden question's
+            // skip_to/validation must not run.
+            advancePastHiddenQuestions()
         } else {
             Log.w("SurveyViewModel", "Skip-to target not found: $targetShortName")
             // If target not found, just proceed normally
@@ -666,6 +664,22 @@ class SurveyViewModel(
         }
     }
 
+    /**
+     * Advance forward past questions hidden by their pre_script. A hidden
+     * question is never shown or answered, so its validation_script,
+     * skip_to_script, and history entry must NOT run — only its pre_script is
+     * consulted. Use after a normal advance or a jump to settle on the first
+     * visible question.
+     */
+    private fun advancePastHiddenQuestions() {
+        val count = survey?.questions?.size ?: return
+        while (currentQuestionIndex < count &&
+               evaluateCurrentQuestionPreScript() == "skip") {
+            currentQuestionIndex++
+            updateCurrentQuestion()
+        }
+    }
+
     //@Composable
     //@OptIn(ExperimentalMaterial3Api::class)
     fun loadNextQuestion() : String? {
@@ -700,10 +714,9 @@ class SurveyViewModel(
 
         currentQuestionIndex++
         updateCurrentQuestion()
-        val action = evaluateCurrentQuestionPreScript()
-        if(action == "skip"){
-            loadNextQuestion()
-        }
+        // If we landed on a hidden question, move on. Do NOT recurse through
+        // loadNextQuestion — a hidden question's skip_to/validation must not run.
+        advancePastHiddenQuestions()
         return null
     }
 
