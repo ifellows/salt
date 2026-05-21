@@ -456,6 +456,8 @@ for idx, spec in enumerate(Q):
         q["skip_to_script"] = spec["skipscript"].lower()
         q["skip_to_target"] = spec["skiptarget"].lower()
     if spec.get("vs"):
+        # In a validation_script the answer being validated is bound to
+        # `value` (also available under the question's own short_name).
         q["validation_script"] = spec["vs"].lower()
         q["validation_error_json"] = tj(spec["ve"])
     if spec["t"] == "multi_select":

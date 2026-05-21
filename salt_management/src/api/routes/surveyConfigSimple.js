@@ -327,7 +327,14 @@ router.put('/:id', [
 // Add question with multi-language support
 router.post('/:surveyId/questions', [
     body('question_index').isInt(),
-    body('short_name').notEmpty().trim().matches(/^[a-zA-Z_][a-zA-Z0-9_]*$/).withMessage('Short name must start with a letter or underscore, and contain only letters, numbers, and underscores'),
+    body('short_name').notEmpty().trim()
+        .matches(/^[a-zA-Z_][a-zA-Z0-9_]*$/).withMessage('Short name must start with a letter or underscore, and contain only letters, numbers, and underscores')
+        .custom((v) => {
+            // `value` is reserved — it is the JEXL variable bound to the
+            // current answer in validation and skip-to scripts.
+            if (v === 'value') throw new Error('"value" is a reserved name and cannot be used as a short name');
+            return true;
+        }),
     body('question_text_json').isObject(),
     body('audio_files_json').optional().isObject(),
     body('question_type').isIn(['multiple_choice', 'numeric', 'text', 'multi_select', 'info']),
@@ -424,7 +431,14 @@ router.post('/:surveyId/questions', [
 // Update question with multi-language support
 router.put('/:surveyId/questions/:questionId', [
     body('question_index').optional().isInt(),
-    body('short_name').optional().trim().matches(/^[a-zA-Z_][a-zA-Z0-9_]*$/).withMessage('Short name must start with a letter or underscore, and contain only letters, numbers, and underscores'),
+    body('short_name').optional().trim()
+        .matches(/^[a-zA-Z_][a-zA-Z0-9_]*$/).withMessage('Short name must start with a letter or underscore, and contain only letters, numbers, and underscores')
+        .custom((v) => {
+            // `value` is reserved — it is the JEXL variable bound to the
+            // current answer in validation and skip-to scripts.
+            if (v === 'value') throw new Error('"value" is a reserved name and cannot be used as a short name');
+            return true;
+        }),
     body('question_text_json').optional().isObject(),
     body('audio_files_json').optional().isObject(),
     body('question_type').optional().isIn(['multiple_choice', 'numeric', 'text', 'multi_select', 'info']),

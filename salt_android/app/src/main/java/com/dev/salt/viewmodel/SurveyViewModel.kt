@@ -490,7 +490,7 @@ class SurveyViewModel(
         if(script.isNullOrBlank()) {
             return true
         }
-        val context = buildJexlContext()
+        val context = buildJexlContextWithValue()
         var result = true // Default action if no script or evaluation fails
         try {
             val ret = evaluateJexlScript(script, context)
@@ -528,7 +528,7 @@ class SurveyViewModel(
             return null
         }
 
-        val context = buildJexlContext()
+        val context = buildJexlContextWithValue()
         return try {
             val result = evaluateJexlScript(skipToScript, context)
             Log.d("SurveyViewModel", "Skip-to script evaluation: $result")
@@ -615,13 +615,30 @@ class SurveyViewModel(
         val ans = survey!!.answers
         val qus = survey!!.questions
         for(i in 0 until ans.size){
-            val av : Any? = ans[i].getValue()
+            // multi_select answers enter JEXL as a List<Int> of selected
+            // option indices, so survey logic can use contains() / =~ rather
+            // than parsing a comma-separated string.
+            val av : Any? = if (ans[i].isMultiSelect) ans[i].getSelectedIndices()
+                            else ans[i].getValue()
             context[qus[i].questionShortName] = av
-            Log.d("JEXLContext", "Adding to context: ${qus[i].questionShortName} = ${ans[i].getValue()}")
+            Log.d("JEXLContext", "Adding to context: ${qus[i].questionShortName} = $av")
         }
         // You can add other global variables to the context if needed
         // context["userAge"] = 25 // Example
         Log.d("SurveyViewModel", "JEXL Context built: $context")
+        return context
+    }
+
+    // JEXL context for scripts that run AFTER the current question is
+    // answered (validation_script, skip_to_script): the standard context plus
+    // `value` bound to the current question's own answer. `value` is a
+    // reserved short_name (enforced server-side), so it never collides.
+    private fun buildJexlContextWithValue(): Map<String, Any?> {
+        val context = buildJexlContext().toMutableMap()
+        val currentShortName = _currentQuestion?.value?.first?.questionShortName
+        if (currentShortName != null) {
+            context["value"] = context[currentShortName]
+        }
         return context
     }
 

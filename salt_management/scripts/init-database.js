@@ -478,7 +478,7 @@ const SAMPLE_SURVEY = {
             short_name: 'age',
             question_text: '{"English": "What is your age?", "Swahili": "Una umri gani?"}',
             question_type: 'numeric',
-            validation_script: 'value >= 18 && value <= 100',
+            validation_script: 'age >= 18 && age <= 100',
             validation_error: '{"English": "Age must be between 18 and 100", "Swahili": "Umri lazima uwe kati ya 18 na 100"}',
             pre_script: 'consent == "1"'
         },

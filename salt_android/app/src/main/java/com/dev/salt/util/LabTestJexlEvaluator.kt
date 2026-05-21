@@ -64,8 +64,9 @@ object LabTestJexlEvaluator {
             if (shortName != null) {
                 val value: Any = when {
                     answer.isMultiSelect -> {
-                        // Return list of selected indices as strings
-                        answer.multiSelectIndices?.split(",")?.map { it.trim() } ?: emptyList<String>()
+                        // Selected option indices as a List<Int> — JEXL can
+                        // use contains() / =~ for membership tests.
+                        answer.getSelectedIndices()
                     }
                     answer.isNumeric && answer.numericValue != null -> {
                         answer.numericValue!!

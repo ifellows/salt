@@ -59,6 +59,16 @@ async function importSurveyBundle(dbx, bundle, opts = {}) {
     if (srcQuestions.length === 0) {
         throw validationError('Bundle has no questions');
     }
+    // `value` is a reserved short_name — it is the JEXL variable bound to the
+    // current answer in validation_script / skip_to_script, so a question
+    // named `value` would shadow it.
+    if (srcQuestions.some(q => q.short_name === 'value')) {
+        throw validationError(
+            'A question uses the reserved short_name "value". Rename it — '
+            + '"value" is the JEXL variable bound to the current answer in '
+            + 'validation and skip-to scripts.'
+        );
+    }
     const srcSections = Array.isArray(bundle.sections) ? bundle.sections : [];
     const srcOptions = Array.isArray(bundle.options) ? bundle.options : [];
     const srcMessages = Array.isArray(bundle.survey_messages) ? bundle.survey_messages : [];
