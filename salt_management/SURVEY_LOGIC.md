@@ -153,8 +153,8 @@ continues normally.
 The answer just given is available as **`value`** here too.
 
 Example: on `tsevno` — asked only of people who have never tested for HIV — the
-Skip-To Expression jumps the participant past all of the HIV-treatment
-questions to the Skip-To Target `stdiag`.
+Skip-To Expression jumps the participant ahead to the PrEP block (Skip-To
+Target `prmss`), past the HIV-treatment questions for people who have tested.
 
 **Skip Logic vs Skip-To:** use **Skip Logic** to drop a single question; use
 **Skip-To** to leap over a whole block at once.

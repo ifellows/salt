@@ -348,11 +348,35 @@ fun ConsentSignatureScreen(
                                         // Navigate based on returnTo parameter
                                         when (returnTo) {
                                             "survey" -> {
-                                                // Staff screening: return to survey to continue after eligibility
-                                                Log.d("ConsentSignature", "Staff screening mode - returning to survey")
-                                                navController.navigate("${AppDestinations.SURVEY_SCREEN}?couponCode=$couponCode") {
-                                                    // Pop back to the survey screen that's already there
-                                                    popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
+                                                // Staff screening: eligibility + consent are done. checkEligibility()
+                                                // returns at the consent branch before its rapid-test block, so the
+                                                // rapid-test handoff must happen here. If rapid-test samples are
+                                                // collected after eligibility, route into that flow now; otherwise
+                                                // continue the survey. (Staff-screening-OFF never reaches this
+                                                // branch — that path triggers rapid tests from checkEligibility.)
+                                                val rapidDest = withContext(Dispatchers.IO) {
+                                                    val cfg = database.surveyConfigDao().getSurveyConfig()
+                                                    val rapidAfterEligibility = cfg?.rapidTestSamplesAfterEligibility ?: true
+                                                    val sectionSurveyId = database.sectionDao().getAllSections()
+                                                        .firstOrNull()?.surveyId?.toLong() ?: -1L
+                                                    val enabledTests = database.testConfigurationDao()
+                                                        .getEnabledTestConfigurations(sectionSurveyId)
+                                                    when {
+                                                        !rapidAfterEligibility -> "${AppDestinations.TABLET_HANDOFF}/$surveyId"
+                                                        enabledTests.isNotEmpty() -> "${AppDestinations.BIOLOGICAL_SAMPLE_COLLECTION}/$surveyId"
+                                                        else -> null
+                                                    }
+                                                }
+                                                if (rapidDest != null) {
+                                                    Log.d("ConsentSignature", "Staff screening: consent done - routing to rapid tests ($rapidDest)")
+                                                    navController.navigate(rapidDest) {
+                                                        popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
+                                                    }
+                                                } else {
+                                                    Log.d("ConsentSignature", "Staff screening: consent done - no rapid tests, returning to survey")
+                                                    navController.navigate("${AppDestinations.SURVEY_SCREEN}?couponCode=$couponCode") {
+                                                        popUpTo(AppDestinations.SURVEY_SCREEN) { inclusive = false }
+                                                    }
                                                 }
                                             }
                                             else -> {

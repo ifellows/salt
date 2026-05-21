@@ -985,7 +985,9 @@ class SurveyViewModel(
                 if (staffEligibilityScreening && existingSignature.isNullOrBlank()) {
                     Log.d("SurveyViewModel", "Staff screening mode: consent needed after eligibility")
                     _needsConsentAfterEligibility.value = true
-                    return 3  // Special return code for consent needed
+                    // consent needed; the rapid-test handoff happens AFTER
+                    // consent — see ConsentSignatureScreen's returnTo="survey".
+                    return 3
                 }
             }
 

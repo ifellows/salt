@@ -587,10 +587,12 @@ async function ensureDemoFacility(db) {
     await runAsync(
         db,
         `INSERT INTO facilities (name, location, api_key, allow_non_coupon_participants,
-            coupons_to_issue, participation_payment_amount, recruitment_payment_amount,
-            payment_currency, payment_currency_symbol)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        ['Demo Facility', 'Example Location', apiKey, 1, 3, 10.0, 5.0, 'USD', '$']
+            coupons_to_issue, subject_payment_type, participation_payment_amount,
+            recruitment_payment_amount, payment_currency, payment_currency_symbol)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        // subject_payment_type must be set (not the 'None' default) or the
+        // tablet treats the facility as non-paying and hides the amount.
+        ['Demo Facility', 'Example Location', apiKey, 1, 3, 'Cash', 10.0, 5.0, 'USD', '$']
     );
     console.log(`Demo facility created. API key: ${apiKey}`);
     console.log('  Use this key on a tablet to register it against this facility.');

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "exported_at": "2026-05-21T02:19:20.348788Z",
+  "exported_at": "2026-05-21T17:41:19.924881Z",
   "source": {
     "survey_name": "Short MSM Survey",
     "survey_version": 1,
@@ -365,7 +365,7 @@
       "section_id": 2,
       "pre_script": "tsever != 1",
       "skip_to_script": "tsever == 1",
-      "skip_to_target": "stdiag"
+      "skip_to_target": "prmss"
     },
     {
       "id": 139,
@@ -547,7 +547,7 @@
       "question_type": "multiple_choice",
       "question_text_json": "{\"English\": \"Do you want to use PrEP?\"}",
       "section_id": 2,
-      "skip_to_script": "tsres == 1",
+      "skip_to_script": "tsres == 1 || tsever == 1",
       "skip_to_target": "stdiag"
     },
     {

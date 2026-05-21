@@ -266,8 +266,9 @@ Q = [
                ["3", "I fear stigma by a health care provider"],
                ["4", "I fear others may learn my result"]],
          pre="TSEVER != 1",
-         # Never-testers: HIV status unknown -> skip ART/UU/PrEP/TB.
-         skipscript="TSEVER == 1", skiptarget="STDIAG"),
+         # Never-testers: route into the PrEP block (past the HIV-positive
+         # ART/UU track). PRWANT then sends them on, skipping TB.
+         skipscript="TSEVER == 1", skiptarget="PRMSS"),
     dict(sn="TSETWLMTH", sec="m", t="multiple_choice",
          text="Have you tested for HIV in the past 12 months?",
          opts=[["1", "Yes"], ["2", "No"]],
@@ -294,7 +295,7 @@ Q = [
 
     # ---- ART / UU / TB (self-reported HIV-positive) ----
     # These blocks are reached ONLY by HIV-positive respondents: non-positive
-    # testers jump to PRMSS via TSPROVPOS, never-testers jump to STDIAG via
+    # testers jump to PRMSS via TSPROVPOS, never-testers jump to PRMSS via
     # TSEVNO. So no outer HIV-status gate is repeated here - the only
     # pre_scripts left are genuine per-question dependencies.
     dict(sn="ARTMSG", sec="m", t="info",
@@ -364,10 +365,10 @@ Q = [
          # End of the HIV-positive ART/UU run: skip PrEP, go to TB.
          skipscript="TSRES == 0 || TSPROVPOS == 0", skiptarget="TBMSS"),
 
-    # ---- PrEP (self-reported HIV-negative) ----
-    # Reached only via TSPROVPOS's skip_to (non-provider-positive testers).
-    # PRMSS routes the HIV-status-unknown onward; everyone else here is
-    # HIV-negative, so no outer status gate is repeated.
+    # ---- PrEP (HIV-negative testers and never-testers) ----
+    # Reached via TSPROVPOS's skip_to (non-provider-positive testers) and via
+    # TSEVNO's skip_to (never-testers). PRMSS routes "don't know" testers
+    # onward; HIV-negative testers and never-testers do the full PrEP run.
     dict(sn="PRMSS", sec="m", t="info",
          text="Thank you. Now we will ask some questions about pre-exposure "
               "prophylaxis, also called PrEP. PrEP is a medicine that can "
@@ -396,8 +397,8 @@ Q = [
     dict(sn="PRWANT", sec="m", t="multiple_choice",
          text="Do you want to use PrEP?",
          opts=[["1", "Yes"], ["2", "No"], ["995", "Don't know"]],
-         # End of the HIV-negative PrEP run: skip the TB block.
-         skipscript="TSRES == 1", skiptarget="STDIAG"),
+         # End of the PrEP run (HIV-negative testers + never-testers): skip TB.
+         skipscript="TSRES == 1 || TSEVER == 1", skiptarget="STDIAG"),
 
     # ---- TB (self-reported HIV-positive) ----
     # Reached only via UUBEL's skip_to.
