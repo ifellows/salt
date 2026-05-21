@@ -140,7 +140,7 @@ async function importSurveyBundle(dbx, bundle, opts = {}) {
                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     newSurveyId, q.question_index, q.short_name, q.question_text_json,
-                    q.audio_files_json || null, q.question_type, q.validation_script || null,
+                    q.audio_files_json || '{}', q.question_type, q.validation_script || null,
                     q.validation_error_json || null, q.pre_script || null, remappedSection,
                     q.min_selections == null ? null : q.min_selections,
                     q.max_selections == null ? null : q.max_selections,
@@ -157,7 +157,7 @@ async function importSurveyBundle(dbx, bundle, opts = {}) {
             await dbx.run(
                 `INSERT INTO options (question_id, option_index, option_text_json, audio_files_json, option_value)
                  VALUES (?, ?, ?, ?, ?)`,
-                [remappedQuestion, o.option_index, o.option_text_json, o.audio_files_json || null, o.option_value || null]
+                [remappedQuestion, o.option_index, o.option_text_json, o.audio_files_json || '{}', o.option_value || null]
             );
         }
 

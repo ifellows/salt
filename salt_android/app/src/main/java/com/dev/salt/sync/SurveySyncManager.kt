@@ -421,9 +421,10 @@ class SurveySyncManager(private val context: Context) {
                     // Check if we have multilingual support
                     if (questionJson.has("question_text_json")) {
                         val textJson = questionJson.getJSONObject("question_text_json")
-                        val audioJson = if (questionJson.has("audio_files_json")) {
-                            questionJson.getJSONObject("audio_files_json")
-                        } else null
+                        // optJSONObject -> null when the key is missing OR its
+                        // value is JSON null (a survey with no audio). .has()
+                        // alone is true for a JSON null and would then crash.
+                        val audioJson = questionJson.optJSONObject("audio_files_json")
                         
                         // Create a question for each language
                         val languages = textJson.keys()
@@ -511,9 +512,7 @@ class SurveySyncManager(private val context: Context) {
                     // Check if we have multilingual support
                     if (optionJson.has("option_text_json")) {
                         val textJson = optionJson.getJSONObject("option_text_json")
-                        val audioJson = if (optionJson.has("audio_files_json")) {
-                            optionJson.getJSONObject("audio_files_json")
-                        } else null
+                        val audioJson = optionJson.optJSONObject("audio_files_json")
                         
                         // Create an option for each language
                         val languages = textJson.keys()

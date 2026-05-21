@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS questions (
     question_index INTEGER,
     short_name TEXT,
     question_text_json TEXT NOT NULL,
-    audio_files_json TEXT,
+    audio_files_json TEXT DEFAULT '{}',
     question_type TEXT DEFAULT 'multiple_choice',
     validation_script TEXT,
     validation_error_json TEXT DEFAULT '{"en": "Invalid answer"}',
@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS options (
     question_id INTEGER,
     option_index INTEGER,
     option_text_json TEXT NOT NULL,
-    audio_files_json TEXT,
+    audio_files_json TEXT DEFAULT '{}',
     option_value TEXT,
     FOREIGN KEY (question_id) REFERENCES questions(id)
 );
@@ -673,9 +673,9 @@ async function seedSampleSurvey(db) {
         const qResult = await runAsync(
             db,
             `INSERT INTO questions (survey_id, question_index, short_name, question_text_json,
-                question_type, validation_script, validation_error_json, pre_script)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [surveyId, i, q.short_name, q.question_text, q.question_type,
+                audio_files_json, question_type, validation_script, validation_error_json, pre_script)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [surveyId, i, q.short_name, q.question_text, '{}', q.question_type,
              q.validation_script || null, q.validation_error || null, q.pre_script || null]
         );
         const questionId = qResult.lastID;
@@ -684,8 +684,8 @@ async function seedSampleSurvey(db) {
                 const opt = q.options[j];
                 await runAsync(
                     db,
-                    'INSERT INTO options (question_id, option_index, option_text_json, option_value) VALUES (?, ?, ?, ?)',
-                    [questionId, j, opt.text, opt.value]
+                    'INSERT INTO options (question_id, option_index, option_text_json, audio_files_json, option_value) VALUES (?, ?, ?, ?, ?)',
+                    [questionId, j, opt.text, '{}', opt.value]
                 );
             }
         }
