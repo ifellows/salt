@@ -1,6 +1,8 @@
 package com.dev.salt.sync
 
+import android.content.Context
 import com.dev.salt.logging.AppLogger as Log
+import com.dev.salt.util.hasActiveNetwork
 import com.dev.salt.data.FacilityConfig
 import com.dev.salt.data.SurveyDatabase
 import kotlinx.coroutines.Dispatchers
@@ -23,14 +25,24 @@ class FacilityConfigSyncManager(
      * Validates API key by making a lightweight request to the server.
      * Returns true if API key is valid, false otherwise.
      * On 401/403 errors, returns false to trigger re-setup.
+     * With no network connectivity, returns true immediately (skipping the
+     * request) - an unreachable server cannot mean a revoked key.
      */
-    suspend fun validateApiKey(): Boolean {
+    suspend fun validateApiKey(context: Context): Boolean {
         return withContext(Dispatchers.IO) {
             try {
                 val serverConfig = getServerConfig()
                 if (serverConfig == null) {
                     Log.e(TAG, "No server configuration found")
                     return@withContext false
+                }
+
+                // No network at all -> we cannot receive a 401/403, so this
+                // cannot be a revoked key. Return true immediately rather than
+                // waiting out the connection timeout.
+                if (!hasActiveNetwork(context)) {
+                    Log.d(TAG, "No active network - skipping API key validation (offline)")
+                    return@withContext true
                 }
 
                 val (serverUrl, apiKey) = serverConfig

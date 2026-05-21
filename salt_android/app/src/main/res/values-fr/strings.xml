@@ -62,8 +62,11 @@
     <!-- Sync Status Messages -->
     <string name="sync_status_survey_updated">Enquête mise à jour</string>
     <string name="sync_status_survey_current">L\'enquête est à jour</string>
-    <string name="sync_status_no_connection">Remarque : aucune connexion au serveur</string>
+    <string name="sync_status_no_connection">Remarque : aucune connexion au serveur. Fonctionnement en mode hors ligne.</string>
     <string name="sync_status_error">Erreur : %1$s</string>
+    <string name="login_sync_facility">Recherche de mises à jour de l\'établissement…</string>
+    <string name="login_sync_survey_check">Recherche de mises à jour de l\'enquête…</string>
+    <string name="login_sync_survey_download">Téléchargement de l\'enquête mise à jour…</string>
 
     <!-- Staff Validation strings -->
     <string name="staff_validation_title">Validation du personnel requise</string>

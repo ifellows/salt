@@ -1527,7 +1527,7 @@ fun WelcomeScreen(navController: NavHostController) {
                     isValidating = true
                     scope.launch {
                         val configSyncManager = com.dev.salt.sync.FacilityConfigSyncManager(database)
-                        val isValid = configSyncManager.validateApiKey()
+                        val isValid = configSyncManager.validateApiKey(context)
 
                         isValidating = false
 

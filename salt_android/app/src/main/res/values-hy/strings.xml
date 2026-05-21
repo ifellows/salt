@@ -64,8 +64,11 @@
     <!-- Sync Status Messages -->
     <string name="sync_status_survey_updated">Հարցումը թարմացվել է</string>
     <string name="sync_status_survey_current">Հարցումը ընթացիկ է</string>
-    <string name="sync_status_no_connection">Նշում՝ սերվերի հետ կապ չկա</string>
+    <string name="sync_status_no_connection">Նշում՝ սերվերի հետ կապ չկա։ Աշխատանք անցանց ռեժիմում։</string>
     <string name="sync_status_error">Սխալ՝ %1$s</string>
+    <string name="login_sync_facility">Հաստատության թարմացումների ստուգում…</string>
+    <string name="login_sync_survey_check">Հարցման թարմացումների ստուգում…</string>
+    <string name="login_sync_survey_download">Թարմացված հարցման ներբեռնում…</string>
 
     <string name="staff_validation_title">Անձնակազմի ստուգում է պահանջվում</string>
     <string name="staff_validation_dialog_title">Անձնակազմի մուտք</string>

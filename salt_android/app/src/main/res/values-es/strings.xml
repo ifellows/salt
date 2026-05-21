@@ -62,8 +62,11 @@
     <!-- Sync Status Messages -->
     <string name="sync_status_survey_updated">Encuesta actualizada</string>
     <string name="sync_status_survey_current">La encuesta está actualizada</string>
-    <string name="sync_status_no_connection">Nota: Sin conexión al servidor</string>
+    <string name="sync_status_no_connection">Nota: Sin conexión al servidor. Trabajando en modo sin conexión.</string>
     <string name="sync_status_error">Error: %1$s</string>
+    <string name="login_sync_facility">Buscando actualizaciones de la instalación…</string>
+    <string name="login_sync_survey_check">Buscando actualizaciones de la encuesta…</string>
+    <string name="login_sync_survey_download">Descargando la encuesta actualizada…</string>
 
     <!-- Staff Validation strings -->
     <string name="staff_validation_title">Validación del personal requerida</string>

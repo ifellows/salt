@@ -62,8 +62,11 @@
     <!-- Sync Status Messages -->
     <string name="sync_status_survey_updated">Survey updated</string>
     <string name="sync_status_survey_current">Survey is current</string>
-    <string name="sync_status_no_connection">Note: No server connection</string>
+    <string name="sync_status_no_connection">Note: No server connection. Working in offline mode.</string>
     <string name="sync_status_error">Error: %1$s</string>
+    <string name="login_sync_facility">Checking for facility updates…</string>
+    <string name="login_sync_survey_check">Checking for survey updates…</string>
+    <string name="login_sync_survey_download">Downloading updated survey…</string>
 
     <!-- Staff Validation strings -->
     <string name="staff_validation_title">Staff Validation Required</string>

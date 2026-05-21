@@ -218,15 +218,11 @@ class SurveySyncManager(private val context: Context) {
                         SurveyCheckResult.Error("Server returned $responseCode")
                 }
             }
-        } catch (e: java.net.UnknownHostException) {
-            // Network unreachable - normal for offline operation
+        } catch (e: java.io.IOException) {
+            // Any network I/O failure (host unreachable, connection refused,
+            // timeout, no route, DNS, TLS) is an offline/unreachable condition,
+            // not a hard error. Surface it as a soft "no server connection".
             return@withContext SurveyCheckResult.Unreachable
-        } catch (e: java.net.SocketTimeoutException) {
-            // Timeout - normal for offline/slow connection
-            return@withContext SurveyCheckResult.Unreachable
-        } catch (e: java.net.ConnectException) {
-            // Connection refused - this is a real error (server is there but rejecting)
-            return@withContext SurveyCheckResult.Error("Connection refused")
         } catch (e: Exception) {
             return@withContext SurveyCheckResult.Error(e.message ?: "Unknown error")
         }

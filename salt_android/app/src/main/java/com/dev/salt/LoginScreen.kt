@@ -20,9 +20,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.dev.salt.sync.SurveySyncManager
 import com.dev.salt.sync.SurveyCheckResult
+import com.dev.salt.util.hasActiveNetwork
 import com.dev.salt.viewmodel.LoginViewModel
 import com.dev.salt.viewmodel.UserRole
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.dev.salt.data.SurveyDatabase
 import com.dev.salt.logging.AppLogger as Log
 
@@ -40,6 +43,8 @@ fun LoginScreen(
     onLoginSuccess: (UserRole, SyncMessage?) -> Unit // Callback with role and optional sync message
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
+    // Status text shown during post-login sync (facility/survey checks + download).
+    var syncStatus by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -54,24 +59,39 @@ fun LoginScreen(
         coroutineScope.launch {
             var syncMessage: SyncMessage? = null
 
+            // Option 1: no network at all means we skip the server calls
+            // entirely and go straight to offline mode (avoids the ~15s
+            // connection-timeout wait). A LAN with no internet still counts as
+            // "has network" and will attempt the calls, since the SALT server
+            // may itself be on the LAN.
+            if (!hasActiveNetwork(context)) {
+                Log.i("LoginScreen", "No active network - offline mode, skipping post-login sync")
+                onLoginSuccess(role, SyncMessage(context.getString(R.string.sync_status_no_connection), isError = false))
+                return@launch
+            }
+
             try {
                 val database = com.dev.salt.data.SurveyDatabase.getInstance(context)
 
                 // Sync facility config (quick, best-effort)
+                syncStatus = context.getString(R.string.login_sync_facility)
                 try {
-                    val facilityConfigManager = com.dev.salt.sync.FacilityConfigSyncManager(database)
-                    facilityConfigManager.syncFacilityConfig()
+                    withContext(Dispatchers.IO) {
+                        com.dev.salt.sync.FacilityConfigSyncManager(database).syncFacilityConfig()
+                    }
                 } catch (e: Exception) {
                     Log.w("LoginScreen", "Failed to sync facility config", e)
                 }
 
                 // Check for survey updates with detailed status
+                syncStatus = context.getString(R.string.login_sync_survey_check)
                 val surveySyncManager = SurveySyncManager(context)
                 val checkResult = surveySyncManager.checkForSurveyUpdateWithStatus()
 
                 syncMessage = when (checkResult) {
                     is SurveyCheckResult.NeedsUpdate -> {
                         Log.i("LoginScreen", "New survey version available, downloading...")
+                        syncStatus = context.getString(R.string.login_sync_survey_download)
                         val result = surveySyncManager.downloadAndReplaceSurvey()
                         if (result.isSuccess) {
                             Log.i("LoginScreen", "Survey updated successfully")
@@ -173,6 +193,21 @@ fun LoginScreen(
             )
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Post-login sync progress — shown so the screen isn't blank/frozen
+            // while we wait on the server after a successful local login.
+            syncStatus?.let { status ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(text = status, style = MaterialTheme.typography.bodyLarge)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             Button(
                 onClick = {
                     loginViewModel.login { result ->
@@ -182,7 +217,7 @@ fun LoginScreen(
                         // Error is handled by the showErrorDialog via observing loginViewModel.loginError
                     }
                 },
-                enabled = !loginViewModel.isLoading,
+                enabled = !loginViewModel.isLoading && syncStatus == null,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (loginViewModel.isLoading) {
@@ -208,7 +243,7 @@ fun LoginScreen(
                             // Error is handled by the showErrorDialog via observing loginViewModel.loginError
                         }
                     },
-                    enabled = !loginViewModel.isLoading && !loginViewModel.isBiometricLoading,
+                    enabled = !loginViewModel.isLoading && !loginViewModel.isBiometricLoading && syncStatus == null,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     if (loginViewModel.isBiometricLoading) {
