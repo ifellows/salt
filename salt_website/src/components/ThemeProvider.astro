@@ -1,0 +1,11 @@
+---
+// Force the site to light mode. Replaces Starlight's default ThemeProvider,
+// which would otherwise honor localStorage / prefers-color-scheme.
+---
+
+<script is:inline>
+  document.documentElement.dataset.theme = 'light';
+  window.StarlightThemeProvider = {
+    updatePickers() {},
+  };
+</script>

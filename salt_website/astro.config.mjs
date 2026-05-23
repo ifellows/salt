@@ -66,12 +66,10 @@ export default defineConfig({
       ],
       tableOfContents: false,
       customCss: ['./src/styles/custom.css'],
-      head: [
-        {
-          tag: 'script',
-          content: `document.documentElement.setAttribute('data-theme','light');`,
-        },
-      ],
+      components: {
+        ThemeProvider: './src/components/ThemeProvider.astro',
+        ThemeSelect: './src/components/ThemeSelect.astro',
+      },
     }),
   ],
 });
