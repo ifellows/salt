@@ -32,6 +32,12 @@ salt_android/build/
 node_modules/
 npm-debug.log
 
+# salt_website build artifacts
+salt_website/node_modules/
+salt_website/dist/
+salt_website/.astro/
+salt_website/.cache/
+
 # Runtime data (server)
 salt_management/data/audit/
 salt_management/data/uploads/

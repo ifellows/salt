@@ -1,0 +1,84 @@
+---
+title: SALT — System Assisted Link Tracing
+description: Continuous, facility-based link-tracing surveys for monitoring key populations in HIV response programs.
+template: splash
+hero:
+  tagline: Replace periodic surveys with continuous, real-time monitoring of key populations. SALT is cheaper, faster, and statistically rigorous.
+  image:
+    file: ../../assets/salt_logo.png
+  actions:
+    - text: Get started
+      link: /getting-started/what-is-salt/
+      icon: right-arrow
+      variant: primary
+    - text: Install in one command
+      link: /getting-started/installation/
+      icon: rocket
+      variant: secondary
+    - text: View on GitHub
+      link: https://github.com/ifellows/salt
+      icon: external
+      variant: minimal
+---
+
+import { CardGrid, Card } from '@astrojs/starlight/components';
+
+## Why SALT?
+
+<CardGrid>
+  <Card title="Cheaper" icon="approve-check">
+    Continuous data collection from existing facilities eliminates the costly field mobilisation of periodic Bio-Behavioral Surveys. Staff who already work at clinics collect data as part of their routine.
+  </Card>
+  <Card title="Faster" icon="rocket">
+    Results are available the moment data is uploaded. No waiting six months for a survey cycle to complete before you can see trends.
+  </Card>
+  <Card title="Continuous" icon="heart">
+    Rather than a snapshot every two or three years, SALT provides a rolling view of population indicators — enabling earlier detection of changes in HIV risk behaviour.
+  </Card>
+  <Card title="Statistically valid" icon="information">
+    SALT uses the same coupon-based recruitment chain as Respondent-Driven Sampling and applies existing RDS estimators to rolling time windows. Results are comparable to traditional BBS surveys.
+  </Card>
+</CardGrid>
+
+---
+
+## Link-tracing sampling methods compared
+
+The SALT software supports any link-tracing design. Here's how the major methods compare:
+
+| Sampling method | Recruitment links traced | Long chains (few seeds) | Use lightly trained staff | Continuous recruitment |
+| --- | --- | --- | --- | --- |
+| [**SALT**](https://github.com/ifellows/salt/blob/main/SALT.pdf) | ✅ | ✅ | ✅ | <span style="color: #2a9d3a; font-weight: 600;">Optional</span> |
+| [RDS](https://www.lisagjohnston.com/respondent-driven-sampling) | ✅ | ✅ | ❌ | ❌ |
+| [Starfish](https://pubmed.ncbi.nlm.nih.gov/30328063/) | ✅ | ❌ | ❌ | ❌ |
+| [BBS-lite](https://www.unaids.org/en/resources/documents/2024/BBS-lite-tool) | ✅ | ❌ | ✅ | ❌ |
+| Snowball | ❌ | <span style="color: #c9920a; font-weight: 600;">Maybe</span> | <span style="color: #c9920a; font-weight: 600;">Maybe</span> | ❌ |
+
+---
+
+## How it works
+
+SALT has two components that fit into your existing infrastructure:
+
+### 1. Management server + analytics
+
+A web dashboard that administrators use to configure surveys, manage facilities, monitor data in real time, and generate reports. Statistical analysis — rolling RDS estimators over 6, 12, and 24-month windows — runs inside the same server. Deployed in one command on any Ubuntu server.
+
+### 2. Facility tablets
+
+Android tablets placed at participating health facilities. Survey staff walk participants through an audio-assisted interview (ACASI) step by step. Data is encrypted on-device and syncs to the server automatically when online. The app works fully offline during internet outages.
+
+---
+
+## Get started in minutes
+
+Stand up a production-ready SALT server on a fresh Ubuntu machine — Docker, TLS, firewall, and a demo survey all configured automatically:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ifellows/salt/main/salt_management/install.sh \
+  | sudo bash -s -- your-domain.example.org admin@example.org
+```
+
+Then browse to `https://your-domain.example.org`, sign in as `admin` / `admin123`, and [connect your first tablet](/tablet/setup/).
+
+[Full installation guide →](/getting-started/installation/)

@@ -1,0 +1,4 @@
+/* Hide the dark/light theme toggle */
+starlight-theme-select {
+  display: none !important;
+}
