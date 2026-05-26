@@ -69,7 +69,7 @@
                         <td>
                             <a href="/admin/users/<%= u.id %>/edit" class="btn btn-sm">Edit</a>
                             <% if (u.id !== user.id) { %>
-                                <button onclick="deleteUser(<%= u.id %>, '<%= u.username %>')"
+                                <button onclick="deleteUser(<%= u.id %>, '<%= u.username %>', <%= u.is_active ? 'true' : 'false' %>)"
                                         class="btn btn-sm btn-danger"
                                         <%= u.role === 'administrator' ? 'data-admin="true"' : '' %>>
                                     <%= u.is_active ? 'Deactivate' : 'Activate' %>
@@ -140,10 +140,9 @@ function filterUsers() {
     });
 }
 
-async function deleteUser(userId, username) {
+async function deleteUser(userId, username, isActive) {
     const button = event.target;
     const isAdmin = button.dataset.admin === 'true';
-    const isActive = button.textContent === 'Deactivate';
 
     if (isAdmin) {
         const adminCount = document.querySelectorAll('tr[data-role="administrator"][data-active="1"]').length;
