@@ -44,9 +44,9 @@ Click the edit icon next to a facility to open the edit modal:
 
 | Field | Description |
 |-------|-------------|
-| **Contact rate** | Expected days between a participant receiving a coupon and presenting at the facility (used in diagnostics) |
-| **Recruitment window min** | Earliest day a coupon is considered valid (0 = same day it was issued) |
-| **Recruitment window max** | Latest day a coupon is considered valid (e.g. 730 = up to 2 years) |
+| **Contact rate** | How often staff are asked to contact previous study subjects to invite them to re-enrol in the survey |
+| **Recruitment window min** | Minimum number of days since a subject's enrolment before they become eligible for re-recruitment via continuous recruitment (i.e. staff calling them to participate again) |
+| **Recruitment window max** | Maximum number of days since enrolment during which a subject remains eligible for re-recruitment |
 
 ### Payment settings
 
@@ -69,11 +69,13 @@ Before connecting a tablet to a facility, you need to generate a one-time setup 
 
 Setup codes expire after 24 hours. Generate a new one if the previous code expires before the tablet is set up.
 
-## Downloading the tablet APK
+## Setting up a tablet
 
-The **Download APK** button (shown on the facilities page) links to the Android APK file served from the management server. You can also browse to `https://your-server/files/salt.apk` directly from the tablet.
+Tablet setup begins by browsing to `https://your-server/tablet` directly from the tablet — no login is required. That public page provides the APK download link and step-by-step setup instructions.
 
-![APK download page with installation instructions](../../../assets/screenshots/tablet-apk-download.png)
+![/tablet page with installation instructions](../../../assets/screenshots/tablet-apk-download.png)
+
+The **Download Page** link at the top of the Facilities page opens the same `/tablet` page in a new window.
 
 ## Deleting a facility
 

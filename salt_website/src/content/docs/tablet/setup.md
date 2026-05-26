@@ -12,13 +12,13 @@ The SALT tablet app runs on Android tablets placed at participating health facil
 - USB OTG (On-The-Go) support — required for the fingerprint scanner
 - SecuGen HU20-A fingerprint scanner (optional — falls back to software duplicate checking if not connected)
 
-## Step 1 — Download the APK
+## Step 1 — Install the app from /tablet
 
-From the management server, navigate to **Facilities** and click the **Download APK** link, or browse to `https://your-server/files/salt.apk` from the tablet's browser.
+From the tablet's browser, navigate to `https://your-server/tablet` and follow the on-screen instructions. This page is public — no login or credentials are required to access it.
 
-![APK download page with installation instructions](../../../assets/screenshots/tablet-apk-download.png)
+![/tablet page with installation instructions](../../../assets/screenshots/tablet-apk-download.png)
 
-Enable installation from unknown sources in **Android Settings → Security → Install unknown apps** before installing the APK.
+Enable installation from unknown sources in **Android Settings → Security → Install unknown apps** when prompted.
 
 ## Step 2 — Get a setup code
 

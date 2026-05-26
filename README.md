@@ -1,5 +1,9 @@
 # SALT (System Assisted Link Tracing)
 
+### 📖 Full documentation: **[surveysalt.com](https://surveysalt.com)**
+
+---
+
 SALT is a platform for running **any link-tracing survey design**. This includes
 Respondent-Driven Sampling (RDS), but also designs where recruitment chains are
 short (BBS-lite, starfish sampling), where staff are facility-based with limited

@@ -44,11 +44,11 @@ Before connecting a tablet:
 
 ## 5. Install the tablet app
 
-From the management server, navigate to **Facilities** and click **Download APK** to get the Android APK file. Alternatively, browse to `https://your-server/files/salt.apk` from the tablet's browser.
+On the tablet, open a browser and go to `https://your-server/tablet`. This page is public — no credentials required — and provides the APK download and installation instructions.
 
-Transfer the APK to the tablet and install it (you may need to enable installation from unknown sources in Android Settings → Security).
+![/tablet page with installation instructions](../../../assets/screenshots/tablet-apk-download.png)
 
-![APK download page](../../../assets/screenshots/tablet-apk-download.png)
+Follow the instructions on the page (you may need to enable installation from unknown sources in Android Settings → Security).
 
 ## 6. Set up the tablet
 

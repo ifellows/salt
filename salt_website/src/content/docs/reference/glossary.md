@@ -58,7 +58,3 @@ An open-source extension to SQLite that provides transparent 256-bit AES encrypt
 ## Survey Staff (SURVEY_STAFF)
 
 A tablet user role that grants access to the survey interview workflow (Start New Survey, Recruitment Payment) but not to administrative functions. Survey data collection must be done by SURVEY_STAFF users — administrators cannot conduct surveys directly.
-
-## Upload
-
-The process by which a completed survey response is transmitted from the tablet to the management server. Uploads happen automatically in the background when the tablet has internet connectivity. Completed surveys are stored locally (encrypted) until they upload successfully.
