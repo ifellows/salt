@@ -18,6 +18,7 @@ export default defineConfig({
           label: 'Getting Started',
           items: [
             { label: 'What is SALT?', slug: 'getting-started/what-is-salt' },
+            { label: 'Statistical Validity', slug: 'getting-started/statistical-validity' },
             { label: 'Installation', slug: 'getting-started/installation' },
             { label: 'Docker Deployment', slug: 'getting-started/docker-deployment' },
             { label: 'First Steps', slug: 'getting-started/first-steps' },
