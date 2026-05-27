@@ -20,11 +20,11 @@ All changes are logged with a timestamp, the username of the administrator who m
 
 The table shows participants with:
 
-- **Participant ID** — unique identifier assigned by the tablet
-- **Facility** — which facility the participant was enrolled at
-- **Completed** — whether the interview was completed
-- **Status** — `active` or `deleted`
-- **Actions** — edit or delete
+- **Participant ID**: unique identifier assigned by the tablet
+- **Facility**: which facility the participant was enrolled at
+- **Completed**: whether the interview was completed
+- **Status**: `active` or `deleted`
+- **Actions**: edit or delete
 
 ## Filtering
 
@@ -58,4 +58,4 @@ The edit log is the authoritative record of all post-collection corrections.
 
 ## When to use Edit Data
 
-Use Edit Data sparingly and only for genuine data quality corrections — for example, a transcription error in a numeric response, or a test participant whose record should be excluded. Programmatic corrections to entire variables should be done in your analysis scripts, not in the database.
+Use Edit Data sparingly and only for genuine data quality corrections, for example, a transcription error in a numeric response, or a test participant whose record should be excluded. Programmatic corrections to entire variables should be done in your analysis scripts, not in the database.

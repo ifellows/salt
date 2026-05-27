@@ -15,7 +15,7 @@ An exported survey bundle contains:
 - All skip logic, validation scripts, and skip-to configurations
 - System messages (ineligibility message and others)
 - Rapid test configurations
-- Audio files — embedded as base64 in the `audio_files_json` field
+- Audio files, embedded as base64 in the `audio_files_json` field
 
 The export does **not** include collected response data. It is a definition-only export.
 
@@ -35,10 +35,10 @@ The exported file contains a `schema_version` field set to `1`.
 
 ### What happens on import
 
-- Import always creates a **new, inactive survey** — it never overwrites an existing survey
+- Import always creates a **new, inactive survey**: it never overwrites an existing survey
 - If the imported survey's name already exists in the database, the version number is automatically incremented (e.g. `Short MSM Survey v1` becomes `Short MSM Survey v2`)
 - All questions, options, skip logic, messages, and audio are imported
-- The import is fully transactional — if any part fails, nothing is written
+- The import is fully transactional, if any part fails, nothing is written
 
 After importing, review the survey in the editor and activate it when ready.
 
@@ -48,4 +48,4 @@ The `schema_version` field in the export JSON must be `1`. Exports from future v
 
 ## Audio in exports
 
-Audio files are embedded as base64-encoded strings in the `audio_files_json` field. This makes the export self-contained but also large — a survey with extensive multi-language audio may produce an export file that is several hundred megabytes. Ensure your browser and server both allow uploads of sufficient size (the server limit is 50 MB by default; large audio surveys may require adjusting the nginx `client_max_body_size` and the Node.js body parser limit).
+Audio files are embedded as base64-encoded strings in the `audio_files_json` field. This makes the export self-contained but also large, a survey with extensive multi-language audio may produce an export file that is several hundred megabytes. Ensure your browser and server both allow uploads of sufficient size (the server limit is 50 MB by default; large audio surveys may require adjusting the nginx `client_max_body_size` and the Node.js body parser limit).

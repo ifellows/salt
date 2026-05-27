@@ -1,6 +1,6 @@
 ---
 title: Facilities
-description: Managing participating health facilities — setup codes, coupon configuration, payment settings, and recruitment windows.
+description: Managing participating health facilities, setup codes, coupon configuration, payment settings, and recruitment windows.
 ---
 
 Facilities represent the health sites where data collection takes place. Each facility has its own API key and configuration, and tablets are registered to a specific facility.
@@ -11,19 +11,19 @@ Facilities represent the health sites where data collection takes place. Each fa
 
 The facilities page shows all registered facilities with:
 
-- **Name** — the facility's display name
-- **Location** — geographic location or site description
-- **Setup** — whether the facility has been set up on at least one tablet
-- **Allow without coupons** — whether participants may be enrolled without presenting a coupon
-- **Coupons** — number of coupons issued per participant
-- **Seed Recruitment** — whether seed recruitment (participants without coupons) is active
+- **Name**: the facility's display name
+- **Location**: geographic location or site description
+- **Setup**: whether the facility has been set up on at least one tablet
+- **Allow without coupons**: whether participants may be enrolled without presenting a coupon
+- **Coupons**: number of coupons issued per participant
+- **Seed Recruitment**: whether seed recruitment (participants without coupons) is active
 
 ## Adding a facility
 
 Click **Add Facility** and complete the form:
 
-- **Name** — display name for the facility
-- **Location** — e.g. city, district, or clinic name
+- **Name**: display name for the facility
+- **Location**: e.g. city, district, or clinic name
 
 ## Editing a facility
 
@@ -71,7 +71,7 @@ Setup codes expire after 24 hours. Generate a new one if the previous code expir
 
 ## Setting up a tablet
 
-Tablet setup begins by browsing to `https://your-server/tablet` directly from the tablet — no login is required. That public page provides the APK download link and step-by-step setup instructions.
+Tablet setup begins by browsing to `https://your-server/tablet` directly from the tablet. No login is required. That public page provides the APK download link and step-by-step setup instructions.
 
 ![/tablet page with installation instructions](../../../assets/screenshots/tablet-apk-download.png)
 
@@ -79,4 +79,4 @@ The **Download Page** link at the top of the Facilities page opens the same `/ta
 
 ## Deleting a facility
 
-Click the delete icon next to a facility. Deleting a facility does not delete uploaded survey data — historical uploads are retained.
+Click the delete icon next to a facility. Deleting a facility does not delete uploaded survey data; historical uploads are retained.

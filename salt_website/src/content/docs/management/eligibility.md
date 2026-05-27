@@ -3,7 +3,7 @@ title: Eligibility
 description: Configuring the eligibility section and JEXL eligibility script that determines whether a participant may continue.
 ---
 
-The eligibility section is a fixed set of questions at the start of every interview. After these questions are answered, a JEXL expression — the **Eligibility Script** — determines whether the participant meets the study's inclusion criteria. Ineligible participants are shown a customisable message and the interview ends.
+The eligibility section is a fixed set of questions at the start of every interview. After these questions are answered, a JEXL expression, the **Eligibility Script**: determines whether the participant meets the study's inclusion criteria. Ineligible participants are shown a customisable message and the interview ends.
 
 ## General settings for eligibility
 
@@ -33,11 +33,11 @@ tutsex == 1 && tutage != null && tutage >= 18 && eltgsx == 0 && elmssxt == 0
 ```
 
 This script from the CRANE MSM survey requires:
-- `tutsex == 1` — second option for sex question (male)
-- `tutage != null && tutage >= 18` — age provided and at least 18
-- `eltgsx == 0` — first option for "ever had anal sex" (yes)
-- `elmssxt == 0` — first option for "ever had sex with a man" (yes)
-- `elcoup == 0 || elcoup == 1` — coupon valid (first or second option)
+- `tutsex == 1`, second option for sex question (male)
+- `tutage != null && tutage >= 18`, age provided and at least 18
+- `eltgsx == 0`, first option for "ever had anal sex" (yes)
+- `elmssxt == 0`, first option for "ever had sex with a man" (yes)
+- `elcoup == 0 || elcoup == 1`, coupon valid (first or second option)
 
 ### Writing the eligibility script
 

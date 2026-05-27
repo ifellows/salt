@@ -70,7 +70,7 @@ At the end of the interview:
 
 ## Upload
 
-Completed surveys are uploaded to the management server automatically when the tablet has an internet connection. The upload happens in the background — staff do not need to manually trigger it.
+Completed surveys are uploaded to the management server automatically when the tablet has an internet connection. The upload happens in the background; staff do not need to manually trigger it.
 
 To check upload status, an administrator can view **Survey Status** in the admin dashboard:
 

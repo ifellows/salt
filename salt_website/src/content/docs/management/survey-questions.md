@@ -1,6 +1,6 @@
 ---
 title: Survey Questions
-description: Adding and editing survey questions — types, options, ordering, and the question edit modal.
+description: Adding and editing survey questions, types, options, ordering, and the question edit modal.
 ---
 
 Questions are the building blocks of a SALT survey. Each question has a type, display text, answer options (for choice questions), and optional logic fields.
@@ -11,10 +11,10 @@ Questions are the building blocks of a SALT survey. Each question has a type, di
 
 The questions tab of the survey editor shows all questions in order, grouped by section. Each row shows:
 
-- **Order** — drag to reorder
-- **Short Name** — the unique identifier used in skip logic and data export
-- **Type** — question type (see below)
-- **Question text** — the first-language text displayed to participants
+- **Order**: drag to reorder
+- **Short Name**: the unique identifier used in skip logic and data export
+- **Type**: question type (see below)
+- **Question text**: the first-language text displayed to participants
 - Actions: **Edit**, **Delete**
 
 ## Question types
@@ -35,9 +35,9 @@ SALT supports five question types:
 
 Click **Edit** on any question to open the edit modal.
 
-### Top half — question definition
+### Top half, question definition
 
-![Question edit modal — top half](../../../assets/screenshots/admin-surveys-question-edit-top.png)
+![Question edit modal, top half](../../../assets/screenshots/admin-surveys-question-edit-top.png)
 
 | Field | Description |
 |-------|-------------|
@@ -48,9 +48,9 @@ Click **Edit** on any question to open the edit modal.
 | **Options** | For Multiple Choice and Multi-Select: the list of answer options, in the order they appear. Each option has a **Record** button to record audio. |
 | **Min / Max Selections** | For Multi-Select only: the minimum and maximum number of options the participant must select |
 
-### Bottom half — logic fields
+### Bottom half, logic fields
 
-![Question edit modal — logic fields](../../../assets/screenshots/admin-surveys-question-edit-logic.png)
+![Question edit modal, logic fields](../../../assets/screenshots/admin-surveys-question-edit-logic.png)
 
 | Field | Description |
 |-------|-------------|
@@ -63,7 +63,7 @@ See [Survey Logic](/management/survey-logic/) for a complete guide to writing th
 
 ## Option numbering
 
-Options are numbered **starting at 0**, not 1. The first option in the list is option `0`, the second is `1`, and so on. This is the most common source of errors in skip logic — always double-check option numbers when writing conditions.
+Options are numbered **starting at 0**, not 1. The first option in the list is option `0`, the second is `1`, and so on. This is the most common source of errors in skip logic, always double-check option numbers when writing conditions.
 
 ## Sections
 
@@ -75,4 +75,4 @@ Each question and each option has a **Record** button. Click it to record audio 
 
 ## Saving
 
-Click **Save** in the edit modal. Questions are saved immediately to the server — there is no separate publish step for individual questions.
+Click **Save** in the edit modal. Questions are saved immediately to the server, there is no separate publish step for individual questions.

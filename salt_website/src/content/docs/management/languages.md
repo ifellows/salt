@@ -3,7 +3,7 @@ title: Languages
 description: Adding language support and recording audio for multi-language ACASI surveys.
 ---
 
-SALT supports multi-language surveys with audio playback (ACASI — Audio Computer-Assisted Self-Interview). Participants choose their preferred language on the tablet and hear questions and options in that language.
+SALT supports multi-language surveys with audio playback (ACASI, Audio Computer-Assisted Self-Interview). Participants choose their preferred language on the tablet and hear questions and options in that language.
 
 ![Language management tab showing English as the current language](../../../assets/screenshots/admin-surveys-languages.png)
 
@@ -38,4 +38,4 @@ Removing a language from the survey definition removes its audio from future tab
 
 ## Export
 
-Exported data columns are language-independent — question answers are stored by question short name and option index, not by the language text. Audio files are included in the survey export bundle as base64-encoded data in the `audio_files_json` field.
+Exported data columns are language-independent, question answers are stored by question short name and option index, not by the language text. Audio files are included in the survey export bundle as base64-encoded data in the `audio_files_json` field.

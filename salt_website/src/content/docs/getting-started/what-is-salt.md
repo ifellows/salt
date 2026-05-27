@@ -1,9 +1,9 @@
 ---
 title: What is SALT?
-description: An introduction to System Assisted Link Tracing — the sampling methodology and the software platform.
+description: An introduction to System Assisted Link Tracing, the sampling methodology and the software platform.
 ---
 
-SALT (System Assisted Link Tracing) is a platform for running **continuous, facility-based link-tracing surveys**. It is designed to replace — or complement — the periodic Bio-Behavioral Surveys (BBS) that are the current standard for monitoring key populations (KP) in HIV response programs.
+SALT (System Assisted Link Tracing) is a platform for running **continuous, facility-based link-tracing surveys**. It is designed to replace, or complement, the periodic Bio-Behavioral Surveys (BBS) that are the current standard for monitoring key populations (KP) in HIV response programs.
 
 ## The problem with periodic surveys
 
@@ -15,10 +15,10 @@ Periodic surveys are also expensive. Each round requires field mobilisation, tem
 
 SALT turns the BBS from a periodic event into an ongoing process:
 
-- **Facility-based**: Data is collected by staff already working at existing health facilities — clinics, voluntary counselling and testing centres, and other KP-serving sites. No dedicated field offices required.
+- **Facility-based**: Data is collected by staff already working at existing health facilities, clinics, voluntary counselling and testing centres, and other KP-serving sites. No dedicated field offices required.
 - **Continuous**: There is no fixed start or end date. Participants are enrolled and interviewed as they arrive, and data accumulates over time.
 - **Coupon-based**: Like RDS, each participant receives coupons to recruit members of their network. Recruitment chains are tracked, enabling estimation of population-level indicators using established RDS estimators applied to rolling time windows.
-- **Audio-assisted**: The tablet app guides participants through the survey with audio playback in their preferred language (ACASI — Audio Computer-Assisted Self-Interview), reducing literacy requirements and interviewer bias.
+- **Audio-assisted**: The tablet app guides participants through the survey with audio playback in their preferred language (ACASI, Audio Computer-Assisted Self-Interview), reducing literacy requirements and interviewer bias.
 - **Offline-capable**: Tablets store data locally (encrypted with SQLCipher) and sync to the server automatically when connectivity is available.
 
 ## The SALT software platform
@@ -59,6 +59,6 @@ SALT is designed for:
 
 ## Further reading
 
-- [Installation](/getting-started/installation/) — stand up the server in one command
-- [Management dashboard overview](/management/dashboard/) — what you see after logging in
-- [Tablet setup](/tablet/setup/) — connecting a tablet to your server
+- [Installation](/getting-started/installation/): stand up the server in one command
+- [Management dashboard overview](/management/dashboard/): what you see after logging in
+- [Tablet setup](/tablet/setup/): connecting a tablet to your server

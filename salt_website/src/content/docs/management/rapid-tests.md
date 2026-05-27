@@ -20,17 +20,17 @@ The Rapid Tests tab in the survey editor shows all configured rapid tests:
 
 The default configuration includes:
 
-- **HIV Rapid Test** (`hivrapid`) — order 0, enabled
-- **Syphilis Rapid Test** (`syprapid`) — order 1, enabled
+- **HIV Rapid Test** (`hivrapid`), order 0, enabled
+- **Syphilis Rapid Test** (`syprapid`), order 1, enabled
 
 ## Adding a rapid test
 
 Click **Add New Test** and fill in:
 
-- **Test Name** — the name shown to staff
-- **Test ID** — a short alphanumeric identifier (used in skip logic and exports)
-- **Enabled** — whether the test is active
-- **Display Order** — order among the rapid tests panel
+- **Test Name**: the name shown to staff
+- **Test ID**: a short alphanumeric identifier (used in skip logic and exports)
+- **Enabled**: whether the test is active
+- **Display Order**: order among the rapid tests panel
 
 ## Rapid test results in skip logic
 

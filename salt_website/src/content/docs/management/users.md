@@ -1,6 +1,6 @@
 ---
 title: Users
-description: Managing administrator accounts on the management server — roles, adding users, and resetting passwords.
+description: Managing administrator accounts on the management server, roles, adding users, and resetting passwords.
 ---
 
 The Users page manages accounts for the management server web interface. These are separate from tablet user accounts, which are managed on each tablet individually.
@@ -31,10 +31,10 @@ Access to the laboratory results entry workflow only. Lab Staff users can enter 
 
 Click **Add New User** and fill in:
 
-- **Username** — used to log in
-- **Full Name** — display name
-- **Password** — temporary password (user should change it after first login)
-- **Role** — `Administrator` or `Lab Staff`
+- **Username**: used to log in
+- **Full Name**: display name
+- **Password**: temporary password (user should change it after first login)
+- **Role**: `Administrator` or `Lab Staff`
 
 ## Filtering
 
@@ -42,7 +42,7 @@ Use the **role** and **status** filter dropdowns to narrow the list.
 
 ## Editing a user
 
-Click **Edit** next to a user to change their full name, role, or status. Passwords cannot be viewed — only reset.
+Click **Edit** next to a user to change their full name, role, or status. Passwords cannot be viewed, only reset.
 
 ## Resetting a password
 

@@ -1,6 +1,6 @@
 ---
 title: Uploads
-description: Viewing the survey upload history — status, errors, and per-upload details.
+description: Viewing the survey upload history, status, errors, and per-upload details.
 ---
 
 The Uploads page shows every survey submission received from tablets, along with its processing status.
@@ -14,15 +14,15 @@ The Uploads page shows every survey submission received from tablets, along with
 | **Survey ID** | The survey definition that was used |
 | **Facility** | The facility whose tablet submitted this upload |
 | **Participant ID** | The unique participant identifier assigned by the tablet at enrolment |
-| **Status** | `completed` — stored successfully; `failed` — rejected |
+| **Status** | `completed`, stored successfully; `failed`, rejected |
 | **Upload Time** | Server timestamp when the upload was received |
 | **Actions** | View details or download the raw JSON |
 
 ## Upload statuses
 
-**Completed** — the upload passed all validation checks and the response data was written to the database. The participant's answers, rapid test results, payment information, and coupon data are all available for export.
+**Completed**: the upload passed all validation checks and the response data was written to the database. The participant's answers, rapid test results, payment information, and coupon data are all available for export.
 
-**Failed** — the upload was rejected. Common causes:
+**Failed**: the upload was rejected. Common causes:
 - Missing required fields in the submission
 - Survey version mismatch (tablet is running an older survey than the server)
 - Duplicate participant ID (if fingerprint screening is enabled, this is caught on the tablet before upload)

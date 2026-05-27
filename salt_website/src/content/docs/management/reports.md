@@ -51,6 +51,6 @@ Completed outputs are stored in `data/reports/runs/` on the server volume.
 
 ## R packages available
 
-- `RDS` — Respondent-Driven Sampling estimators
-- `tidyverse` — data manipulation and visualisation
-- `lubridate`, `scales`, `jsonlite`, `uuid` — utilities
+- `RDS`, Respondent-Driven Sampling estimators
+- `tidyverse`, data manipulation and visualisation
+- `lubridate`, `scales`, `jsonlite`, `uuid`, utilities

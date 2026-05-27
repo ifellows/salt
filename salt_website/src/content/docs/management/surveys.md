@@ -1,6 +1,6 @@
 ---
 title: Surveys
-description: Creating and managing survey definitions — the list view, activation, versioning, and import/export.
+description: Creating and managing survey definitions, the list view, activation, versioning, and import/export.
 ---
 
 Surveys are the central configuration unit in SALT. A survey definition includes all questions, options, skip logic, eligibility criteria, system messages, rapid tests, and language settings.
@@ -14,7 +14,7 @@ The surveys page shows all surveys in the system:
 | Column | Description |
 |--------|-------------|
 | **Name** | Survey display name and version number |
-| **Status** | `active` — tablets will sync and use this survey; `inactive` — draft or retired |
+| **Status** | `active`, tablets will sync and use this survey; `inactive`, draft or retired |
 | **Questions** | Total number of questions in the survey |
 
 Only one survey can be **active** at a time. Tablets download the active survey during sync.
@@ -59,4 +59,4 @@ Click **Import Survey** to upload a previously exported survey JSON bundle. See 
 
 ## Deleting a survey
 
-Surveys can be deleted from the list. Deleting a survey definition does not delete already-collected data — uploaded responses retain a reference to the survey version they were collected under.
+Surveys can be deleted from the list. Deleting a survey definition does not delete already-collected data, uploaded responses retain a reference to the survey version they were collected under.

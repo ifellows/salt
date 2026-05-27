@@ -1,5 +1,5 @@
 ---
-title: SALT — System Assisted Link Tracing
+title: SALT, System Assisted Link Tracing
 description: Continuous, facility-based link-tracing surveys for monitoring key populations in HIV response programs.
 template: splash
 hero:
@@ -33,7 +33,7 @@ import { CardGrid, Card } from '@astrojs/starlight/components';
     Results are available the moment data is uploaded. No waiting six months for a survey cycle to complete before you can see trends.
   </Card>
   <Card title="Continuous" icon="heart">
-    Rather than a snapshot every two or three years, SALT provides a rolling view of population indicators — enabling earlier detection of changes in HIV risk behaviour.
+    Rather than a snapshot every two or three years, SALT provides a rolling view of population indicators, enabling earlier detection of changes in HIV risk behaviour.
   </Card>
   <Card title="Statistically valid" icon="information">
     SALT uses the same coupon-based recruitment chain as Respondent-Driven Sampling and applies existing RDS estimators to rolling time windows. Results are comparable to traditional BBS surveys.
@@ -54,7 +54,7 @@ The SALT software supports any link-tracing design. Here's how the major methods
 | [BBS-lite](https://www.unaids.org/en/resources/documents/2024/BBS-lite-tool) | ✅ | ❌ | ✅ | ❌ | <span style="color: #c9920a; font-weight: 600;">?</span> |
 | Snowball | ❌ | <span style="color: #c9920a; font-weight: 600;">?</span> | <span style="color: #c9920a; font-weight: 600;">?</span> | ❌ | ❌ |
 
-The SALT software supports every link-tracing design in this table except Snowball — SALT Sampling, RDS, Starfish, and BBS-lite all track recruitment links and can be implemented using the same tablet app and management server. See [Statistical Validity](/getting-started/statistical-validity/) for how each design addresses the biases inherent in network-based sampling.
+The SALT software supports every link-tracing design in this table except Snowball. SALT Sampling, RDS, Starfish, and BBS-lite all track recruitment links and can be implemented using the same tablet app and management server. See [Statistical Validity](/getting-started/statistical-validity/) for how each design addresses the biases inherent in network-based sampling.
 
 ---
 
@@ -64,17 +64,17 @@ SALT has two components that fit into your existing infrastructure:
 
 ### 1. Management server + analytics
 
-A web dashboard that administrators use to configure surveys, manage facilities, monitor data in real time, and generate reports. Statistical analysis — rolling RDS estimators over 6, 12, and 24-month windows — runs inside the same server. Deployed in one command on any Ubuntu server.
+A web dashboard that administrators use to configure surveys, manage facilities, monitor data in real time, and generate reports. Statistical analysis, rolling RDS estimators over 6, 12, and 24-month windows, runs inside the same server. Deployed in one command on any Ubuntu server.
 
 ### 2. Facility tablets
 
-Android tablets placed at participating health facilities. Survey staff walk participants through an audio-assisted interview (ACASI) step by step. Data is encrypted on-device and syncs to the server automatically when online. The app works fully offline during internet outages.
+Android tablets placed at participating health facilities. The tablet walks both the staff member and the participant through the entire survey process step by step, prompting each at exactly the right moment. This guard-railed workflow dramatically reduces the chance of procedural errors and the amount of training staff need: facilities can use their regular clinic staff rather than dedicated, specially trained survey personnel. Participants complete the questionnaire as an audio-assisted interview (ACASI) in their preferred language. Data is encrypted on-device and syncs to the server automatically when online, and the app works fully offline during internet outages.
 
 ---
 
 ## Get started in minutes
 
-Stand up a production-ready SALT server on a fresh Ubuntu machine — Docker, TLS, firewall, and a demo survey all configured automatically:
+Stand up a production-ready SALT server on a fresh Ubuntu machine, Docker, TLS, firewall, and a demo survey all configured automatically:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ifellows/salt/main/salt_management/install.sh \

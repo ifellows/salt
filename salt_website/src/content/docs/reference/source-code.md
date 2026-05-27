@@ -13,9 +13,9 @@ The repository contains three main components:
 
 | Directory | Contents |
 |-----------|----------|
-| `salt_management/` | Management server — Node.js / Express / SQLite / EJS |
-| `salt_android/` | Tablet app — Android (Kotlin) |
-| `salt_website/` | This documentation website — Astro / Starlight |
+| `salt_management/` | Management server, Node.js / Express / SQLite / EJS |
+| `salt_android/` | Tablet app, Android (Kotlin) |
+| `salt_website/` | This documentation website, Astro / Starlight |
 
 ## Branches
 

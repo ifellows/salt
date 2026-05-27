@@ -11,7 +11,7 @@ description: Common problems and solutions for the SALT tablet app and managemen
 
 **Solutions**:
 1. Ensure the scanner is connected before opening the SALT app. Connect, then reopen the app.
-2. Check that a USB OTG adapter is being used — the SecuGen HU20-A connects via USB-A, which requires an OTG adapter on most modern tablets.
+2. Check that a USB OTG adapter is being used, the SecuGen HU20-A connects via USB-A, which requires an OTG adapter on most modern tablets.
 3. When Android asks "Allow SALT to access the USB device?", tap **OK**. If you missed this prompt, disconnect and reconnect the scanner.
 4. Go to **Developer Settings** on the tablet and check that no USB permission errors appear in the log.
 5. Try a different USB OTG cable or adapter.
@@ -22,9 +22,9 @@ description: Common problems and solutions for the SALT tablet app and managemen
 **Symptom**: Questions display but no audio is heard.
 
 **Solutions**:
-1. Check the tablet volume — it may be muted.
+1. Check the tablet volume; it may be muted.
 2. Verify that audio was recorded for the active survey's language on the management server (Surveys → Languages → listen to recordings).
-3. Ensure the tablet has completed a sync after audio was recorded — the audio is downloaded during sync, not at upload time.
+3. Ensure the tablet has completed a sync after audio was recorded. Audio is downloaded during sync, not at upload time.
 4. Check **Survey Status** to confirm the survey downloaded successfully.
 
 ### Cannot connect to the server
@@ -34,7 +34,7 @@ description: Common problems and solutions for the SALT tablet app and managemen
 **Solutions**:
 1. Confirm the tablet is on the same network as the server (or that the server is reachable from the tablet's network).
 2. Try opening the server URL in the tablet's browser to confirm it loads.
-3. Check that you are using `https://` for production or `http://` for local testing — a mismatch will fail.
+3. Check that you are using `https://` for production or `http://` for local testing, a mismatch will fail.
 4. If using a local network IP, confirm the server is listening on all interfaces (not just `127.0.0.1`).
 5. Check the server is running: `docker logs -f salt`.
 
@@ -52,7 +52,7 @@ description: Common problems and solutions for the SALT tablet app and managemen
 
 **Solutions**:
 1. Enable **File Logging** in Developer Settings, reproduce the crash, then upload the development logs to the server for inspection.
-2. Check available storage on the tablet — the encrypted database can grow large with many completed surveys.
+2. Check available storage on the tablet, the encrypted database can grow large with many completed surveys.
 3. Force-stop the app (Android Settings → Apps → SALT → Force Stop) and reopen it.
 4. If crashes persist, check the management server for APK updates.
 
@@ -61,7 +61,7 @@ description: Common problems and solutions for the SALT tablet app and managemen
 **Symptom**: Correct username and password are rejected.
 
 **Solutions**:
-1. Passwords are case-sensitive — check Caps Lock is not on.
+1. Passwords are case-sensitive, check Caps Lock is not on.
 2. If the administrator password is unknown, another administrator must reset it via **Manage Users → Edit User**.
 3. If all administrator passwords are lost, the database must be reset. Contact the server administrator to re-run the tablet setup.
 

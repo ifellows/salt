@@ -1,6 +1,6 @@
 ---
 title: Docker Deployment
-description: Building and running the SALT server with Docker — all options, upgrades, backups, and reverse proxy details.
+description: Building and running the SALT server with Docker, all options, upgrades, backups, and reverse proxy details.
 ---
 
 The SALT management server is distributed as a Docker image. The image bundles Node.js, R + tidyverse, Quarto, and all R packages needed for the reports executor.
@@ -119,7 +119,7 @@ docker run -d --name salt \
   salt-management
 ```
 
-The entrypoint re-runs `init-database.js`, which is idempotent — it adds any new tables introduced in the new schema but leaves existing data untouched.
+The entrypoint re-runs `init-database.js`, which is idempotent, it adds any new tables introduced in the new schema but leaves existing data untouched.
 
 ### Shell into the container
 

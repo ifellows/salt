@@ -3,7 +3,7 @@ title: Lab Tests
 description: Configuring laboratory test definitions and entering results for individual participants.
 ---
 
-Laboratory tests are confirmatory tests performed on samples collected at the facility. SALT stores lab results alongside survey data and can make them available in exports. Lab tests are distinct from rapid tests — rapid tests are point-of-care results entered during the interview, while lab tests are entered later by laboratory staff.
+Laboratory tests are confirmatory tests performed on samples collected at the facility. SALT stores lab results alongside survey data and can make them available in exports. Lab tests are distinct from rapid tests, rapid tests are point-of-care results entered during the interview, while lab tests are entered later by laboratory staff.
 
 ## Lab test configuration
 
@@ -23,9 +23,9 @@ The lab test list shows all configured tests:
 
 The first-boot seed creates three lab tests:
 
-- **HIV Confirmatory Test** (`HIVCONFIRM`) — dropdown: Positive / Negative / Indeterminate. Condition: `hivrapid == 'positive'`
-- **CD4 Count** (`CD4`) — numeric, 0–5 000 cells/mm³
-- **HIV Viral Load** (`VL`) — numeric, 0–10 000 000 copies/mL
+- **HIV Confirmatory Test** (`HIVCONFIRM`), dropdown: Positive / Negative / Indeterminate. Condition: `hivrapid == 'positive'`
+- **CD4 Count** (`CD4`), numeric, 0–5 000 cells/mm³
+- **HIV Viral Load** (`VL`), numeric, 0–10 000 000 copies/mL
 
 ## Adding or editing a lab test
 
@@ -49,13 +49,13 @@ Click **Add New Test** or the edit icon to open the edit modal:
 
 Click **Enter Lab Results** to open the results entry workflow:
 
-![Lab results entry — subject ID lookup](../../../assets/screenshots/admin-lab-tests-results-entry.png)
+![Lab results entry, subject ID lookup](../../../assets/screenshots/admin-lab-tests-results-entry.png)
 
-**Step 1 — Enter Subject ID**: Type or scan the participant's ID (as printed on their sample label) and click **Validate & Continue**.
+**Step 1, Enter Subject ID**: Type or scan the participant's ID (as printed on their sample label) and click **Validate & Continue**.
 
-**Step 2 — Enter results**: For each applicable lab test, enter the result. Only tests whose condition expression evaluates to true for this participant's rapid test results are shown.
+**Step 2, Enter results**: For each applicable lab test, enter the result. Only tests whose condition expression evaluates to true for this participant's rapid test results are shown.
 
-**Step 3 — Save**: Results are stored against the participant record and become available in data exports.
+**Step 3, Save**: Results are stored against the participant record and become available in data exports.
 
 ## Lab results in exports
 

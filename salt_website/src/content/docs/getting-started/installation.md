@@ -44,10 +44,10 @@ When the script finishes, browse to `https://your-domain.example.org` and sign i
 The first boot seeds the database with:
 
 - Default admin user (`admin` / `admin123`)
-- A **Demo Facility** with a random API key (shown in the container logs — use it to register a tablet)
+- A **Demo Facility** with a random API key (shown in the container logs, use it to register a tablet)
 - Three HIV lab tests: HIV Confirmatory (dropdown), CD4 Count (numeric), HIV Viral Load (numeric)
-- **Short MSM Survey** — a complete, ready-to-run link-tracing survey, seeded active
-- **SALT HIV Survey** — a small 6-question starter for experimenting with the editor, seeded inactive
+- **Short MSM Survey**: a complete, ready-to-run link-tracing survey, seeded active
+- **SALT HIV Survey**: a small 6-question starter for experimenting with the editor, seeded inactive
 
 ## Optional install flags
 
@@ -65,5 +65,5 @@ Run `install.sh --help` for details.
 
 ## Next steps
 
-- [Docker deployment options](/getting-started/docker-deployment/) — non-default setups, upgrades, and backups
-- [First steps](/getting-started/first-steps/) — configure your first facility and connect a tablet
+- [Docker deployment options](/getting-started/docker-deployment/): non-default setups, upgrades, and backups
+- [First steps](/getting-started/first-steps/): configure your first facility and connect a tablet

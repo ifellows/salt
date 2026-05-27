@@ -11,12 +11,12 @@ Log in to the tablet with administrator credentials. The **Administrator Dashboa
 
 ![Administrator Dashboard on tablet](../../../assets/screenshots/tablet-admin-dashboard.png)
 
-- **Manage Users** — add, edit, and delete tablet user accounts
-- **Server Settings** — view and update the server URL and API key
-- **Survey Status** — view upload statistics and queue
-- **Language Settings** — configure the tablet's display language
-- **Coupon Logging** — view the coupon chain log
-- **Developer Settings** — debugging tools for survey logic testing
+- **Manage Users**: add, edit, and delete tablet user accounts
+- **Server Settings**: view and update the server URL and API key
+- **Survey Status**: view upload statistics and queue
+- **Language Settings**: configure the tablet's display language
+- **Coupon Logging**: view the coupon chain log
+- **Developer Settings**: debugging tools for survey logic testing
 
 ## Managing users
 
@@ -36,10 +36,10 @@ Tap the **+** button to add a new user:
 ![Add New User dialog](../../../assets/screenshots/tablet-admin-add-user.png)
 
 Fill in:
-- **Username** — at least 3 characters
-- **Full Name** — display name
-- **Password** — at least 3 characters
-- **Role** — `ADMINISTRATOR` or `SURVEY_STAFF`
+- **Username**: at least 3 characters
+- **Full Name**: display name
+- **Password**: at least 3 characters
+- **Role**: `ADMINISTRATOR` or `SURVEY_STAFF`
 
 Tap **Add User**. The new user can log in immediately.
 
@@ -76,8 +76,8 @@ Tap the refresh icon to update the counts. The app retries failed uploads automa
 
 Tap **Server Settings** to view or change:
 
-- **Server URL** — the URL of the management server
-- **Facility API Key** — the key that authenticates this tablet to the server
+- **Server URL**: the URL of the management server
+- **Facility API Key**: the key that authenticates this tablet to the server
 
 These are set during initial tablet setup and should not need to change unless the server is moved.
 

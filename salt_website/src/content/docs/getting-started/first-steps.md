@@ -38,13 +38,13 @@ Before connecting a tablet:
 
 1. Go to **Facilities**
 2. Click **Setup Code** next to your facility
-3. Note the 6-character code — it expires in 24 hours
+3. Note the 6-character code; it expires in 24 hours.
 
 ![Facility setup code dialog](../../../assets/screenshots/admin-facilities-setup-code.png)
 
 ## 5. Install the tablet app
 
-On the tablet, open a browser and go to `https://your-server/tablet`. This page is public — no credentials required — and provides the APK download and installation instructions.
+On the tablet, open a browser and go to `https://your-server/tablet`. This page is public, no credentials required, and provides the APK download and installation instructions.
 
 ![/tablet page with installation instructions](../../../assets/screenshots/tablet-apk-download.png)
 
@@ -54,10 +54,10 @@ Follow the instructions on the page (you may need to enable installation from un
 
 Open the SALT app on the tablet and follow the setup wizard:
 
-1. **Server Configuration** — enter your server URL (e.g. `https://your-domain.example.org`)
-2. **Enter setup code** — type the 6-character code from step 4
-3. **Create admin account** — set a username, full name, and password for the tablet administrator
-4. **Fingerprint enrollment** — enrol the administrator's fingerprint (or skip to use password-only authentication)
+1. **Server Configuration**: enter your server URL (e.g. `https://your-domain.example.org`)
+2. **Enter setup code**: type the 6-character code from step 4
+3. **Create admin account**: set a username, full name, and password for the tablet administrator
+4. **Fingerprint enrollment**: enrol the administrator's fingerprint (or skip to use password-only authentication)
 
 The tablet will download the active survey and facility configuration from the server.
 
@@ -65,7 +65,7 @@ See [Tablet Setup](/tablet/setup/) for detailed instructions.
 
 ## 7. Create a staff user
 
-Surveys can only be conducted by **SURVEY_STAFF** users — administrators cannot conduct surveys directly. On the tablet:
+Surveys can only be conducted by **SURVEY_STAFF** users; administrators cannot conduct surveys directly. On the tablet:
 
 1. Log in as the administrator
 2. Tap **Manage Users**
@@ -83,7 +83,7 @@ The completed survey will upload to the management server automatically when the
 
 ## Next steps
 
-- [Facilities](/management/facilities/) — configure recruitment windows, payment types, coupon limits
-- [Survey Questions](/management/survey-questions/) — add or modify questions
-- [Survey Logic](/management/survey-logic/) — skip logic, validation, and eligibility conditions
-- [Export Data](/management/export-data/) — download data in wide, long, or RDS format
+- [Facilities](/management/facilities/): configure recruitment windows, payment types, coupon limits
+- [Survey Questions](/management/survey-questions/): add or modify questions
+- [Survey Logic](/management/survey-logic/): skip logic, validation, and eligibility conditions
+- [Export Data](/management/export-data/): download data in wide, long, or RDS format

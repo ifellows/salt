@@ -1,6 +1,6 @@
 ---
 title: Recruitment & Payment
-description: Processing recruitment payments — looking up coupons and paying participants who recruited others.
+description: Processing recruitment payments, looking up coupons and paying participants who recruited others.
 ---
 
 SALT tracks the recruitment chain: each enrolled participant receives coupons to give to members of their network, and the recruiter is paid a small incentive when a person they recruited comes in and completes an interview.
@@ -11,18 +11,18 @@ From the **Survey Staff Area**, tap **Recruitment Payment**:
 
 ![Recruitment payment screen with coupon code lookup](../../../assets/screenshots/tablet-staff-recruitment-payment.png)
 
-**Step 1 — Enter the coupon code**: The participant who wishes to claim their recruitment payment enters (or dictates) the coupon code they distributed to someone who subsequently enrolled. Tap **Look Up**.
+**Step 1, Enter the coupon code**: The participant who wishes to claim their recruitment payment enters (or dictates) the coupon code they distributed to someone who subsequently enrolled. Tap **Look Up**.
 
-**Step 2 — Verify**: The app looks up the coupon and displays:
+**Step 2, Verify**: The app looks up the coupon and displays:
 - Whether the coupon was used
 - The date the recruited participant completed their interview
 - The payment amount due (configured per facility)
 
-**Step 3 — Pay**: If everything is correct, process the payment and record it in the app. The payment record is uploaded to the server with the next sync.
+**Step 3, Pay**: If everything is correct, process the payment and record it in the app. The payment record is uploaded to the server with the next sync.
 
 ## Payment types
 
-Facilities can be configured for different payment types (Cash, voucher, etc.) and different currency/amounts. Payment amounts are set per facility in the management server — see [Facilities](/management/facilities/).
+Facilities can be configured for different payment types (Cash, voucher, etc.) and different currency/amounts. Payment amounts are set per facility in the management server, see [Facilities](/management/facilities/).
 
 Two separate payment amounts can be configured:
 
