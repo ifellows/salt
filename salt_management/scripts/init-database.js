@@ -458,6 +458,48 @@ AFTER UPDATE ON lab_test_configurations
 BEGIN
     UPDATE lab_test_configurations SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
+
+-- MCP report-builder: OAuth 2.1 authorization server + sessions.
+-- (Also available as a standalone migration: scripts/add-mcp.sql)
+CREATE TABLE IF NOT EXISTS oauth_clients (
+    client_id TEXT PRIMARY KEY,
+    client_secret_hash TEXT,
+    client_name TEXT,
+    redirect_uris TEXT NOT NULL,
+    grant_types TEXT DEFAULT '["authorization_code","refresh_token"]',
+    token_endpoint_auth_method TEXT DEFAULT 'none',
+    metadata_json TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS oauth_auth_codes (
+    code TEXT PRIMARY KEY,
+    client_id TEXT NOT NULL,
+    user_id INTEGER NOT NULL,
+    redirect_uri TEXT NOT NULL,
+    code_challenge TEXT,
+    code_challenge_method TEXT DEFAULT 'S256',
+    scope TEXT,
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS mcp_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    client_id TEXT,
+    access_token_hash TEXT,
+    refresh_token_hash TEXT,
+    scope TEXT,
+    issued_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    access_expires_at DATETIME NOT NULL,
+    absolute_expires_at DATETIME NOT NULL,
+    last_used_at DATETIME,
+    revoked INTEGER DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES admin_users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_mcp_sessions_access ON mcp_sessions(access_token_hash);
+CREATE INDEX IF NOT EXISTS idx_mcp_sessions_refresh ON mcp_sessions(refresh_token_hash);
+CREATE INDEX IF NOT EXISTS idx_mcp_sessions_user ON mcp_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_auth_codes_expiry ON oauth_auth_codes(expires_at);
 `;
 
 const SAMPLE_SURVEY = {

@@ -167,39 +167,51 @@ app.get('/health', (req, res) => {
     });
 });
 
-// 404 handler
-app.use((req, res, next) => {
-    if (req.path.startsWith('/api')) {
-        res.status(404).json({ error: 'Endpoint not found' });
-    } else {
-        res.status(404).render('pages/404', { title: 'Page Not Found' });
-    }
-});
+// Fallback handlers (404 + error) and server start are registered AFTER the
+// optional MCP server mounts, so MCP routes resolve ahead of the catch-all 404.
+function registerFallbackHandlers() {
+    // 404 handler
+    app.use((req, res, next) => {
+        if (req.path.startsWith('/api')) {
+            res.status(404).json({ error: 'Endpoint not found' });
+        } else {
+            res.status(404).render('pages/404', { title: 'Page Not Found' });
+        }
+    });
 
-// Error handler
-app.use((err, req, res, next) => {
-    console.error('Error:', err);
-    
-    if (req.path.startsWith('/api')) {
-        res.status(err.status || 500).json({
-            error: process.env.NODE_ENV === 'production' 
-                ? 'Internal server error' 
-                : err.message
-        });
-    } else {
-        res.status(err.status || 500).render('pages/error', {
-            title: 'Error',
-            message: process.env.NODE_ENV === 'production' 
-                ? 'Something went wrong' 
-                : err.message
-        });
-    }
-});
+    // Error handler
+    app.use((err, req, res, next) => {
+        console.error('Error:', err);
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`SALT Management Server running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`API endpoint: http://localhost:${PORT}/api`);
-    console.log(`Web UI: http://localhost:${PORT}`);
-});
+        if (req.path.startsWith('/api')) {
+            res.status(err.status || 500).json({
+                error: process.env.NODE_ENV === 'production'
+                    ? 'Internal server error'
+                    : err.message
+            });
+        } else {
+            res.status(err.status || 500).render('pages/error', {
+                title: 'Error',
+                message: process.env.NODE_ENV === 'production'
+                    ? 'Something went wrong'
+                    : err.message
+            });
+        }
+    });
+}
+
+function startServer() {
+    app.listen(PORT, () => {
+        console.log(`SALT Management Server running on port ${PORT}`);
+        console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+        console.log(`API endpoint: http://localhost:${PORT}/api`);
+        console.log(`Web UI: http://localhost:${PORT}`);
+    });
+}
+
+// Mount the optional MCP report-builder server (opt-in via MCP_ENABLED), then
+// register the catch-all handlers and start listening. MCP failures never block
+// the rest of the server.
+require('./mcp').init(app)
+    .catch(err => console.error('[mcp] init failed, continuing without MCP:', err))
+    .finally(() => { registerFallbackHandlers(); startServer(); });

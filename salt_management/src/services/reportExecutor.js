@@ -32,10 +32,14 @@ class ReportExecutor {
      * @param {number} reportId - The report ID from database
      * @param {string} runType - 'manual' or 'scheduled'
      * @param {number} userId - User ID who triggered the execution
+     * @param {{runId?: string, markdown?: boolean}} [options] - optional:
+     *        runId (use a caller-supplied id so the run can be polled before
+     *        this promise resolves), markdown (also render a gfm `.md` output
+     *        and record it as a report_output, for programmatic preview).
      * @returns {Promise<string>} - Run ID of the execution
      */
-    async executeReport(reportId, runType = 'manual', userId = null) {
-        const runId = uuid.v4();
+    async executeReport(reportId, runType = 'manual', userId = null, options = {}) {
+        const runId = options.runId || uuid.v4();
         const tempRunDir = path.join(this.tempDir, runId);
         const finalRunDir = path.join(this.runsDir, runId);
 
@@ -93,7 +97,8 @@ class ReportExecutor {
             await fs.writeFile(qmdPath, report.qmd_content, 'utf8');
 
             // 6. Execute Quarto to generate all formats
-            const { logs, success } = await this.runQuarto(tempRunDir);
+            const formats = options.markdown ? 'html,pdf,docx,gfm' : 'html,pdf,docx';
+            const { logs, success } = await this.runQuarto(tempRunDir, formats);
             quartoLogs = logs;
 
             // 7. Move outputs to permanent storage
@@ -102,7 +107,7 @@ class ReportExecutor {
             // Copy all generated files
             const files = await fs.readdir(tempRunDir);
             for (const file of files) {
-                if (file.endsWith('.html') || file.endsWith('.pdf') || file.endsWith('.docx')) {
+                if (file.endsWith('.html') || file.endsWith('.pdf') || file.endsWith('.docx') || file.endsWith('.md')) {
                     await fs.copyFile(
                         path.join(tempRunDir, file),
                         path.join(finalRunDir, file)
@@ -232,12 +237,12 @@ class ReportExecutor {
     /**
      * Execute Quarto to render the report
      */
-    runQuarto(workDir) {
+    runQuarto(workDir, formats = 'html,pdf,docx') {
         return new Promise((resolve) => {
             let logs = '';
 
             const quartoProcess = exec(
-                'quarto render report.qmd --to html,pdf,docx',
+                `quarto render report.qmd --to ${formats}`,
                 {
                     cwd: workDir,
                     // 4 hours. Reports with bootstrap/resampling steps can run
