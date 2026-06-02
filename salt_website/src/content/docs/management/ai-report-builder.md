@@ -10,9 +10,10 @@ summaries**, write the report's R/Quarto, and **render it on the server**, itera
 looks right. The finished report appears in **Reports → History** like any other.
 
 It works over the **Model Context Protocol (MCP)**. Your AI subscription powers the work, so
-SALT never sees an API key, and **no individual participant records ever leave the server**:
-the assistant only receives the data dictionary, aggregate frequencies/summaries, the report
-code, and render status.
+SALT never sees an API key. The assistant receives the survey data dictionary, aggregate
+summaries, and the reports you generate. Reports are normally aggregate-only, but anything
+included in a report (including any individual-level detail) is shared with the AI service you
+connect, so design your reports accordingly.
 
 ## Enabling it (administrator / ops)
 
@@ -77,9 +78,10 @@ prevalence by age band 18 to 25, 25 to 40, 40+"*). Finished reports appear under
 | Read example report templates | The same templates as the Reports editor |
 | Create, update, and render reports | Rendered HTML/PDF/DOCX appear in Reports → History |
 
-The assistant reviews a markdown preview of each render to check its work, but cannot retrieve
-individual responses. Reports it produces are ordinary reports: you can edit, schedule, and
-download them from the [Reports](/management/reports/) tab.
+The data tools never hand back raw response rows, so the assistant works from aggregates; it
+does see the report it builds (its rendered markdown preview), so whatever a report displays is
+visible to it. Reports it produces are ordinary reports: you can edit, schedule, and download
+them from the [Reports](/management/reports/) tab.
 
 ## Security notes
 

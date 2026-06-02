@@ -73,8 +73,11 @@ var body = `
         </div>
 
         <p>Connect your own AI assistant (Claude or ChatGPT) to this SALT server and build reports
-        just by chatting. Your AI subscription does the work; SALT shares only the survey data
-        dictionary and aggregate summaries &mdash; never individual participant records.</p>
+        just by chatting; your AI subscription does the work. SALT shares the survey data
+        dictionary, aggregate summaries, and the reports you generate with whichever AI service you
+        connect. Reports are normally aggregate-only, but anything included in a report (including
+        any individual-level detail) is shared with that service, so design your reports
+        accordingly.</p>
 
         ${mcpEnabled ? '' : '<div style="background:#fff3cd; color:#856404; padding:0.75rem 1rem; border-radius:6px; margin-bottom:1rem;"><strong>Currently disabled.</strong> Ask your administrator to enable the AI Report Builder (set <code>MCP_ENABLED=true</code> on the server) before connecting.</div>'}
 
@@ -87,14 +90,14 @@ var body = `
         </div>
 
         <h4 style="margin-bottom: 0.25rem;">Claude (claude.ai or Claude Desktop)</h4>
-        <ol style="margin-top: 0.25rem;">
+        <ol style="margin: 0.25rem 0 1rem; padding-left: 1.5rem; line-height: 1.6;">
             <li>Open <strong>Settings &rarr; Connectors &rarr; Add custom connector</strong>.</li>
             <li>Name it <em>SALT</em> and paste the Connector URL above.</li>
             <li>Click <strong>Connect</strong>, sign in with your SALT administrator account, and click <strong>Allow</strong>.</li>
         </ol>
 
         <h4 style="margin-bottom: 0.25rem;">ChatGPT</h4>
-        <ol style="margin-top: 0.25rem;">
+        <ol style="margin: 0.25rem 0 1rem; padding-left: 1.5rem; line-height: 1.6;">
             <li>Open <strong>Settings &rarr; Connectors</strong> (requires a plan that supports custom connectors / developer mode).</li>
             <li>Add a connector / MCP server and paste the Connector URL above.</li>
             <li>Authorize by signing in with your SALT administrator account.</li>
