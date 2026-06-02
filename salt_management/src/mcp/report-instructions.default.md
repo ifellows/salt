@@ -13,10 +13,14 @@ report self-explanatory.
 2. Call `get_data_profile` (and `get_variable_summary` for detail) to see real distributions
    — counts, ranges, missingness, odd codes.
 3. Read a `get_template` example for house style.
-4. Write the .qmd and `save_report`. For revisions use **`edit_report`** (targeted exact-string
-   replacement) so unrelated content is never touched — do not regenerate the whole document.
-   `old_string` must match the stored qmd verbatim (whitespace included); add surrounding context
-   if it isn't unique, or set `replace_all`. Use `update_report` only for a wholesale rewrite.
+4. Write the .qmd and `save_report` (new reports only). To change an existing report,
+   **`edit_report` is highly preferred — use it for essentially every update.** Make each edit
+   **as targeted as possible**: the smallest `old_string`/`new_string` that accomplishes the
+   change, so unrelated parts of the report are never overwritten or disturbed. `old_string` must
+   match the stored qmd verbatim (whitespace included); add surrounding context if it isn't
+   unique, or set `replace_all`. Prefer several small edits over one large one. Do **not**
+   regenerate the document or use `update_report` for a revision — `update_report` is only for a
+   deliberate, wholesale rewrite of the entire report.
 5. `render_report`, then **poll** `get_render_result` until status is `success` or `error`.
 6. On `error`, read the log, fix the .qmd, and render again. On `success`, review the returned
    markdown and confirm the tables/figures look right.
@@ -58,6 +62,9 @@ state what you did in the Methods section:
   `RDS`, `tidyverse`, `lubridate`, `scales`, `jsonlite`, `uuid`.
 - Always include a **"Methods" section** documenting cleaning decisions, denominators, weighting,
   and any small-cell considerations, so a statistician can validate the report without reading R.
+- **Revise with `edit_report`, never by regenerating.** Every change to an existing report must be
+  the most targeted edit possible; never overwrite or rewrite parts of the report unrelated to the
+  requested change.
 
 ## Output
 Produce a complete, render-ready `.qmd` with YAML front-matter declaring

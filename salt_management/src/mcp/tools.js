@@ -259,8 +259,8 @@ function registerTools(server) {
     });
 
     server.registerTool('update_report', {
-        title: 'Update report',
-        description: 'Update an existing report. Provide only the fields to change. For small changes make minimal edits to qmd rather than regenerating the whole document.',
+        title: 'Update report (full rewrite)',
+        description: 'Full-document replacement of a report (and/or name/description). Use ONLY for a deliberate wholesale rewrite. For any normal revision, use edit_report instead — update_report overwrites the entire qmd and will clobber unrelated content.',
         inputSchema: {
             reportId: z.number().int(),
             qmd: z.string().optional(),
@@ -284,7 +284,7 @@ function registerTools(server) {
 
     server.registerTool('edit_report', {
         title: 'Edit report (targeted)',
-        description: 'Apply a targeted edit to a report\'s qmd by exact string replacement — does NOT regenerate the document, so unrelated content is never touched. Rejects the edit unless old_string matches exactly once (or replace_all is set). Prefer this over update_report for revisions. old_string must match the stored qmd verbatim, including whitespace/indentation.',
+        description: 'HIGHLY PREFERRED for any update to an existing report. Applies a targeted edit to the report\'s qmd by exact string replacement — does NOT regenerate the document, so unrelated content is never touched or overwritten. Keep edits as targeted as possible (smallest old_string/new_string; prefer several small edits over one large one). Rejects the edit unless old_string matches exactly once (or replace_all is set). old_string must match the stored qmd verbatim, including whitespace/indentation.',
         inputSchema: {
             reportId: z.number().int(),
             old_string: z.string().min(1).describe('Exact text to replace, including whitespace/indentation. Must match the stored qmd verbatim.'),
