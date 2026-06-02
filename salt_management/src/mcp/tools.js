@@ -164,7 +164,7 @@ function registerTools(server) {
 
     server.registerTool('get_report_instructions', {
         title: 'Get report instructions',
-        description: 'The report-generation guidance: data contract, workflow, cleaning, and rules for building a SALT Quarto report.',
+        description: 'CALL THIS FIRST, before any other tool or analysis. Required report-generation guidance: data contract, exact variable naming, data-cleaning rules, available R packages, and output requirements for building a SALT Quarto report. Pass surveyId once known.',
         inputSchema: { surveyId: z.number().int().optional() },
     }, async ({ surveyId }) => {
         let surveyName;

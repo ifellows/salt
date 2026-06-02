@@ -20,6 +20,17 @@ const path = require('path');
 
 const DEFAULT_FILE = path.join(__dirname, '..', 'mcp', 'report-instructions.default.md');
 
+// Short, forceful directive advertised as the MCP server's `instructions`. Kept
+// separate from (and shorter than) the full guidance so it is unmissable: it
+// compels the agent to fetch the full instructions before doing any analysis.
+const BOOTSTRAP_INSTRUCTIONS =
+    'You are connected to the SALT report builder (MCP). Your FIRST action in any session MUST ' +
+    'be to call the `get_report_instructions` tool and follow what it returns — do this before ' +
+    'reading data, writing any R/Quarto, or calling any other tool. It contains the data ' +
+    'contract, exact variable naming, data-cleaning rules, available R packages, and output ' +
+    'requirements; without it the analysis will be wrong. Pass the relevant surveyId to ' +
+    '`get_report_instructions` once you know which survey you are reporting on.';
+
 /** Path to the editable instructions file (env-overridable). */
 function instructionsFilePath() {
     return process.env.MCP_INSTRUCTIONS_FILE
@@ -65,4 +76,4 @@ function getReportInstructions(ctx = {}) {
     return loadTemplate().replace(/\{\{SURVEY\}\}/g, target);
 }
 
-module.exports = { getReportInstructions, instructionsFilePath, ensureSeeded, DEFAULT_FILE };
+module.exports = { getReportInstructions, instructionsFilePath, ensureSeeded, DEFAULT_FILE, BOOTSTRAP_INSTRUCTIONS };

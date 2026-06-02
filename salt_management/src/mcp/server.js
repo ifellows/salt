@@ -59,7 +59,9 @@ async function mountMcp(app) {
     app.post('/mcp', jsonParser, bearer, async (req, res) => {
         const server = new McpServer(SERVER_INFO, {
             capabilities: { tools: {} },
-            instructions: require('../services/reportInstructions').getReportInstructions(),
+            // Short bootstrap that forces the agent to fetch the full guidance
+            // via get_report_instructions before doing any analysis.
+            instructions: require('../services/reportInstructions').BOOTSTRAP_INSTRUCTIONS,
         });
         registerTools(server);
 

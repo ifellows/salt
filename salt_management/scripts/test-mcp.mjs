@@ -127,6 +127,8 @@ const callJson = async (c, name, args = {}) => {
     ok('instructions reflect file edits (cache reload)', getReportInstructions().includes(sentinel.trim()));
     // restore seeded default for any later reads
     fsm.copyFileSync(ri.DEFAULT_FILE, instrFile);
+    // bootstrap must compel calling get_report_instructions first
+    ok('bootstrap mandates get_report_instructions first', /FIRST/.test(ri.BOOTSTRAP_INSTRUCTIONS) && ri.BOOTSTRAP_INSTRUCTIONS.includes('get_report_instructions'));
 
     // ------------------------------------------------------- sessionStore
     section('sessionStore (+ 6h cap)');
@@ -254,8 +256,10 @@ const callJson = async (c, name, args = {}) => {
     // ------------------------------------------------------------- tools
     section('MCP tools (success + error branches)');
     const c = await mcpClient(toolTok);
-    const tools = (await c.listTools()).tools.map(t => t.name);
+    const toolList = (await c.listTools()).tools;
+    const tools = toolList.map(t => t.name);
     ok('all 13 tools registered', tools.length === 13, tools.join(','));
+    ok('get_report_instructions description says CALL FIRST', /FIRST/i.test(toolList.find(t => t.name === 'get_report_instructions')?.description || ''));
 
     ok('list_surveys', (await callJson(c, 'list_surveys')).text.includes('"id"'));
     ok('get_data_dictionary ok', (await callJson(c, 'get_data_dictionary', { surveyId: SURVEY })).text.split('\n').length > 5);
