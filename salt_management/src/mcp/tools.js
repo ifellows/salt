@@ -13,6 +13,7 @@ const fs = require('fs');
 const path = require('path');
 const { z } = require('zod');
 const uuid = require('uuid');
+const { createTwoFilesPatch } = require('diff');
 
 const { allAsync, getAsync, runAsync } = require('../models/database');
 const { generateDictionaryCsv, buildDictionaryRows } = require('../services/dataDictionary');
@@ -279,6 +280,52 @@ function registerTools(server) {
         await runAsync(`UPDATE reports SET ${sets.join(', ')} WHERE id = ?`, params);
         logAudit(userIdFrom(extra), 'update', 'report', reportId, null, { fields: sets, via: 'mcp' }).catch(() => {});
         return text(JSON.stringify({ reportId, message: 'Report updated.' }, null, 2));
+    });
+
+    server.registerTool('edit_report', {
+        title: 'Edit report (targeted)',
+        description: 'Apply a targeted edit to a report\'s qmd by exact string replacement — does NOT regenerate the document, so unrelated content is never touched. Rejects the edit unless old_string matches exactly once (or replace_all is set). Prefer this over update_report for revisions. old_string must match the stored qmd verbatim, including whitespace/indentation.',
+        inputSchema: {
+            reportId: z.number().int(),
+            old_string: z.string().min(1).describe('Exact text to replace, including whitespace/indentation. Must match the stored qmd verbatim.'),
+            new_string: z.string().describe('Replacement text. Empty string deletes the matched span.'),
+            replace_all: z.boolean().optional().describe('Replace every occurrence instead of requiring uniqueness.'),
+        },
+    }, async ({ reportId, old_string, new_string, replace_all = false }, extra) => {
+        const report = await getAsync('SELECT id, qmd_content FROM reports WHERE id = ?', [reportId]);
+        if (!report) return errorText(`report_not_found: report ${reportId} does not exist.`);
+        if (old_string === new_string) return errorText('no_change: old_string and new_string are identical.');
+
+        const qmd = report.qmd_content || '';
+        const count = qmd.split(old_string).length - 1;
+        if (count === 0) {
+            return errorText('no_match: old_string is not present in the report (usually a whitespace/indentation mismatch). Re-read the report with get_report and copy the text verbatim.');
+        }
+        if (count > 1 && !replace_all) {
+            return errorText(`not_unique: old_string occurs ${count} times. Add surrounding context to make it unique, or set replace_all=true.`);
+        }
+
+        // Replace via split/join (first-only when unique) — avoids special-char
+        // interpretation of $-sequences that String.replace would apply.
+        let newQmd;
+        if (replace_all) {
+            newQmd = qmd.split(old_string).join(new_string);
+        } else {
+            const idx = qmd.indexOf(old_string);
+            newQmd = qmd.slice(0, idx) + new_string + qmd.slice(idx + old_string.length);
+        }
+
+        // Single UPDATE — the write itself is atomic. No staleness/version guard
+        // by design: last-write-wins (fine for a single-operator workflow).
+        await runAsync("UPDATE reports SET qmd_content = ?, updated_at = datetime('now') WHERE id = ?", [newQmd, reportId]);
+        logAudit(userIdFrom(extra), 'edit', 'report', reportId, null, { replacements: replace_all ? count : 1, via: 'mcp' }).catch(() => {});
+
+        const diff = createTwoFilesPatch('report.qmd', 'report.qmd', qmd, newQmd, '', '');
+        return text(JSON.stringify({
+            reportId,
+            replacements_made: replace_all ? count : 1,
+            diff: truncate(diff, MAX_MD_CHARS),
+        }, null, 2));
     });
 
     server.registerTool('render_report', {

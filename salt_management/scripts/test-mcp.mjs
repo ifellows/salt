@@ -262,7 +262,7 @@ const callJson = async (c, name, args = {}) => {
     const c = await mcpClient(toolTok);
     const toolList = (await c.listTools()).tools;
     const tools = toolList.map(t => t.name);
-    ok('all 13 tools registered', tools.length === 13, tools.join(','));
+    ok('all 14 tools registered', tools.length === 14, tools.join(','));
     ok('get_report_instructions description says CALL FIRST', /FIRST/i.test(toolList.find(t => t.name === 'get_report_instructions')?.description || ''));
 
     ok('list_surveys', (await callJson(c, 'list_surveys')).text.includes('"id"'));
@@ -292,6 +292,29 @@ const callJson = async (c, name, args = {}) => {
     ok('update_report ok', !(await callJson(c, 'update_report', { reportId: saved.reportId, name: 'ZZ Renamed' })).isError);
     ok('update_report not-found → isError', (await callJson(c, 'update_report', { reportId: 999999, name: 'x' })).isError);
     ok('update_report no-fields → isError', (await callJson(c, 'update_report', { reportId: saved.reportId })).isError);
+
+    // ---- edit_report (targeted exact-string replacement) ----
+    // Seed a report with known, edit-friendly content.
+    const editQmd = '---\ntitle: Edit Target\nformat: html\n---\n\nAlpha line\nBravo line\nBravo line\n';
+    const editRep = JSON.parse((await callJson(c, 'save_report', { name: 'ZZ Edit', qmd: editQmd })).text).reportId;
+    // unique match → success + diff + replacements_made=1
+    const e1 = JSON.parse((await callJson(c, 'edit_report', { reportId: editRep, old_string: 'Alpha line', new_string: 'Alpha CHANGED' })).text);
+    ok('edit_report unique replace', e1.replacements_made === 1 && /-Alpha line/.test(e1.diff) && /\+Alpha CHANGED/.test(e1.diff));
+    ok('edit_report persisted', (await callJson(c, 'get_report', { reportId: editRep })).text.includes('Alpha CHANGED'));
+    // not unique without replace_all → error
+    ok('edit_report not_unique → error', /not_unique/.test((await callJson(c, 'edit_report', { reportId: editRep, old_string: 'Bravo line', new_string: 'X' })).text));
+    // replace_all → both
+    const e2 = JSON.parse((await callJson(c, 'edit_report', { reportId: editRep, old_string: 'Bravo line', new_string: 'Charlie', replace_all: true })).text);
+    ok('edit_report replace_all count', e2.replacements_made === 2);
+    // no match
+    ok('edit_report no_match → error', /no_match/.test((await callJson(c, 'edit_report', { reportId: editRep, old_string: 'not present at all', new_string: 'y' })).text));
+    // no-op
+    ok('edit_report no_change → error', /no_change/.test((await callJson(c, 'edit_report', { reportId: editRep, old_string: 'Charlie', new_string: 'Charlie' })).text));
+    // deletion (empty new_string)
+    const e3 = JSON.parse((await callJson(c, 'edit_report', { reportId: editRep, old_string: 'Alpha CHANGED\n', new_string: '' })).text);
+    ok('edit_report deletion', e3.replacements_made === 1 && !(await callJson(c, 'get_report', { reportId: editRep })).text.includes('Alpha CHANGED'));
+    // report not found
+    ok('edit_report report_not_found → error', /report_not_found/.test((await callJson(c, 'edit_report', { reportId: 999999, old_string: 'a', new_string: 'b' })).text));
 
     // render success + running + result
     const started = JSON.parse((await callJson(c, 'render_report', { reportId: saved.reportId })).text);

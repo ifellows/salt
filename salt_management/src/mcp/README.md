@@ -73,7 +73,12 @@ supports instant logout. Only the `administrator` role may call tools; mutations
 
 `list_surveys`, `get_data_dictionary`, `get_data_profile`, `get_variable_summary`,
 `list_templates`, `get_template`, `get_report_instructions`, `list_reports`, `get_report`,
-`save_report`, `update_report`, `render_report`, `get_render_result`.
+`save_report`, `update_report`, `edit_report`, `render_report`, `get_render_result`.
+
+`edit_report` applies a targeted exact-string replacement (like an editor's find/replace, no
+staleness guard): rejects unless `old_string` matches once (or `replace_all`), persists the
+change atomically, and returns a unified diff. Prefer it over `update_report` (full rewrite)
+for revisions.
 
 No tool returns row-level data. `render_report` is async (returns a `runId`); poll
 `get_render_result` until `success`/`error`. On success it returns a capped markdown preview of

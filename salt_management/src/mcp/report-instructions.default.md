@@ -13,8 +13,10 @@ report self-explanatory.
 2. Call `get_data_profile` (and `get_variable_summary` for detail) to see real distributions
    — counts, ranges, missingness, odd codes.
 3. Read a `get_template` example for house style.
-4. Write the .qmd and `save_report` (or `update_report` for revisions — make **minimal,
-   targeted edits**, do not regenerate the whole document for a small change).
+4. Write the .qmd and `save_report`. For revisions use **`edit_report`** (targeted exact-string
+   replacement) so unrelated content is never touched — do not regenerate the whole document.
+   `old_string` must match the stored qmd verbatim (whitespace included); add surrounding context
+   if it isn't unique, or set `replace_all`. Use `update_report` only for a wholesale rewrite.
 5. `render_report`, then **poll** `get_render_result` until status is `success` or `error`.
 6. On `error`, read the log, fix the .qmd, and render again. On `success`, review the returned
    markdown and confirm the tables/figures look right.
