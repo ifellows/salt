@@ -1,14 +1,21 @@
 <%
 var pageTitle = typeof title !== 'undefined' ? title : 'Reports';
+var mcpEnabled = typeof mcpEnabled !== 'undefined' ? mcpEnabled : false;
+var mcpConnectorUrl = typeof mcpConnectorUrl !== 'undefined' ? mcpConnectorUrl : '';
 var body = `
 <h2>Reports Management</h2>
 
 <div class="card" style="margin-bottom: 2rem;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
         <h3>Available Reports</h3>
-        <button class="btn" onclick="createNewReport()">
-            <i class="fas fa-plus"></i> New Report
-        </button>
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="btn" style="background: #6f42c1;" onclick="showAiBuilder()">
+                <i class="fas fa-robot"></i> AI Report Builder
+            </button>
+            <button class="btn" onclick="createNewReport()">
+                <i class="fas fa-plus"></i> New Report
+            </button>
+        </div>
     </div>
 
     <div id="reportsList">
@@ -54,6 +61,51 @@ var body = `
             <button class="btn" style="background: #95a5a6;" onclick="closeScheduleModal()">Cancel</button>
             <button class="btn" onclick="saveSchedule()">Save Schedule</button>
         </div>
+    </div>
+</div>
+
+<!-- AI Report Builder Modal -->
+<div id="aiBuilderModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="background: white; margin: 4% auto; padding: 2rem; width: 660px; max-width: 92%; border-radius: 8px; max-height: 88vh; overflow: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0;"><i class="fas fa-robot"></i> AI Report Builder</h3>
+            <button class="btn" style="background: #95a5a6;" onclick="closeAiBuilder()">Close</button>
+        </div>
+
+        <p>Connect your own AI assistant (Claude or ChatGPT) to this SALT server and build reports
+        just by chatting. Your AI subscription does the work; SALT shares only the survey data
+        dictionary and aggregate summaries &mdash; never individual participant records.</p>
+
+        ${mcpEnabled ? '' : '<div style="background:#fff3cd; color:#856404; padding:0.75rem 1rem; border-radius:6px; margin-bottom:1rem;"><strong>Currently disabled.</strong> Ask your administrator to enable the AI Report Builder (set <code>MCP_ENABLED=true</code> on the server) before connecting.</div>'}
+
+        <div style="margin: 1rem 0;">
+            <label style="font-weight: 600;">Connector URL</label>
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+                <input id="mcpUrl" readonly value="${mcpConnectorUrl}" style="flex: 1; padding: 0.5rem; font-family: monospace; border: 1px solid #ccc; border-radius: 6px;">
+                <button class="btn" onclick="copyMcpUrl()"><i class="fas fa-copy"></i> Copy</button>
+            </div>
+        </div>
+
+        <h4 style="margin-bottom: 0.25rem;">Claude (claude.ai or Claude Desktop)</h4>
+        <ol style="margin-top: 0.25rem;">
+            <li>Open <strong>Settings &rarr; Connectors &rarr; Add custom connector</strong>.</li>
+            <li>Name it <em>SALT</em> and paste the Connector URL above.</li>
+            <li>Click <strong>Connect</strong>, sign in with your SALT administrator account, and click <strong>Allow</strong>.</li>
+        </ol>
+
+        <h4 style="margin-bottom: 0.25rem;">ChatGPT</h4>
+        <ol style="margin-top: 0.25rem;">
+            <li>Open <strong>Settings &rarr; Connectors</strong> (requires a plan that supports custom connectors / developer mode).</li>
+            <li>Add a connector / MCP server and paste the Connector URL above.</li>
+            <li>Authorize by signing in with your SALT administrator account.</li>
+        </ol>
+
+        <div style="background: #e8f4fd; border: 1px solid #b6dcf7; padding: 1rem; border-radius: 6px; margin-top: 1rem;">
+            <strong>Then, in a new chat, simply say:</strong>
+            <div style="font-size: 1.15rem; font-weight: 600; margin-top: 0.5rem;">&ldquo;Help me build a SALT report&rdquo;</div>
+        </div>
+
+        <p style="color: #6c757d; font-size: 0.9rem; margin-top: 1rem;">Connecting requires a SALT administrator login. Sessions expire after 6 hours, after which you sign in again.</p>
     </div>
 </div>
 
@@ -238,6 +290,25 @@ function renderReports(reports) {
 
 function createNewReport() {
     window.location.href = '/reports/new';
+}
+
+function showAiBuilder() {
+    document.getElementById('aiBuilderModal').style.display = 'block';
+}
+
+function closeAiBuilder() {
+    document.getElementById('aiBuilderModal').style.display = 'none';
+}
+
+function copyMcpUrl() {
+    const el = document.getElementById('mcpUrl');
+    el.select();
+    el.setSelectionRange(0, 99999);
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(el.value).catch(() => document.execCommand('copy'));
+    } else {
+        document.execCommand('copy');
+    }
 }
 
 function editReport(id) {

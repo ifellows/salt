@@ -8,9 +8,14 @@ const { getAsync } = require('../../models/database');
  * GET /reports
  */
 router.get('/reports', requireAdmin, (req, res) => {
+    // The MCP connector URL advertised in the "AI Report Builder" dialog. Prefer
+    // the configured public URL (the OAuth issuer); fall back to this request's host.
+    const base = (process.env.MCP_PUBLIC_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
     res.render('pages/reports', {
         title: 'Reports',
-        user: req.user
+        user: req.user,
+        mcpEnabled: String(process.env.MCP_ENABLED).toLowerCase() === 'true',
+        mcpConnectorUrl: `${base}/mcp`
     });
 });
 

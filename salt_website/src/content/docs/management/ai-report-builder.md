@@ -27,14 +27,23 @@ The server must be reachable over **HTTPS at a public URL** so the AI client can
 Sessions expire automatically: an access token lasts 30 minutes (refreshed silently) and every
 session is **capped at 6 hours**, after which you sign in again.
 
+The management dashboard's **Reports** tab has an **AI Report Builder** button that shows your
+exact connector URL and these connection steps.
+
 ## Connecting from claude.ai
 
 1. In claude.ai, open **Settings → Connectors → Add custom connector**.
 2. Enter the connector URL: `https://your-salt-host.example.org/mcp`.
 3. Click **Connect**. A SALT sign-in page opens; log in with your administrator account and
    click **Allow**.
-4. Start a chat and ask for a report, for example: *"Build a report of HIV prevalence by age
-   band (18 to 25, 25 to 40, 40+) for the Example survey."*
+4. Start a chat and say **"Help me build a SALT report"** (see below).
+
+## Connecting from ChatGPT
+
+1. In ChatGPT, open **Settings → Connectors** (this requires a plan that supports custom
+   connectors / developer mode).
+2. Add a connector / MCP server and enter the connector URL: `https://your-salt-host.example.org/mcp`.
+3. Authorize by signing in with your SALT administrator account.
 
 ## Connecting from Claude Code / Claude Desktop
 
@@ -46,6 +55,17 @@ claude mcp add --transport http salt https://your-salt-host.example.org/mcp
 
 Run a tool or start a chat; Claude Code opens a browser for the same SALT sign-in. Claude
 Desktop uses its **Settings → Connectors** dialog with the same `/mcp` URL.
+
+## Building a report
+
+Once connected, in a new chat just say:
+
+> **Help me build a SALT report**
+
+The assistant takes it from there: it reads the survey's data dictionary and summaries, writes
+the report, renders it, and refines it as you describe what you want (for example, *"add HIV
+prevalence by age band 18 to 25, 25 to 40, 40+"*). Finished reports appear under
+**Reports → History**.
 
 ## What the assistant can do
 
