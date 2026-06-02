@@ -15,6 +15,19 @@ const sessionStore = require('./sessionStore');
 
 const AUTH_CODE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
+// SDK OAuth error classes (ESM). Loaded once in mountOAuth(); used so the SDK's
+// token handler maps our failures to proper 400 invalid_grant / 401 responses
+// instead of a generic 500.
+let oauthErrors = null;
+function grantError(message) {
+    if (oauthErrors && oauthErrors.InvalidGrantError) return new oauthErrors.InvalidGrantError(message);
+    return new Error(message);
+}
+function tokenError(message) {
+    if (oauthErrors && oauthErrors.InvalidTokenError) return new oauthErrors.InvalidTokenError(message);
+    return new Error(message);
+}
+
 // ---- client store ---------------------------------------------------------
 
 const clientsStore = {
@@ -103,15 +116,15 @@ const provider = {
     async exchangeAuthorizationCode(client, authorizationCode, codeVerifier, redirectUri) {
         const row = await getAsync('SELECT * FROM oauth_auth_codes WHERE code = ?', [authorizationCode]);
         if (!row || row.client_id !== client.client_id) {
-            throw new Error('invalid_grant: unknown authorization code');
+            throw grantError('invalid_grant: unknown authorization code');
         }
         // One-time use.
         await runAsync('DELETE FROM oauth_auth_codes WHERE code = ?', [authorizationCode]);
         if (Date.now() > new Date(row.expires_at).getTime()) {
-            throw new Error('invalid_grant: authorization code expired');
+            throw grantError('invalid_grant: authorization code expired');
         }
         if (redirectUri && redirectUri !== row.redirect_uri) {
-            throw new Error('invalid_grant: redirect_uri mismatch');
+            throw grantError('invalid_grant: redirect_uri mismatch');
         }
 
         const session = await sessionStore.createSession({
@@ -130,7 +143,7 @@ const provider = {
         const refreshed = await sessionStore.refreshSession(refreshToken, client.client_id);
         if (!refreshed) {
             // Past the absolute 6h cap, revoked, or invalid → force re-authentication.
-            throw new Error('invalid_grant: refresh token invalid or session expired');
+            throw grantError('invalid_grant: refresh token invalid or session expired');
         }
         return {
             access_token: refreshed.accessToken,
@@ -143,7 +156,7 @@ const provider = {
 
     async verifyAccessToken(token) {
         const info = await sessionStore.verifyAccessToken(token);
-        if (!info) throw new Error('invalid_token');
+        if (!info) throw tokenError('invalid_token');
         return info;
     },
 
@@ -210,6 +223,7 @@ function escapeHtml(s) {
 async function mountOAuth(app, { baseUrl }) {
     const { mcpAuthRouter, getOAuthProtectedResourceMetadataUrl } =
         await import('@modelcontextprotocol/sdk/server/auth/router.js');
+    oauthErrors = await import('@modelcontextprotocol/sdk/server/auth/errors.js');
 
     const issuerUrl = new URL(baseUrl);
     const resourceServerUrl = new URL(baseUrl.replace(/\/$/, '') + '/mcp');

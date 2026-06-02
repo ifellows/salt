@@ -287,11 +287,10 @@ class ReportExecutor {
      */
     async cleanup(dir) {
         try {
-            const files = await fs.readdir(dir);
-            for (const file of files) {
-                await fs.unlink(path.join(dir, file));
-            }
-            await fs.rmdir(dir);
+            // Quarto leaves subdirectories (e.g. report_files/ for figures and
+            // html dependencies), so a flat unlink loop fails with EISDIR and
+            // leaks the temp dir. Remove the whole tree.
+            await fs.rm(dir, { recursive: true, force: true });
         } catch (error) {
             console.error('Cleanup error:', error);
         }
