@@ -96,6 +96,14 @@ async function mountMcp(app) {
         console.warn('[mcp] could not seed report instructions:', e.message);
     }
 
+    // Seed the example report templates into the data volume (it is
+    // dockerignored/gitignored, so they ship as defaults and are copied in).
+    try {
+        require('./tools').seedTemplates();
+    } catch (e) {
+        console.warn('[mcp] could not seed templates:', e.message);
+    }
+
     console.log(`[mcp] report-builder MCP server mounted at ${baseUrl}/mcp`);
     return true;
 }

@@ -15,16 +15,36 @@ const { z } = require('zod');
 const uuid = require('uuid');
 
 const { allAsync, getAsync, runAsync } = require('../models/database');
-const { generateDictionaryCsv } = require('../services/dataDictionary');
+const { generateDictionaryCsv, buildDictionaryRows } = require('../services/dataDictionary');
 const DataProfiler = require('../services/dataProfiler');
 const ReportExecutor = require('../services/reportExecutor');
 const { getReportInstructions } = require('../services/reportInstructions');
 const { logAudit } = require('../services/auditService');
 
-const TEMPLATES_DIR = path.join(process.cwd(), 'data', 'reports', 'templates');
+// Example report templates. They live in the data volume (editable), but the
+// volume is dockerignored/gitignored, so a shipped default set is seeded into it
+// on first use. Path is env-overridable.
+const DEFAULT_TEMPLATES_DIR = path.join(__dirname, 'templates-default');
+const TEMPLATES_DIR = process.env.MCP_TEMPLATES_DIR || path.join(process.cwd(), 'data', 'reports', 'templates');
+
+/** Copy any missing shipped templates into TEMPLATES_DIR (never overwrites edits). */
+function seedTemplates() {
+    try {
+        fs.mkdirSync(TEMPLATES_DIR, { recursive: true });
+        for (const f of fs.readdirSync(DEFAULT_TEMPLATES_DIR)) {
+            if (!f.endsWith('.qmd')) continue;
+            const target = path.join(TEMPLATES_DIR, f);
+            if (!fs.existsSync(target)) fs.copyFileSync(path.join(DEFAULT_TEMPLATES_DIR, f), target);
+        }
+    } catch (e) {
+        console.warn('[mcp] could not seed templates:', e.message);
+    }
+}
 const PROFILE_CACHE_MS = parseInt(process.env.MCP_PROFILE_CACHE_MS || '300000', 10); // 5 min
-const MAX_MD_CHARS = parseInt(process.env.MCP_MAX_MD_CHARS || '60000', 10);
-const MAX_LOG_CHARS = 8000;
+// Truncation limits are intentionally very large — a backstop against a
+// pathological payload, not a content limit. Override via env if needed.
+const MAX_MD_CHARS = parseInt(process.env.MCP_MAX_MD_CHARS || '5000000', 10);
+const MAX_LOG_CHARS = parseInt(process.env.MCP_MAX_LOG_CHARS || '1000000', 10);
 
 const profiler = new DataProfiler();
 const reportExecutor = new ReportExecutor();
@@ -42,6 +62,20 @@ function truncate(s, n) {
     if (s == null) return '';
     s = String(s);
     return s.length > n ? s.slice(0, n) + `\n\n[... truncated at ${n} characters ...]` : s;
+}
+
+/** Clean a render log for return: strip ANSI colour codes and collapse the
+ *  bare / STDERR: / ERROR: triplication runQuarto produces into unique blocks. */
+function sanitizeLog(s) {
+    if (!s) return '';
+    const noAnsi = String(s).replace(/\x1b\[[0-9;]*m/g, '');
+    const seen = new Set();
+    const kept = [];
+    for (const part of noAnsi.split(/\n(?:STDERR|ERROR):\n/)) {
+        const key = part.trim();
+        if (key && !seen.has(key)) { seen.add(key); kept.push(key); }
+    }
+    return kept.join('\n\n');
 }
 
 // Short-TTL profile cache: profiling re-exports CSVs + runs R, so we avoid
@@ -134,9 +168,21 @@ function registerTools(server) {
             const profile = await getProfile(surveyId);
             const marker = `== ${variable} ==`;
             const idx = profile.indexOf(marker);
-            if (idx === -1) return errorText(`Variable "${variable}" not found in survey ${surveyId}. Use get_data_dictionary for valid names.`);
-            const next = profile.indexOf('\n== ', idx + marker.length);
-            return text(profile.slice(idx, next === -1 ? undefined : next).trim());
+            if (idx !== -1) {
+                const next = profile.indexOf('\n== ', idx + marker.length);
+                return text(profile.slice(idx, next === -1 ? undefined : next).trim());
+            }
+            // Not in the profile — distinguish "known but no data" from "unknown variable"
+            // so the message isn't misleading when the dataset is empty.
+            let known = false;
+            try { known = (await buildDictionaryRows(surveyId)).rows.some(r => r.variable === variable); } catch { /* fall through */ }
+            const m = profile.match(/Total records:\s*(\d+)/);
+            const total = m ? parseInt(m[1], 10) : null;
+            if (known) {
+                return text(`"${variable}" is defined in survey ${surveyId}'s data dictionary but has no summary` +
+                    (total === 0 ? `: the dataset has 0 completed responses.` : `: no recorded values in the data.`));
+            }
+            return errorText(`Unknown variable "${variable}" for survey ${surveyId}. Use get_data_dictionary for valid names.`);
         } catch (e) {
             return errorText(`Failed: ${e.message}`);
         }
@@ -147,6 +193,7 @@ function registerTools(server) {
         description: 'List the example Quarto (.qmd) report templates available as starting points.',
         inputSchema: {},
     }, async () => {
+        seedTemplates();
         let files = [];
         try { files = fs.readdirSync(TEMPLATES_DIR).filter(f => f.endsWith('.qmd')); } catch { /* none */ }
         return text(JSON.stringify(files, null, 2));
@@ -157,6 +204,7 @@ function registerTools(server) {
         description: 'Return the contents of an example .qmd template.',
         inputSchema: { name: z.string().describe('Template file name, e.g. basic_summary.qmd') },
     }, async ({ name }) => {
+        seedTemplates();
         const file = path.join(TEMPLATES_DIR, safeTemplateName(name));
         try { return text(fs.readFileSync(file, 'utf8')); }
         catch { return errorText(`Template not found: ${name}. Use list_templates.`); }
@@ -270,7 +318,7 @@ function registerTools(server) {
             return text(JSON.stringify({
                 runId, status: 'error',
                 error: run.error_message || 'Render failed',
-                log: truncate(run.log_output, MAX_LOG_CHARS),
+                log: truncate(sanitizeLog(run.log_output), MAX_LOG_CHARS),
                 note: 'Log is truncated and best-effort; not guaranteed free of data values.',
             }, null, 2));
         }
@@ -289,4 +337,4 @@ function registerTools(server) {
     });
 }
 
-module.exports = { registerTools, _internals: { getProfile, profileCache } };
+module.exports = { registerTools, seedTemplates, _internals: { getProfile, profileCache } };

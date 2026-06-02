@@ -1,0 +1,467 @@
+---
+title: "Data Quality Assessment Report"
+author: "SALT Management System"
+date: "`r Sys.Date()`"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    theme: journal
+  pdf:
+    toc: true
+    documentclass: article
+  docx:
+    toc: true
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(knitr)
+library(lubridate)
+
+# Load data
+data_long <- read.csv("data_long.csv")
+data_wide <- read.csv("data_wide.csv")
+
+# Set up knitr options
+knitr::opts_chunk$set(fig.width = 10, fig.height = 6)
+
+# Helper functions
+calculate_outliers <- function(x) {
+  q1 <- quantile(x, 0.25, na.rm = TRUE)
+  q3 <- quantile(x, 0.75, na.rm = TRUE)
+  iqr <- q3 - q1
+  lower <- q1 - 1.5 * iqr
+  upper <- q3 + 1.5 * iqr
+  sum(x < lower | x > upper, na.rm = TRUE)
+}
+```
+
+# Executive Summary
+
+This report provides a comprehensive assessment of data quality for the SALT survey system, identifying potential issues and providing recommendations for improvement.
+
+## Quality Metrics Overview
+
+```{r}
+# Calculate overall quality metrics
+total_records <- nrow(data_wide)
+total_variables <- length(unique(data_long$variable))
+total_responses <- nrow(data_long)
+
+# Missing data
+missing_count <- sum(is.na(data_long$numeric_value) & is.na(data_long$text_value))
+missing_pct <- round((missing_count / total_responses) * 100, 2)
+
+# Duplicates
+duplicate_participants <- sum(duplicated(data_wide$participant_id))
+
+# Completeness
+avg_completeness <- data_long %>%
+  group_by(survey_id) %>%
+  summarise(
+    total = n(),
+    complete = sum(!is.na(numeric_value) | !is.na(text_value))
+  ) %>%
+  summarise(avg = mean(complete / total * 100)) %>%
+  pull(avg) %>%
+  round(2)
+
+quality_overview <- data.frame(
+  Metric = c(
+    "Total Records",
+    "Total Variables",
+    "Total Data Points",
+    "Missing Data %",
+    "Average Completeness %",
+    "Duplicate Participants"
+  ),
+  Value = c(
+    format(total_records, big.mark = ","),
+    total_variables,
+    format(total_responses, big.mark = ","),
+    paste0(missing_pct, "%"),
+    paste0(avg_completeness, "%"),
+    duplicate_participants
+  ),
+  Status = c(
+    "Info",
+    "Info",
+    "Info",
+    ifelse(missing_pct < 5, "Good", ifelse(missing_pct < 10, "Warning", "Critical")),
+    ifelse(avg_completeness > 90, "Good", ifelse(avg_completeness > 80, "Warning", "Critical")),
+    ifelse(duplicate_participants == 0, "Good", "Critical")
+  )
+)
+
+kable(quality_overview, caption = "Data Quality Overview")
+```
+
+# Completeness Analysis
+
+## Missing Data by Variable
+
+```{r}
+missing_summary <- data_long %>%
+  group_by(variable) %>%
+  summarise(
+    total = n(),
+    missing = sum(is.na(numeric_value) & is.na(text_value)),
+    missing_pct = round((missing / total) * 100, 2)
+  ) %>%
+  arrange(desc(missing_pct))
+
+# Identify problematic variables
+problem_vars <- missing_summary %>%
+  filter(missing_pct > 20) %>%
+  head(20)
+
+if (nrow(problem_vars) > 0) {
+  kable(problem_vars,
+        caption = "Variables with High Missing Data (>20%)",
+        col.names = c("Variable", "Total Records", "Missing", "Missing %"))
+} else {
+  cat("All variables have less than 20% missing data.")
+}
+```
+
+## Completeness Distribution
+
+```{r, fig.cap="Distribution of Data Completeness Across Variables"}
+missing_summary %>%
+  ggplot(aes(x = 100 - missing_pct)) +
+  geom_histogram(bins = 30, fill = "#3498db", color = "white") +
+  geom_vline(xintercept = 80, linetype = "dashed", color = "red", size = 1) +
+  annotate("text", x = 75, y = Inf, label = "80% Target", vjust = 2, color = "red") +
+  theme_minimal() +
+  labs(title = "Distribution of Variable Completeness",
+       x = "Completeness (%)",
+       y = "Number of Variables") +
+  theme(text = element_text(size = 12))
+```
+
+## Completeness by Facility
+
+```{r}
+facility_completeness <- data_wide %>%
+  left_join(
+    data_long %>%
+      group_by(survey_id) %>%
+      summarise(
+        completeness = mean(!is.na(numeric_value) | !is.na(text_value)) * 100
+      ),
+    by = "survey_id"
+  ) %>%
+  group_by(meta_facility_name) %>%
+  summarise(
+    n_surveys = n(),
+    avg_completeness = round(mean(completeness, na.rm = TRUE), 2),
+    min_completeness = round(min(completeness, na.rm = TRUE), 2),
+    max_completeness = round(max(completeness, na.rm = TRUE), 2)
+  ) %>%
+  arrange(avg_completeness)
+
+kable(facility_completeness,
+      caption = "Data Completeness by Facility",
+      col.names = c("Facility", "Surveys", "Avg Complete %", "Min %", "Max %"))
+```
+
+# Data Consistency
+
+## Duplicate Detection
+
+```{r}
+# Check for duplicate participant IDs
+duplicates <- data_wide %>%
+  group_by(participant_id) %>%
+  summarise(count = n()) %>%
+  filter(count > 1) %>%
+  arrange(desc(count))
+
+if (nrow(duplicates) > 0) {
+  kable(head(duplicates, 10),
+        caption = "Duplicate Participant IDs Found",
+        col.names = c("Participant ID", "Occurrences"))
+} else {
+  cat("✓ No duplicate participant IDs detected")
+}
+```
+
+## Temporal Consistency
+
+```{r, fig.cap="Survey Completion Times - Detecting Anomalies"}
+data_wide %>%
+  mutate(
+    completion_time = as.POSIXct(meta_completed_at),
+    hour = hour(completion_time),
+    date = as.Date(completion_time)
+  ) %>%
+  ggplot(aes(x = hour)) +
+  geom_histogram(bins = 24, fill = "#2ecc71", color = "white") +
+  scale_x_continuous(breaks = seq(0, 23, 2)) +
+  theme_minimal() +
+  labs(title = "Distribution of Survey Completion Times",
+       subtitle = "Check for unusual patterns (e.g., surveys at 3 AM)",
+       x = "Hour of Day",
+       y = "Number of Surveys") +
+  theme(text = element_text(size = 12))
+```
+
+## Value Range Validation
+
+```{r}
+# Check numeric variables for outliers
+numeric_vars <- data_long %>%
+  filter(!is.na(numeric_value)) %>%
+  group_by(variable) %>%
+  summarise(
+    n = n(),
+    mean = round(mean(numeric_value, na.rm = TRUE), 2),
+    median = round(median(numeric_value, na.rm = TRUE), 2),
+    min = min(numeric_value, na.rm = TRUE),
+    max = max(numeric_value, na.rm = TRUE),
+    outliers = calculate_outliers(numeric_value),
+    outlier_pct = round(outliers / n * 100, 2)
+  ) %>%
+  filter(outlier_pct > 0) %>%
+  arrange(desc(outlier_pct))
+
+if (nrow(numeric_vars) > 0) {
+  kable(head(numeric_vars, 15),
+        caption = "Numeric Variables with Outliers",
+        col.names = c("Variable", "N", "Mean", "Median", "Min", "Max", "Outliers", "Outlier %"))
+} else {
+  cat("✓ No significant outliers detected in numeric variables")
+}
+```
+
+# Response Patterns
+
+## Response Distribution Analysis
+
+```{r}
+# Analyze response patterns for categorical variables
+response_patterns <- data_long %>%
+  filter(!is.na(text_value)) %>%
+  group_by(variable, text_value) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(variable) %>%
+  mutate(
+    total = sum(count),
+    pct = round(count / total * 100, 2)
+  ) %>%
+  filter(pct > 90) %>%
+  arrange(desc(pct))
+
+if (nrow(response_patterns) > 0) {
+  kable(head(response_patterns, 15),
+        caption = "Variables with Highly Skewed Responses (>90% single value)",
+        col.names = c("Variable", "Value", "Count", "Total", "Percentage"))
+  cat("\n⚠ These variables may have data entry issues or low variability\n")
+} else {
+  cat("✓ No highly skewed response patterns detected")
+}
+```
+
+## Sequential Pattern Detection
+
+```{r, fig.cap="Survey ID Sequence Check"}
+# Check for gaps in survey IDs
+survey_ids <- sort(as.numeric(data_wide$survey_id))
+expected_ids <- seq(min(survey_ids), max(survey_ids))
+missing_ids <- setdiff(expected_ids, survey_ids)
+
+if (length(missing_ids) > 0) {
+  cat(paste("⚠", length(missing_ids), "gaps found in survey ID sequence\n"))
+  if (length(missing_ids) <= 10) {
+    cat(paste("Missing IDs:", paste(head(missing_ids, 10), collapse = ", "), "\n"))
+  }
+} else {
+  cat("✓ Survey ID sequence is complete with no gaps")
+}
+
+# Visualize survey ID progression
+data.frame(
+  index = seq_along(survey_ids),
+  survey_id = survey_ids
+) %>%
+  ggplot(aes(x = index, y = survey_id)) +
+  geom_line(color = "#3498db") +
+  geom_smooth(method = "lm", se = TRUE, alpha = 0.2) +
+  theme_minimal() +
+  labs(title = "Survey ID Progression",
+       subtitle = "Linear progression indicates consistent data collection",
+       x = "Survey Index",
+       y = "Survey ID") +
+  theme(text = element_text(size = 12))
+```
+
+# Data Entry Quality
+
+## Entry Time Analysis
+
+```{r}
+# Analyze survey completion duration if available
+if ("meta_start_time" %in% names(data_wide) && "meta_completed_at" %in% names(data_wide)) {
+  data_wide %>%
+    mutate(
+      start = as.POSIXct(meta_start_time),
+      end = as.POSIXct(meta_completed_at),
+      duration_mins = as.numeric(difftime(end, start, units = "mins"))
+    ) %>%
+    filter(duration_mins > 0 & duration_mins < 180) %>%
+    ggplot(aes(x = duration_mins)) +
+    geom_histogram(bins = 30, fill = "#e74c3c", color = "white") +
+    geom_vline(xintercept = c(5, 60), linetype = "dashed", color = "blue") +
+    theme_minimal() +
+    labs(title = "Survey Completion Duration",
+         subtitle = "Very short (<5 min) or very long (>60 min) durations may indicate issues",
+         x = "Duration (minutes)",
+         y = "Number of Surveys") +
+    theme(text = element_text(size = 12))
+}
+```
+
+## Facility Performance Scores
+
+```{r}
+# Calculate quality scores by facility
+facility_scores <- data_wide %>%
+  group_by(meta_facility_name) %>%
+  summarise(
+    n_surveys = n(),
+    duplicate_rate = mean(duplicated(participant_id)),
+    .groups = "drop"
+  ) %>%
+  left_join(
+    facility_completeness %>% select(meta_facility_name, avg_completeness),
+    by = "meta_facility_name"
+  ) %>%
+  mutate(
+    quality_score = round(
+      (avg_completeness / 100) * 0.7 +  # 70% weight on completeness
+      (1 - duplicate_rate) * 0.3,        # 30% weight on no duplicates
+      3
+    ) * 100
+  ) %>%
+  arrange(desc(quality_score))
+
+kable(facility_scores,
+      caption = "Facility Data Quality Scores",
+      col.names = c("Facility", "Surveys", "Duplicate Rate", "Completeness %", "Quality Score"))
+```
+
+# Recommendations
+
+## Critical Issues
+
+```{r}
+critical_issues <- character()
+
+if (duplicate_participants > 0) {
+  critical_issues <- c(critical_issues,
+    paste("•", duplicate_participants, "duplicate participant IDs require immediate investigation"))
+}
+
+if (missing_pct > 10) {
+  critical_issues <- c(critical_issues,
+    paste("• Overall missing data rate of", missing_pct, "% exceeds acceptable threshold"))
+}
+
+low_quality_facilities <- facility_scores %>% filter(quality_score < 70)
+if (nrow(low_quality_facilities) > 0) {
+  critical_issues <- c(critical_issues,
+    paste("•", nrow(low_quality_facilities), "facilities have quality scores below 70%"))
+}
+
+if (length(critical_issues) > 0) {
+  cat("**CRITICAL ISSUES REQUIRING IMMEDIATE ATTENTION:**\n")
+  cat(paste(critical_issues, collapse = "\n"))
+} else {
+  cat("✓ No critical data quality issues detected")
+}
+```
+
+## Improvement Opportunities
+
+```{r}
+recommendations <- character()
+
+# Check for variables with high missing rates
+high_missing <- missing_summary %>% filter(missing_pct > 10)
+if (nrow(high_missing) > 0) {
+  recommendations <- c(recommendations,
+    paste("• Review and improve data collection for", nrow(high_missing), "variables with >10% missing data"))
+}
+
+# Check for facilities needing support
+low_performing <- facility_scores %>% filter(quality_score < 80)
+if (nrow(low_performing) > 0) {
+  recommendations <- c(recommendations,
+    paste("• Provide additional training to", nrow(low_performing), "facilities with quality scores <80%"))
+}
+
+# Check for outliers
+if (exists("numeric_vars") && nrow(numeric_vars) > 0) {
+  recommendations <- c(recommendations,
+    paste("• Implement validation rules for", nrow(numeric_vars), "numeric variables with outliers"))
+}
+
+if (length(recommendations) > 0) {
+  cat("\n**RECOMMENDED IMPROVEMENTS:**\n")
+  cat(paste(recommendations, collapse = "\n"))
+} else {
+  cat("\n✓ Data quality is excellent - maintain current procedures")
+}
+```
+
+## Quality Trends
+
+```{r, fig.cap="Data Quality Trend Over Time"}
+# Calculate quality metrics over time
+quality_trend <- data_wide %>%
+  mutate(
+    date = as.Date(meta_completed_at),
+    week = floor_date(date, "week")
+  ) %>%
+  left_join(
+    data_long %>%
+      group_by(survey_id) %>%
+      summarise(
+        completeness = mean(!is.na(numeric_value) | !is.na(text_value)) * 100,
+        .groups = "drop"
+      ),
+    by = "survey_id"
+  ) %>%
+  group_by(week) %>%
+  summarise(
+    surveys = n(),
+    avg_completeness = mean(completeness, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(week))
+
+if (nrow(quality_trend) > 1) {
+  ggplot(quality_trend, aes(x = week, y = avg_completeness)) +
+    geom_line(color = "#3498db", size = 1) +
+    geom_point(color = "#2c3e50", size = 2) +
+    geom_smooth(method = "loess", se = TRUE, alpha = 0.2) +
+    geom_hline(yintercept = 90, linetype = "dashed", color = "green") +
+    scale_y_continuous(limits = c(0, 100)) +
+    theme_minimal() +
+    labs(title = "Data Quality Trend",
+         subtitle = "Weekly average completeness over time",
+         x = "Week",
+         y = "Completeness (%)") +
+    theme(text = element_text(size = 12))
+}
+```
+
+---
+
+*Report generated on `r format(Sys.Date(), "%B %d, %Y")` at `r format(Sys.time(), "%I:%M %p")`*
+*Quality assessment based on `r format(total_records, big.mark = ",")` records*

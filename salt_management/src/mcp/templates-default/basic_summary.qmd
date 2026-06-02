@@ -1,0 +1,219 @@
+---
+title: "SALT Survey Summary Report"
+author: "SALT Management System"
+date: "`r Sys.Date()`"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    theme: cosmo
+  pdf:
+    toc: true
+    documentclass: article
+  docx:
+    toc: true
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(knitr)
+library(DT)
+
+# Load data
+data_long <- read.csv("data_long.csv")
+data_wide <- read.csv("data_wide.csv")
+
+# Set up knitr options
+knitr::opts_chunk$set(fig.width = 10, fig.height = 6)
+```
+
+# Executive Summary
+
+This report provides a comprehensive summary of survey responses collected through the SALT system as of `r format(Sys.Date(), "%B %d, %Y")`.
+
+## Key Metrics
+
+```{r}
+total_surveys <- length(unique(data_long$survey_id))
+total_participants <- length(unique(data_long$participant_id))
+total_facilities <- length(unique(data_wide$meta_facility_name))
+date_range <- range(as.Date(data_wide$meta_completed_at))
+
+summary_table <- data.frame(
+  Metric = c("Total Surveys", "Unique Participants", "Total Facilities", "Date Range"),
+  Value = c(
+    total_surveys,
+    total_participants,
+    total_facilities,
+    paste(date_range[1], "to", date_range[2])
+  )
+)
+
+kable(summary_table, caption = "Survey Statistics Overview")
+```
+
+# Response Analysis
+
+## Variable Summary
+
+```{r}
+variable_summary <- data_long %>%
+  group_by(variable) %>%
+  summarise(
+    n_responses = n(),
+    n_unique = n_distinct(participant_id),
+    missing_pct = round(mean(is.na(numeric_value) & is.na(text_value)) * 100, 1),
+    mean_numeric = round(mean(numeric_value, na.rm = TRUE), 2)
+  ) %>%
+  arrange(desc(n_responses))
+
+kable(head(variable_summary, 20),
+      caption = "Top 20 Variables by Response Count",
+      col.names = c("Variable", "Total Responses", "Unique Participants", "Missing %", "Mean (if numeric)"))
+```
+
+## Response Distribution
+
+```{r, fig.cap="Response Counts for Top 10 Variables"}
+top_variables <- variable_summary$variable[1:10]
+
+data_long %>%
+  filter(variable %in% top_variables) %>%
+  group_by(variable) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = reorder(variable, count), y = count, fill = variable)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Response Counts for Top 10 Variables",
+       x = "Variable",
+       y = "Number of Responses") +
+  guides(fill = "none") +
+  theme(text = element_text(size = 12))
+```
+
+# Facility Analysis
+
+## Surveys by Facility
+
+```{r}
+facility_summary <- data_wide %>%
+  group_by(meta_facility_name) %>%
+  summarise(
+    n_surveys = n(),
+    n_participants = n_distinct(participant_id),
+    first_survey = min(as.Date(meta_completed_at)),
+    last_survey = max(as.Date(meta_completed_at))
+  ) %>%
+  arrange(desc(n_surveys))
+
+kable(facility_summary,
+      caption = "Survey Activity by Facility",
+      col.names = c("Facility", "Surveys", "Participants", "First Survey", "Last Survey"))
+```
+
+## Facility Performance
+
+```{r, fig.cap="Survey Distribution Across Facilities"}
+data_wide %>%
+  group_by(meta_facility_name) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = reorder(meta_facility_name, count), y = count, fill = meta_facility_name)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Survey Distribution Across Facilities",
+       x = "Facility",
+       y = "Number of Surveys") +
+  guides(fill = "none") +
+  theme(text = element_text(size = 12))
+```
+
+# Temporal Trends
+
+## Daily Survey Completions
+
+```{r, fig.cap="Daily Survey Completion Trend"}
+daily_completions <- data_wide %>%
+  mutate(date = as.Date(meta_completed_at)) %>%
+  group_by(date) %>%
+  summarise(count = n()) %>%
+  complete(date = seq.Date(min(date), max(date), by = "day"), fill = list(count = 0))
+
+ggplot(daily_completions, aes(x = date, y = count)) +
+  geom_line(color = "#3498db", size = 1) +
+  geom_point(color = "#2c3e50", size = 2) +
+  geom_smooth(method = "loess", se = TRUE, alpha = 0.2) +
+  theme_minimal() +
+  labs(title = "Daily Survey Completions Over Time",
+       x = "Date",
+       y = "Number of Surveys") +
+  theme(text = element_text(size = 12))
+```
+
+## Weekly Patterns
+
+```{r, fig.cap="Survey Completions by Day of Week"}
+data_wide %>%
+  mutate(
+    date = as.Date(meta_completed_at),
+    weekday = weekdays(date, abbreviate = TRUE),
+    weekday = factor(weekday, levels = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))
+  ) %>%
+  group_by(weekday) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = weekday, y = count, fill = weekday)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Survey Completions by Day of Week",
+       x = "Day of Week",
+       y = "Number of Surveys") +
+  guides(fill = "none") +
+  theme(text = element_text(size = 12))
+```
+
+# Data Quality
+
+## Completeness Analysis
+
+```{r}
+completeness_by_section <- data_long %>%
+  mutate(section = sub("_.*", "", variable)) %>%
+  group_by(section) %>%
+  summarise(
+    n_variables = n_distinct(variable),
+    total_responses = n(),
+    complete_responses = sum(!is.na(numeric_value) | !is.na(text_value)),
+    completeness_pct = round((complete_responses / total_responses) * 100, 1)
+  ) %>%
+  arrange(desc(completeness_pct))
+
+kable(head(completeness_by_section, 15),
+      caption = "Data Completeness by Variable Section",
+      col.names = c("Section", "Variables", "Total Responses", "Complete", "Completeness %"))
+```
+
+## Missing Data Patterns
+
+```{r, fig.cap="Completeness Rate by Variable Section"}
+completeness_by_section %>%
+  head(15) %>%
+  ggplot(aes(x = reorder(section, completeness_pct), y = completeness_pct, fill = completeness_pct)) +
+  geom_bar(stat = "identity") +
+  scale_fill_gradient(low = "#e74c3c", high = "#27ae60") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Data Completeness by Variable Section",
+       x = "Section",
+       y = "Completeness (%)") +
+  guides(fill = "none") +
+  theme(text = element_text(size = 12))
+```
+
+---
+
+*Report generated on `r format(Sys.Date(), "%B %d, %Y")` at `r format(Sys.time(), "%I:%M %p")`*

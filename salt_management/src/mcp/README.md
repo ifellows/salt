@@ -34,6 +34,8 @@ The MCP SDK is ESM; this is a CommonJS codebase, so the SDK is loaded via dynami
 | `MCP_ACCESS_TTL_SECONDS` | `1800` | Access-token lifetime |
 | `MCP_SESSION_MAX_SECONDS` | `21600` | Absolute session cap (6h); refresh refused past it |
 | `MCP_INSTRUCTIONS_FILE` | `data/reports/report-instructions.md` | Editable report-generation prompt (see below) |
+| `MCP_TEMPLATES_DIR` | `data/reports/templates` | Example templates dir; seeded from `src/mcp/templates-default/` on first run (the data volume is dockerignored, so shipped defaults are copied in) |
+| `MCP_MAX_MD_CHARS` / `MCP_MAX_LOG_CHARS` / `MCP_PROFILE_CHAR_CAP` | 5M / 1M / 2M | Very large backstop truncation limits for tool payloads |
 
 ## Editing the report instructions
 

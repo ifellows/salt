@@ -18,7 +18,8 @@ const uuid = require('uuid');
 const { buildDictionaryRows } = require('./dataDictionary');
 
 const MAX_LEVELS = 20;               // table() at/below this many distinct values, else summary()
-const DEFAULT_CHAR_CAP = 40000;      // hard cap on returned profile text
+// Very large backstop on profile text (not a content limit). Override via env.
+const DEFAULT_CHAR_CAP = parseInt(process.env.MCP_PROFILE_CHAR_CAP || '2000000', 10);
 
 class DataProfiler {
     constructor() {

@@ -271,9 +271,16 @@ const callJson = async (c, name, args = {}) => {
     ok('get_data_profile ok', (await callJson(c, 'get_data_profile', { surveyId: SURVEY })).text.includes('=='));
     ok('get_variable_summary found', (await callJson(c, 'get_variable_summary', { surveyId: SURVEY, variable: 'q_ever_test' })).text.includes('q_ever_test'));
     ok('get_variable_summary not-found → isError', (await callJson(c, 'get_variable_summary', { surveyId: SURVEY, variable: 'nope_var' })).isError);
-    ok('list_templates', (await callJson(c, 'list_templates')).text.includes('basic_summary.qmd'));
+    // Templates were seeded into a fresh (empty) MCP_TEMPLATES_DIR by the server.
+    ok('list_templates (seeded into empty dir)', (await callJson(c, 'list_templates')).text.includes('basic_summary.qmd'));
     ok('get_template ok', (await callJson(c, 'get_template', { name: 'basic_summary.qmd' })).text.length > 50);
     ok('get_template traversal → isError', (await callJson(c, 'get_template', { name: '../../../etc/passwd' })).isError);
+    // known-but-no-data vs unknown variable (the fake survey's question has no responses)
+    const noData = await callJson(c, 'get_variable_summary', { surveyId: fakeSurvey, variable: 'q_ms_empty' });
+    ok('get_variable_summary known-but-no-data is informative, not "unknown"',
+        !noData.isError && /dictionary/i.test(noData.text) && !/Unknown variable/.test(noData.text), noData.text.slice(0, 80));
+    ok('get_variable_summary unknown var → isError "Unknown"',
+        /Unknown variable/.test((await callJson(c, 'get_variable_summary', { surveyId: SURVEY, variable: 'totally_bogus_xyz' })).text));
     ok('get_report_instructions (no args)', (await callJson(c, 'get_report_instructions')).text.includes('data_long.csv'));
     ok('list_reports', (await callJson(c, 'list_reports')).text.includes('['));
 
@@ -317,6 +324,8 @@ const callJson = async (c, name, args = {}) => {
         if (badRes.status !== 'running') break;
     }
     ok('render failure → error + log', badRes.status === 'error' && /intentional test failure/.test(badRes.log || ''), badRes.status);
+    ok('render failure log is ANSI-stripped', badRes.log && !/\x1b\[/.test(badRes.log));
+    ok('render failure log de-duplicated (not triplicated)', badRes.log && (badRes.log.match(/intentional test failure/g) || []).length < 3);
     await c.close();
 
     // ------------------------------------------------------------- cleanup

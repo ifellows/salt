@@ -1,0 +1,334 @@
+---
+title: "Weekly Activity Report"
+subtitle: "Week of `r format(Sys.Date() - 7, '%B %d, %Y')` to `r format(Sys.Date(), '%B %d, %Y')`"
+author: "SALT Management System"
+date: "`r Sys.Date()`"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    theme: flatly
+  pdf:
+    toc: true
+    documentclass: report
+  docx:
+    toc: true
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(knitr)
+library(lubridate)
+library(scales)
+
+# Load data
+data_long <- read.csv("data_long.csv")
+data_wide <- read.csv("data_wide.csv")
+
+# Convert date columns
+data_wide$meta_completed_at <- as.POSIXct(data_wide$meta_completed_at)
+data_long$meta_completed_at <- as.POSIXct(data_long$meta_completed_at)
+
+# Filter for last 7 days
+week_end <- Sys.Date()
+week_start <- week_end - 6
+week_data <- data_wide %>%
+  filter(as.Date(meta_completed_at) >= week_start & as.Date(meta_completed_at) <= week_end)
+
+week_data_long <- data_long %>%
+  filter(survey_id %in% week_data$survey_id)
+
+# Set up knitr options
+knitr::opts_chunk$set(fig.width = 10, fig.height = 6)
+```
+
+# Weekly Summary
+
+## Overview
+
+```{r}
+# Calculate key metrics
+total_surveys <- nrow(week_data)
+total_participants <- length(unique(week_data$participant_id))
+active_facilities <- length(unique(week_data$meta_facility_name))
+
+# Compare to previous week
+prev_week_data <- data_wide %>%
+  filter(as.Date(meta_completed_at) >= (week_start - 7) & as.Date(meta_completed_at) < week_start)
+
+prev_surveys <- nrow(prev_week_data)
+change_pct <- ifelse(prev_surveys > 0,
+                     round((total_surveys - prev_surveys) / prev_surveys * 100, 1),
+                     NA)
+
+summary_stats <- data.frame(
+  Metric = c("Surveys Completed", "Unique Participants", "Active Facilities", "Daily Average", "Week-over-Week Change"),
+  Value = c(
+    total_surveys,
+    total_participants,
+    active_facilities,
+    round(total_surveys / 7, 1),
+    ifelse(is.na(change_pct), "N/A", paste0(ifelse(change_pct > 0, "+", ""), change_pct, "%"))
+  )
+)
+
+kable(summary_stats, caption = "Weekly Performance Metrics")
+```
+
+# Daily Activity
+
+## Survey Completions by Day
+
+```{r}
+daily_completions <- week_data %>%
+  mutate(date = as.Date(meta_completed_at)) %>%
+  group_by(date) %>%
+  summarise(
+    surveys = n(),
+    participants = n_distinct(participant_id),
+    facilities = n_distinct(meta_facility_name)
+  ) %>%
+  arrange(date)
+
+# Add day of week
+daily_completions$weekday <- weekdays(daily_completions$date, abbreviate = TRUE)
+
+kable(daily_completions,
+      caption = "Daily Survey Activity",
+      col.names = c("Date", "Surveys", "Participants", "Facilities", "Day"))
+```
+
+## Activity Trend
+
+```{r, fig.cap="Daily Survey Completions This Week"}
+daily_completions %>%
+  ggplot(aes(x = date, y = surveys)) +
+  geom_line(color = "#3498db", size = 1.5) +
+  geom_point(color = "#2c3e50", size = 3) +
+  geom_text(aes(label = surveys), vjust = -1, size = 3.5) +
+  scale_x_date(date_breaks = "1 day", date_labels = "%a\n%m/%d") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  theme_minimal() +
+  labs(title = "Daily Survey Completions",
+       subtitle = paste("Week of", format(week_start, "%B %d"), "-", format(week_end, "%B %d, %Y")),
+       x = "Date",
+       y = "Number of Surveys") +
+  theme(text = element_text(size = 12))
+```
+
+# Facility Performance
+
+## Activity by Facility
+
+```{r}
+facility_activity <- week_data %>%
+  group_by(meta_facility_name) %>%
+  summarise(
+    surveys = n(),
+    participants = n_distinct(participant_id),
+    daily_avg = round(surveys / 7, 1)
+  ) %>%
+  arrange(desc(surveys))
+
+# Add rank
+facility_activity$rank <- seq_len(nrow(facility_activity))
+
+kable(facility_activity,
+      caption = "Facility Performance Rankings",
+      col.names = c("Facility", "Surveys", "Participants", "Daily Avg", "Rank"))
+```
+
+## Facility Comparison
+
+```{r, fig.cap="Survey Distribution by Facility"}
+facility_activity %>%
+  head(10) %>%
+  ggplot(aes(x = reorder(meta_facility_name, surveys), y = surveys, fill = surveys)) +
+  geom_bar(stat = "identity") +
+  scale_fill_gradient(low = "#95a5a6", high = "#27ae60") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Top 10 Facilities by Survey Count",
+       x = "Facility",
+       y = "Number of Surveys") +
+  guides(fill = "none") +
+  theme(text = element_text(size = 12))
+```
+
+# Hourly Patterns
+
+## Survey Timing Analysis
+
+```{r, fig.cap="Survey Completions by Hour of Day"}
+week_data %>%
+  mutate(hour = hour(meta_completed_at)) %>%
+  group_by(hour) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = hour, y = count, fill = count)) +
+  geom_bar(stat = "identity") +
+  scale_fill_gradient(low = "#ecf0f1", high = "#3498db") +
+  scale_x_continuous(breaks = seq(0, 23, 2)) +
+  theme_minimal() +
+  labs(title = "Survey Completions by Hour of Day",
+       subtitle = "Peak hours for data collection",
+       x = "Hour of Day (24-hour format)",
+       y = "Number of Surveys") +
+  guides(fill = "none") +
+  theme(text = element_text(size = 12))
+```
+
+# Data Quality
+
+## Response Completeness
+
+```{r}
+completeness_summary <- week_data_long %>%
+  group_by(variable) %>%
+  summarise(
+    total = n(),
+    complete = sum(!is.na(numeric_value) | !is.na(text_value)),
+    completeness = round((complete / total) * 100, 1)
+  ) %>%
+  arrange(completeness)
+
+# Categorize completeness
+completeness_categories <- data.frame(
+  Category = c("Excellent (95-100%)", "Good (80-94%)", "Fair (60-79%)", "Poor (<60%)"),
+  Count = c(
+    sum(completeness_summary$completeness >= 95),
+    sum(completeness_summary$completeness >= 80 & completeness_summary$completeness < 95),
+    sum(completeness_summary$completeness >= 60 & completeness_summary$completeness < 80),
+    sum(completeness_summary$completeness < 60)
+  )
+)
+
+kable(completeness_categories,
+      caption = "Data Quality Distribution",
+      col.names = c("Completeness Category", "Number of Variables"))
+```
+
+## Variables with Low Completion
+
+```{r}
+low_completion <- completeness_summary %>%
+  filter(completeness < 80) %>%
+  head(10)
+
+if (nrow(low_completion) > 0) {
+  kable(low_completion,
+        caption = "Variables Requiring Attention (< 80% Complete)",
+        col.names = c("Variable", "Total Responses", "Complete", "Completeness %"))
+} else {
+  cat("All variables have completion rates above 80%")
+}
+```
+
+# Recruitment Patterns
+
+## Coupon Usage
+
+```{r}
+if ("coupon_presented" %in% names(week_data_long)) {
+  coupon_data <- week_data_long %>%
+    filter(variable == "coupon_presented") %>%
+    group_by(text_value) %>%
+    summarise(count = n()) %>%
+    arrange(desc(count))
+
+  if (nrow(coupon_data) > 0) {
+    kable(head(coupon_data, 10),
+          caption = "Top 10 Recruiting Coupons",
+          col.names = c("Coupon ID", "Recruits"))
+  }
+}
+```
+
+## Recruitment Chain Analysis
+
+```{r, fig.cap="Daily New vs Returning Participants"}
+if ("participant_type" %in% names(week_data_long)) {
+  week_data %>%
+    mutate(date = as.Date(meta_completed_at)) %>%
+    group_by(date) %>%
+    summarise(
+      new_participants = sum(participant_type == "new", na.rm = TRUE),
+      returning = sum(participant_type == "returning", na.rm = TRUE)
+    ) %>%
+    pivot_longer(cols = c(new_participants, returning), names_to = "type", values_to = "count") %>%
+    ggplot(aes(x = date, y = count, fill = type)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    scale_fill_manual(values = c("new_participants" = "#3498db", "returning" = "#e74c3c")) +
+    theme_minimal() +
+    labs(title = "New vs Returning Participants",
+         x = "Date",
+         y = "Number of Participants",
+         fill = "Type") +
+    theme(text = element_text(size = 12))
+}
+```
+
+# Key Insights
+
+## Performance Highlights
+
+```{r}
+# Find best performing day
+best_day <- daily_completions %>%
+  filter(surveys == max(surveys))
+
+# Find most active facility
+top_facility <- facility_activity %>%
+  filter(rank == 1)
+
+insights <- c(
+  paste("• Best performing day:", best_day$weekday[1], format(best_day$date[1], "%B %d"), "with", best_day$surveys[1], "surveys"),
+  paste("• Top facility:", top_facility$meta_facility_name[1], "completed", top_facility$surveys[1], "surveys"),
+  paste("• Average daily completion rate:", round(total_surveys / 7, 1), "surveys"),
+  paste("• Data quality:", round(mean(completeness_summary$completeness), 1), "% average completeness")
+)
+
+cat(paste(insights, collapse = "\n"))
+```
+
+## Recommendations
+
+```{r}
+# Generate recommendations based on data
+recommendations <- character()
+
+# Check for low activity days
+low_days <- daily_completions %>% filter(surveys < mean(surveys) * 0.5)
+if (nrow(low_days) > 0) {
+  recommendations <- c(recommendations,
+    paste("• Consider investigating low activity on:", paste(low_days$weekday, collapse = ", ")))
+}
+
+# Check for facilities with low performance
+low_facilities <- facility_activity %>% filter(surveys < 5)
+if (nrow(low_facilities) > 0) {
+  recommendations <- c(recommendations,
+    paste("• Support needed for", nrow(low_facilities), "facilities with fewer than 5 surveys"))
+}
+
+# Check for data quality issues
+quality_issues <- sum(completeness_summary$completeness < 80)
+if (quality_issues > 0) {
+  recommendations <- c(recommendations,
+    paste("•", quality_issues, "variables have completion rates below 80%"))
+}
+
+if (length(recommendations) > 0) {
+  cat(paste(recommendations, collapse = "\n"))
+} else {
+  cat("• All metrics are within acceptable ranges\n• Continue current operational procedures")
+}
+```
+
+---
+
+*Report generated on `r format(Sys.Date(), "%B %d, %Y")` at `r format(Sys.time(), "%I:%M %p")`*
+*Data period: `r format(week_start, "%B %d, %Y")` to `r format(week_end, "%B %d, %Y")`*
