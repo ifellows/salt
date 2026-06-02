@@ -1,5 +1,10 @@
 <%
 var pageTitle = typeof title !== 'undefined' ? title : 'Data Export';
+var dictSurveys = typeof surveys !== 'undefined' && Array.isArray(surveys) ? surveys : [];
+var esc = function(t){ return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+var dictSurveyOptions = dictSurveys.length
+    ? dictSurveys.map(function(s){ return '<option value="'+s.id+'">'+esc(s.name)+(s.is_active?' (active)':'')+' (v'+s.version+')</option>'; }).join('')
+    : '<option value="">(no surveys)</option>';
 var body = `
 <h2>Data Export</h2>
 
@@ -108,6 +113,26 @@ var body = `
         </div>
         <button class="btn" onclick="exportPayments()" style="min-width: 180px;">
             <i class="fas fa-download"></i> Download Payment CSV
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 1.5rem;">
+        <i class="fas fa-book" style="color: #6f42c1;"></i> Export Data Dictionary
+    </h3>
+    <p style="color: #6c757d; margin-bottom: 1.5rem;">
+        Download a CSV describing every export variable for a survey: label, type, value labels,
+        units, and the raw validation / skip / skip_to logic. Built from the survey questions,
+        rapid tests, and lab tests.
+    </p>
+    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #dee2e6; padding-top: 1.5rem; gap: 1rem; flex-wrap: wrap;">
+        <div>
+            <label style="font-weight: 600; margin-right: 0.5rem;">Survey:</label>
+            <select id="dictSurvey" style="padding: 0.5rem; min-width: 240px;">${dictSurveyOptions}</select>
+        </div>
+        <button class="btn" onclick="exportDataDictionary()" style="min-width: 220px;">
+            <i class="fas fa-download"></i> Download Data Dictionary
         </button>
     </div>
 </div>
@@ -273,6 +298,45 @@ var body = `
             button.innerHTML = originalContent;
             button.disabled = false;
             showAlert('Payment export failed. Please try again.', 'error');
+        });
+    }
+
+    function exportDataDictionary() {
+        const sel = document.getElementById('dictSurvey');
+        const surveyId = sel ? sel.value : '';
+        const button = event.target.closest('button');
+        const originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing...';
+        button.disabled = true;
+
+        const url = '/api/admin/export/data-dictionary' + (surveyId ? ('?surveyId=' + encodeURIComponent(surveyId)) : '');
+        fetch(url, { method: 'GET', credentials: 'same-origin' })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Export failed');
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            const u = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const date = new Date().toISOString().split('T')[0];
+            a.href = u;
+            a.download = \`salt_data_dictionary_\${surveyId || 'active'}_\${date}.csv\`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(u);
+
+            button.innerHTML = originalContent;
+            button.disabled = false;
+            showAlert('Data dictionary exported successfully!', 'success');
+        })
+        .catch(error => {
+            console.error('Data dictionary export error:', error);
+            button.innerHTML = originalContent;
+            button.disabled = false;
+            showAlert('Data dictionary export failed. Please try again.', 'error');
         });
     }
 

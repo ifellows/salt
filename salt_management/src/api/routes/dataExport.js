@@ -115,4 +115,37 @@ router.get('/export/wide', requireAdmin, async (req, res) => {
     }
 });
 
+/**
+ * Export the survey data dictionary (one row per export variable) as CSV.
+ * GET /api/admin/export/data-dictionary?surveyId=<id>
+ * surveyId is optional; defaults to the active survey (else the most recent).
+ */
+router.get('/export/data-dictionary', requireAdmin, async (req, res) => {
+    try {
+        const { generateDictionaryCsv } = require('../../services/dataDictionary');
+
+        let surveyId = req.query.surveyId ? parseInt(req.query.surveyId, 10) : null;
+        if (!surveyId) {
+            const s = await getAsync('SELECT id FROM surveys WHERE is_active = 1 ORDER BY id DESC LIMIT 1')
+                || await getAsync('SELECT id FROM surveys ORDER BY id DESC LIMIT 1');
+            surveyId = s ? s.id : null;
+        }
+        if (!surveyId) return res.status(404).json({ error: 'No survey found' });
+
+        const csvData = await generateDictionaryCsv(surveyId);
+        const date = new Date().toISOString().split('T')[0];
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="salt_data_dictionary_survey${surveyId}_${date}.csv"`);
+        res.write('\ufeff'); // UTF-8 BOM for Excel
+        res.write(csvData);
+        res.end();
+    } catch (error) {
+        if (error.code === 'SURVEY_NOT_FOUND') {
+            return res.status(404).json({ error: 'Survey not found' });
+        }
+        console.error('Error exporting data dictionary:', error);
+        res.status(500).json({ error: 'Failed to export data dictionary' });
+    }
+});
+
 module.exports = router;
