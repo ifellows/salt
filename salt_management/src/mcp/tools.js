@@ -100,7 +100,7 @@ function registerTools(server) {
 
     server.registerTool('get_data_dictionary', {
         title: 'Get data dictionary',
-        description: 'CSV data dictionary for a survey: one row per export variable (survey questions, rapid tests, labs, meta), with type, value labels, units, and skip-logic conditions.',
+        description: 'CSV data dictionary for a survey: one row per export variable (survey questions, rapid tests, labs, meta), with type, value labels, units, and the raw validation / skip / skip_to scripts.',
         inputSchema: { surveyId: z.number().int().describe('Survey id (see list_surveys)') },
     }, async ({ surveyId }) => {
         try {

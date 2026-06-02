@@ -42,8 +42,10 @@ There is no separate cleaning step. Handle real-world messiness yourself in a se
 state what you did in the Methods section:
 - Parse numerics (`response_value`/text columns are strings); coerce non-numeric to NA.
 - Treat out-of-range / sentinel values (e.g. 0, 999 for age) as missing where appropriate.
-- Distinguish **skip-logic** "not applicable" (the dictionary's `condition` shows when a
-  question was asked) from genuine missingness — don't let skipped questions distort denominators.
+- Distinguish **skip-logic** "not applicable" from genuine missingness — the dictionary's
+  `skip` / `skip_to` columns give each question's raw display logic (JEXL `pre_script` /
+  `skip_to_script`); interpret it yourself and don't let skipped questions distort denominators.
+  The `validation` column is the question's raw validation rule.
 - Map "Refused"/"Don't know" deliberately (own category vs excluded from a rate).
 
 ## Hard rules

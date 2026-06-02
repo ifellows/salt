@@ -18,17 +18,21 @@
  *   type          categorical | numeric | text | binary | datetime
  *   section       survey section name (survey questions only)
  *   value_labels  "index=label;..." for coded variables (e.g. 0=No;1=Yes)
- *   unit          measurement unit (lab numeric tests)
- *   min           min value (lab numeric tests)
- *   max           max value (lab numeric tests)
- *   condition     skip-logic (pre_script) / lab jexl_condition note
+ *   validation    the question's validation_script, verbatim
+ *   skip          the question's pre_script (display/skip logic), verbatim;
+ *                 for labs, the jexl_condition, verbatim
+ *   skip_to       the question's skip_to_script (+ skip_to_target), verbatim
+ *   unit          measurement unit (lab tests)
+ *
+ * validation / skip / skip_to are the raw script strings — no interpretation is
+ * applied — so the analyst reads the actual logic rather than a paraphrase.
  */
 
 const { getAsync, allAsync } = require('../models/database');
 
 const DICTIONARY_COLUMNS = [
     'variable', 'source', 'short_name', 'label', 'type',
-    'section', 'value_labels', 'unit', 'min', 'max', 'condition'
+    'section', 'value_labels', 'validation', 'skip', 'skip_to', 'unit'
 ];
 
 /** Pick an English string out of a multilingual JSON blob, tolerating the
@@ -126,7 +130,8 @@ async function buildDictionaryRows(surveyId) {
 
     // Survey questions, in order.
     const questions = await allAsync(
-        `SELECT id, short_name, question_type, question_text_json, pre_script, section_id, question_index
+        `SELECT id, short_name, question_type, question_text_json, pre_script,
+                validation_script, skip_to_script, skip_to_target, section_id, question_index
          FROM questions WHERE survey_id = ? AND short_name IS NOT NULL
          ORDER BY question_index`,
         [surveyId]
@@ -139,8 +144,13 @@ async function buildDictionaryRows(surveyId) {
         );
         const label = clean(extractEnglish(q.question_text_json));
         const section = q.section_id ? clean(sectionName.get(q.section_id) || '') : '';
-        const condition = q.pre_script ? `shown when: ${clean(q.pre_script)}` : '';
         const type = TYPE_MAP[q.question_type] || 'text';
+        // Raw scripts, verbatim (no paraphrasing of the logic).
+        const validation = clean(q.validation_script);
+        const skip = clean(q.pre_script);
+        const skip_to = q.skip_to_script
+            ? clean(q.skip_to_script) + (q.skip_to_target ? ` -> ${clean(q.skip_to_target)}` : '')
+            : (q.skip_to_target ? `-> ${clean(q.skip_to_target)}` : '');
 
         if (q.question_type === 'multi_select') {
             // dataExporter explodes multi_select into one 0/1 indicator per option.
@@ -149,18 +159,18 @@ async function buildDictionaryRows(surveyId) {
                     variable: `q_${q.short_name}_${o.option_index}`,
                     source: 'survey', short_name: q.short_name,
                     label: `${label} — ${clean(extractEnglish(o.option_text_json))}`,
-                    type: 'binary', section, value_labels: '0=Not selected;1=Selected', condition,
+                    type: 'binary', section, value_labels: '0=Not selected;1=Selected', validation, skip, skip_to,
                 });
             }
             if (options.length === 0) {
-                push({ variable: `q_${q.short_name}`, source: 'survey', short_name: q.short_name, label, type: 'binary', section, condition });
+                push({ variable: `q_${q.short_name}`, source: 'survey', short_name: q.short_name, label, type: 'binary', section, validation, skip, skip_to });
             }
         } else {
             push({
                 variable: `q_${q.short_name}`,
                 source: 'survey', short_name: q.short_name, label, type, section,
                 value_labels: q.question_type === 'multiple_choice' ? optionValueLabels(options) : '',
-                condition,
+                validation, skip, skip_to,
             });
         }
     }
@@ -174,9 +184,8 @@ async function buildDictionaryRows(surveyId) {
         push({
             variable: `rapid_${t.test_id}_result`,
             source: 'rapid_test', short_name: t.test_id,
-            label: `${clean(t.test_name)} (rapid test result)`,
+            label: `${clean(t.test_name)} (rapid test result)${t.enabled ? '' : ' [not enabled]'}`,
             type: 'categorical',
-            condition: t.enabled ? '' : 'test not enabled for this survey',
         });
     }
 
@@ -202,8 +211,8 @@ async function buildDictionaryRows(surveyId) {
             label: clean(l.test_name),
             type: l.test_type === 'numeric' ? 'numeric' : 'categorical',
             value_labels: valueLabels,
-            unit: clean(l.unit), min: l.min_value == null ? '' : l.min_value, max: l.max_value == null ? '' : l.max_value,
-            condition: l.jexl_condition ? `applies when: ${clean(l.jexl_condition)}` : '',
+            unit: clean(l.unit),
+            skip: l.jexl_condition ? clean(l.jexl_condition) : '',   // raw applicability condition
         });
     }
 

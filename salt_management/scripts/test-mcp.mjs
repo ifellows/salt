@@ -73,6 +73,10 @@ const callJson = async (c, name, args = {}) => {
     const csv28 = await dict.generateDictionaryCsv(SURVEY);
     const lines28 = csv28.trim().split('\n');
     ok('dictionary has rows', lines28.length > 5);
+    ok('header has validation/skip/skip_to, not min/max/condition',
+        lines28[0].includes('validation,skip,skip_to') && !/(,min,|,max,|,condition)/.test(lines28[0]));
+    ok('skip column is raw pre_script (no "shown when" prose)',
+        csv28.includes('ever_test == 0') && !csv28.includes('shown when'));
     ok('dictionary has rapid_ var', csv28.includes(',rapid_test,'));
     ok('dictionary has lab var', csv28.includes(',lab,'));
     ok('dictionary has meta var', csv28.includes(',meta,'));
@@ -88,8 +92,8 @@ const callJson = async (c, name, args = {}) => {
     const fakeRows = (await dict.buildDictionaryRows(fakeSurvey)).rows;
     ok('multi_select empty-options → single binary row', fakeRows.some(r => r.variable === 'q_ms_empty' && r.type === 'binary'));
     ok('text question typed text', fakeRows.some(r => r.variable === 'q_note' && r.type === 'text'));
-    ok('rapid disabled condition noted', fakeRows.some(r => r.source === 'rapid_test' && /not enabled/.test(r.condition)));
-    ok('lab numeric branch (unit/min/max)', fakeRows.some(r => r.variable === 'lab_zz_cd4_count' && r.type === 'numeric' && r.unit === 'cells/mm3' && String(r.max) === '2000'));
+    ok('rapid disabled noted in label', fakeRows.some(r => r.source === 'rapid_test' && r.short_name === 'disabledtest' && /not enabled/.test(r.label)));
+    ok('lab numeric branch (unit, no min/max columns)', fakeRows.some(r => r.variable === 'lab_zz_cd4_count' && r.type === 'numeric' && r.unit === 'cells/mm3') && !dict.DICTIONARY_COLUMNS.includes('max'));
     let threw = null;
     try { await dict.buildDictionaryRows(999999); } catch (e) { threw = e.code; }
     ok('survey-not-found throws SURVEY_NOT_FOUND', threw === 'SURVEY_NOT_FOUND');
