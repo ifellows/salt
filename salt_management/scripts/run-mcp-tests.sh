@@ -16,13 +16,18 @@ BACKUP="/tmp/salt_mcp_test_pretest.db"
 LOG=/tmp/salt_mcp_test_server.log
 PIDFILE=/tmp/salt_mcp_test.pid
 
+# Use a throwaway instructions file so the test seeds fresh from the shipped
+# default and never reads/writes the operator's editable data/reports copy.
+export MCP_INSTRUCTIONS_FILE=/tmp/salt_mcp_test_instructions.md
+rm -f "$MCP_INSTRUCTIONS_FILE"
+
 cleanup() {
     [[ -f "$PIDFILE" ]] && kill "$(cat "$PIDFILE")" 2>/dev/null
     sleep 1
     # Restore the original DB (discards all test writes) and clear temp renders.
     if [[ -f "$BACKUP" ]]; then cp -f "$BACKUP" "$DB" && rm -f "$BACKUP"; fi
     rm -rf data/reports/temp/* 2>/dev/null
-    rm -f "$PIDFILE"
+    rm -f "$PIDFILE" "$MCP_INSTRUCTIONS_FILE"
 }
 trap cleanup EXIT
 

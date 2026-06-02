@@ -33,6 +33,16 @@ The MCP SDK is ESM; this is a CommonJS codebase, so the SDK is loaded via dynami
 | `MCP_PUBLIC_URL` | `http://localhost:$PORT` | Public HTTPS base URL (OAuth issuer + resource id) |
 | `MCP_ACCESS_TTL_SECONDS` | `1800` | Access-token lifetime |
 | `MCP_SESSION_MAX_SECONDS` | `21600` | Absolute session cap (6h); refresh refused past it |
+| `MCP_INSTRUCTIONS_FILE` | `data/reports/report-instructions.md` | Editable report-generation prompt (see below) |
+
+## Editing the report instructions
+
+The system prompt the AI receives is an **editable Markdown file**. The shipped default lives at
+`src/mcp/report-instructions.default.md`; on first run it is copied to
+`data/reports/report-instructions.md` (in the persistent data volume) and read from there.
+Edit that file to tune the guidance — changes take effect on the next read (no restart needed).
+The `{{SURVEY}}` token is replaced per request with the survey context. Set `MCP_INSTRUCTIONS_FILE`
+to use a different path. Delete the file to re-seed the default.
 
 ## Database
 

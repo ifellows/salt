@@ -84,6 +84,16 @@ async function mountMcp(app) {
     app.get('/mcp', bearer, methodNotAllowed);
     app.delete('/mcp', bearer, methodNotAllowed);
 
+    // Seed the editable instructions file (if absent) and surface its path so
+    // operators know where to tune the report guidance.
+    try {
+        const ri = require('../services/reportInstructions');
+        ri.ensureSeeded();
+        console.log(`[mcp] report instructions (editable): ${ri.instructionsFilePath()}`);
+    } catch (e) {
+        console.warn('[mcp] could not seed report instructions:', e.message);
+    }
+
     console.log(`[mcp] report-builder MCP server mounted at ${baseUrl}/mcp`);
     return true;
 }

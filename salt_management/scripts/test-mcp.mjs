@@ -116,6 +116,17 @@ const callJson = async (c, name, args = {}) => {
     ok('instructions package list', instr.includes('tidyverse') && instr.includes('RDS'));
     ok('instructions never-print-rows rule', /never print raw participant rows/i.test(instr));
     ok('instructions with survey name', getReportInstructions({ surveyName: 'My Survey', surveyId: 5 }).includes('My Survey'));
+    // Editable-file behaviour: the text comes from a file, and edits are picked up.
+    const ri = require('../src/services/reportInstructions');
+    const fsm = require('fs');
+    const instrFile = ri.instructionsFilePath();
+    ok('instructions seeded to a file', fsm.existsSync(instrFile));
+    const sentinel = '\n<!-- EDIT-TEST ' + crypto.randomBytes(3).toString('hex') + ' -->\n';
+    fsm.appendFileSync(instrFile, sentinel);
+    await new Promise(r => setTimeout(r, 1100)); // ensure mtime changes (1s resolution on some FS)
+    ok('instructions reflect file edits (cache reload)', getReportInstructions().includes(sentinel.trim()));
+    // restore seeded default for any later reads
+    fsm.copyFileSync(ri.DEFAULT_FILE, instrFile);
 
     // ------------------------------------------------------- sessionStore
     section('sessionStore (+ 6h cap)');
