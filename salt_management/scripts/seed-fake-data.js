@@ -34,10 +34,11 @@ const jexl = require('jexl');
 
 // ---- args ----------------------------------------------------------------
 function parseArgs(argv) {
-    const a = { count: 300, db: path.join('data', 'database', 'salt.db'), redemption: 0.6, days: 60, dryRun: false };
+    const a = { count: 300, db: path.join('data', 'database', 'salt.db'), redemption: 0.6, days: 60, dryRun: false, labs: true };
     for (let i = 2; i < argv.length; i++) {
         const k = argv[i];
         if (k === '--dry-run') a.dryRun = true;
+        else if (k === '--no-labs') a.labs = false;
         else if (k === '--count') a.count = parseInt(argv[++i], 10);
         else if (k === '--db') a.db = argv[++i];
         else if (k === '--redemption') a.redemption = parseFloat(argv[++i]);
@@ -199,6 +200,30 @@ function genPayment(cfg, atIso, isSeed) {
     return { paymentConfirmed: true, paymentAmount: amount, paymentType: type, paymentDate: atIso, sampleCollected: Math.random() < 0.85 };
 }
 
+// Lab results are a separate ingestion path (not in the survey upload). Each
+// active lab test has a jexl_condition evaluated against the participant's RAPID
+// test results (variable = test_id, value = result string, e.g. hiv=='positive').
+// Returns rows for lab_results (inserted directly into the DB).
+function genLabResults(labTests, rapidResults, subjectId, createdAtIso) {
+    const ctx = {}; for (const t of rapidResults) ctx[t.testId] = t.result;
+    const rows = [];
+    for (const lt of (labTests || [])) {
+        if (!lt.is_active) continue;
+        const cond = lt.jexl_condition;
+        const applies = (cond == null || String(cond).trim() === '') ? true : (evalScript(cond, ctx, false) === true);
+        if (!applies) continue;
+        if (lt.test_type === 'numeric') {
+            const lo = lt.min_value != null ? lt.min_value : 0;
+            const hi = lt.max_value != null ? lt.max_value : 100;
+            rows.push({ subject_id: subjectId, test_id: lt.id, result_value: null, result_numeric: Math.round((lo + Math.random() * (hi - lo)) * 10) / 10, created_at: createdAtIso });
+        } else {
+            const opts = Array.isArray(lt.options) ? lt.options : (lt.options ? (() => { try { return JSON.parse(lt.options); } catch { return []; } })() : []);
+            rows.push({ subject_id: subjectId, test_id: lt.id, result_value: String(opts.length ? pick(opts) : 'positive'), result_numeric: null, created_at: createdAtIso });
+        }
+    }
+    return rows;
+}
+
 // ---- HTTP helpers ---------------------------------------------------------
 async function apiGet(pathname, apiKey) {
     const r = await fetch(`${SALT_URL}${pathname}`, { headers: { Authorization: `Bearer ${apiKey}` } });
@@ -220,7 +245,10 @@ async function uploadSubmission(payload, apiKey) {
     const dbh = openDb(ARGS.db);
     const facilities = await dbh.all("SELECT id, name, api_key FROM facilities WHERE api_key IS NOT NULL AND api_key != ''");
     const activeSurvey = (await dbh.all('SELECT id, name FROM surveys WHERE is_active = 1 LIMIT 1'))[0];
+    // For lab results (submitted_by is a NOT NULL FK to admin_users).
+    const adminUser = (await dbh.all("SELECT id FROM admin_users WHERE is_active = 1 ORDER BY (role = 'administrator') DESC, id LIMIT 1"))[0];
     dbh.close();
+    const submittedBy = adminUser ? adminUser.id : null;
 
     if (!facilities.length) { console.error('No facilities with an api_key found in', ARGS.db, '\nCreate a facility (admin -> Facilities) first.'); process.exit(1); }
     if (!activeSurvey) { console.error('No active survey (surveys.is_active=1) found.'); process.exit(1); }
@@ -234,6 +262,9 @@ async function uploadSubmission(payload, apiKey) {
     const questions = dl.questions;
     const options = dl.options;
     const testConfigs = dl.test_configurations || [];
+    const labTests = (dl.lab_tests || []).filter(lt => lt.is_active);
+    const wantLabs = ARGS.labs && labTests.length > 0;
+    if (ARGS.labs && labTests.length && !submittedBy) console.warn('[labs] no active admin user for submitted_by — lab results will be skipped.');
     const language = (Array.isArray(survey.languages) && survey.languages[0]) || 'English';
     const idxByShort = {};
     questions.forEach((q, i) => { if (q.short_name) idxByShort[q.short_name] = i; });
@@ -284,6 +315,8 @@ async function uploadSubmission(payload, apiKey) {
             for (let c = 0; c < nIssue; c++) issued.push(`FC-${uuid().slice(0, 8).toUpperCase()}`);
             for (const cc of issued) if (Math.random() < ARGS.redemption) queue.push({ referralCoupon: cc, recruiterSurveyId: surveyId, depth: task.depth + 1 });
 
+            const testResults = genTestResults(testConfigs, completedAt);
+            const labRows = (wantLabs && submittedBy) ? genLabResults(labTests, testResults, subjectId, completedAt) : [];
             const payload = {
                 surveyId,
                 serverSurveyId: activeSurvey.id,
@@ -296,10 +329,10 @@ async function uploadSubmission(payload, apiKey) {
                 recruiter_survey_id: task.recruiterSurveyId || undefined,
                 recruitment_depth: task.depth,
                 answers,
-                testResults: genTestResults(testConfigs, completedAt),
+                testResults,
                 ...genPayment(facility.config, completedAt, task.depth === 0),
             };
-            participants.push({ facility, depth: task.depth, payload });
+            participants.push({ facility, depth: task.depth, payload, labRows, uploaded: false });
             made++; remaining--;
         }
     }
@@ -312,26 +345,50 @@ async function uploadSubmission(payload, apiKey) {
     console.log(' per depth   :', JSON.stringify(byDepth));
     const seeds = participants.filter(p => p.depth === 0).length;
     console.log(` seeds: ${seeds}  recruits: ${participants.length - seeds}`);
+    const totalLabs = participants.reduce((n, p) => n + p.labRows.length, 0);
+    console.log(` lab results: ${totalLabs}${wantLabs ? '' : ' (labs disabled)'}` + (wantLabs && !submittedBy ? ' (no admin user → skipped)' : ''));
 
     if (ARGS.dryRun) {
-        const ex = participants.find(p => p.depth > 0) || participants[0];
-        console.log('\n--- sample payload (depth ' + ex.depth + ') ---');
-        console.log(JSON.stringify(ex.payload, null, 2).slice(0, 2400));
+        const ex = participants.find(p => p.labRows.length) || participants.find(p => p.depth > 0) || participants[0];
+        console.log('\n--- sample payload (depth ' + ex.depth + ', labRows ' + ex.labRows.length + ') ---');
+        console.log(JSON.stringify({ ...ex.payload, _labRows: ex.labRows }, null, 2).slice(0, 2600));
         console.log('\n[DRY RUN] nothing uploaded.');
         return;
     }
 
-    // ---- upload (parents first; modest throttle) ----
+    // ---- upload surveys (parents first; modest throttle) ----
     let created = 0, dup = 0, err = 0;
     for (const p of participants) {
         try {
             const r = await uploadSubmission(p.payload, p.facility.api_key);
             if (!r.ok) { err++; if (err <= 5) console.error('  upload failed', r.status, JSON.stringify(r.body).slice(0, 160)); }
-            else if (r.duplicate) dup++;
-            else created++;
+            else { p.uploaded = true; if (r.duplicate) dup++; else created++; }
         } catch (e) { err++; if (err <= 5) console.error('  upload error', e.message); }
         if ((created + dup + err) % 50 === 0) { console.log(`  ...${created + dup + err}/${participants.length}`); await sleep(50); }
     }
-    console.log(`\nDone. created=${created} duplicate=${dup} errors=${err}`);
+    console.log(`\nDone (surveys). created=${created} duplicate=${dup} errors=${err}`);
+
+    // ---- insert lab results directly into the DB (separate ingestion path) ----
+    if (wantLabs && submittedBy) {
+        const rows = participants.filter(p => p.uploaded).flatMap(p => p.labRows);
+        if (rows.length) {
+            const wdb = new sqlite3.Database(ARGS.db);
+            const wrun = (sql, prm) => new Promise((res, rej) => wdb.run(sql, prm, function (e) { e ? rej(e) : res(this.changes); }));
+            try {
+                await wrun('BEGIN');
+                for (const r of rows) {
+                    await wrun(
+                        `INSERT INTO lab_results (subject_id, test_id, result_value, result_numeric, submitted_by, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?)`,
+                        [r.subject_id, r.test_id, r.result_value, r.result_numeric, submittedBy, r.created_at]
+                    );
+                }
+                await wrun('COMMIT');
+                console.log(`Inserted ${rows.length} lab_results (subject_id FAKE-...).`);
+            } catch (e) { await wrun('ROLLBACK').catch(() => {}); console.error('lab insert failed:', e.message); }
+            finally { wdb.close(); }
+        }
+    }
+
     console.log('Cleanup later with:  node scripts/cleanup-fake-data.js   (add --hard to remove rows)');
 })().catch(e => { console.error('FATAL', e); process.exit(1); });

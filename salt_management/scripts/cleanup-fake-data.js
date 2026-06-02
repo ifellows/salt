@@ -7,7 +7,8 @@
  * Default (soft): set completed_surveys.deleted_at so exports/reports exclude
  *   them (the data stays in the DB, recoverable).
  * --hard: permanently DELETE the rows (completed_surveys + their survey_responses,
- *   rapid_test_results, survey_payments + matching coupon_usage + uploads).
+ *   rapid_test_results, survey_payments + matching coupon_usage + uploads + the
+ *   lab_results for FAKE-% subjects).
  *
  * Usage:
  *   node scripts/cleanup-fake-data.js [--db data/database/salt.db] [--hard] [--yes]
@@ -63,7 +64,9 @@ const all = (sql, p = []) => new Promise((res, rej) => db.all(sql, p, (e, r) => 
     }
     const couponDel = await run("DELETE FROM coupon_usage WHERE issued_by_survey_id LIKE 'fake-%' OR used_by_survey_id LIKE 'fake-%'").catch(() => 0);
     const uploadDel = await run("DELETE FROM uploads WHERE survey_response_id LIKE 'fake-%'").catch(() => 0);
+    // lab_results are keyed by participant_id (subject_id = 'FAKE-...'), not a survey id.
+    const labDel = await run("DELETE FROM lab_results WHERE subject_id LIKE 'FAKE-%'").catch(() => 0);
     const csDel = await run(`DELETE FROM completed_surveys WHERE ${LIKE}`);
-    console.log(`Hard-deleted: completed_surveys=${csDel}, survey_responses=${respDel}, rapid_test_results=${rapidDel}, survey_payments=${payDel}, coupon_usage=${couponDel}, uploads=${uploadDel}`);
+    console.log(`Hard-deleted: completed_surveys=${csDel}, survey_responses=${respDel}, rapid_test_results=${rapidDel}, survey_payments=${payDel}, coupon_usage=${couponDel}, uploads=${uploadDel}, lab_results=${labDel}`);
     db.close();
 })().catch(e => { console.error('FATAL', e); db.close(); process.exit(1); });
