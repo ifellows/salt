@@ -11,20 +11,32 @@
  *   - generates participants by walking the question flow exactly as the app
  *     does — evaluating pre_script (true = HIDE), validation_script, skip_to,
  *     and the survey eligibility_script via a JEXL adapter,
- *   - builds seed -> coupon -> recruit trees, and POSTs each submission to
- *     POST /api/sync/survey/upload with the owning facility's bearer key.
+ *   - builds per-facility seed -> coupon -> recruit trees (RDS chains stay within
+ *     a facility; seeds are spread across all facilities), and POSTs each
+ *     submission to POST /api/sync/survey/upload with the owning facility's key.
+ *   - includes a rapid-test result for each ENABLED test_configuration
+ *     (HIV ~12% positive, others ~5%), sent in the upload payload.
+ *   - LAB RESULTS are a separate ingestion path (not in the upload), so for each
+ *     active lab test whose jexl_condition holds against the participant's rapid
+ *     results (e.g. hiv == 'positive') it inserts a lab_results row DIRECTLY into
+ *     the --db (attributed to an existing admin user for submitted_by).
  *
  * Everything is tagged so it is trivially removable (see cleanup-fake-data.js):
- *   survey_response_id = "fake-<uuid>", participant_id = "FAKE-<facility>-<n>",
- *   device id = "fake-seeder".
+ *   survey_response_id = "fake-<uuid>", participant_id / lab subject_id =
+ *   "FAKE-<facility>-<n>", device id = "fake-seeder".
  *
  * Usage:
  *   node scripts/seed-fake-data.js [--count 300] [--db data/database/salt.db]
- *       [--redemption 0.6] [--days 60] [--dry-run]
+ *       [--redemption 0.6] [--days 60] [--no-labs] [--dry-run]
  *   SALT_URL defaults to http://localhost:3000 (set it to hit another instance).
+ *   Flags: --count N (participants), --redemption P (coupon->recruit prob),
+ *          --days N (spread completions over last N days), --no-labs (skip lab
+ *          results), --dry-run (generate + report only, no writes).
  *
  * SAFETY: defaults to localhost + supports --dry-run. Back up salt.db before a
  * live run:  cp data/database/salt.db salt.db.bak
+ * NOTE: lab results are written straight to --db, so run this where that salt.db
+ * is the SAME instance SALT_URL points at (i.e. on the server).
  */
 
 const path = require('path');
