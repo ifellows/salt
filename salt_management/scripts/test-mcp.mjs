@@ -115,7 +115,7 @@ const callJson = async (c, name, args = {}) => {
     ok('instructions data contract', instr.includes('data_long.csv') && instr.includes('data_wide_numeric.csv'));
     ok('instructions package list', instr.includes('tidyverse') && instr.includes('RDS'));
     ok('instructions never-print-rows rule', /never print raw participant rows/i.test(instr));
-    ok('instructions with survey name', getReportInstructions({ surveyName: 'My Survey', surveyId: 5 }).includes('My Survey'));
+    ok('instructions are general (no survey token)', !instr.includes('{{SURVEY}}'));
     // Editable-file behaviour: the text comes from a file, and edits are picked up.
     const ri = require('../src/services/reportInstructions');
     const fsm = require('fs');
@@ -270,8 +270,7 @@ const callJson = async (c, name, args = {}) => {
     ok('list_templates', (await callJson(c, 'list_templates')).text.includes('basic_summary.qmd'));
     ok('get_template ok', (await callJson(c, 'get_template', { name: 'basic_summary.qmd' })).text.length > 50);
     ok('get_template traversal → isError', (await callJson(c, 'get_template', { name: '../../../etc/passwd' })).isError);
-    ok('get_report_instructions', (await callJson(c, 'get_report_instructions')).text.includes('data_long.csv'));
-    ok('get_report_instructions w/ surveyId', (await callJson(c, 'get_report_instructions', { surveyId: SURVEY })).text.includes('Example armenian'));
+    ok('get_report_instructions (no args)', (await callJson(c, 'get_report_instructions')).text.includes('data_long.csv'));
     ok('list_reports', (await callJson(c, 'list_reports')).text.includes('['));
 
     const saved = JSON.parse((await callJson(c, 'save_report', { name: 'ZZ Tool Report', qmd: goodQmd, description: 'd' })).text);

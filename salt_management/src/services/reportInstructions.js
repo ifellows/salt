@@ -11,8 +11,8 @@
  *
  * Consumed by the MCP server (advertised `instructions`, the
  * `get_report_instructions` tool) and the `/instructions` endpoint, so the
- * guidance an agent receives never drifts between channels. The `{{SURVEY}}`
- * token is replaced per request with the survey context.
+ * guidance an agent receives never drifts between channels. The instructions
+ * are general (not survey-specific) — like an AGENTS.md.
  */
 
 const fs = require('fs');
@@ -28,8 +28,7 @@ const BOOTSTRAP_INSTRUCTIONS =
     'be to call the `get_report_instructions` tool and follow what it returns — do this before ' +
     'reading data, writing any R/Quarto, or calling any other tool. It contains the data ' +
     'contract, exact variable naming, data-cleaning rules, available R packages, and output ' +
-    'requirements; without it the analysis will be wrong. Pass the relevant surveyId to ' +
-    '`get_report_instructions` once you know which survey you are reporting on.';
+    'requirements; without it the analysis will be wrong.';
 
 /** Path to the editable instructions file (env-overridable). */
 function instructionsFilePath() {
@@ -66,14 +65,11 @@ function loadTemplate() {
 }
 
 /**
- * @param {{surveyName?: string, surveyId?: number}} [ctx]
- * @returns {string} markdown instructions with {{SURVEY}} resolved
+ * @returns {string} the general report-generation instructions (markdown)
  */
-function getReportInstructions(ctx = {}) {
-    const target = ctx.surveyName
-        ? `the survey **"${ctx.surveyName}"**${ctx.surveyId ? ` (id ${ctx.surveyId})` : ''}`
-        : 'a SALT survey';
-    return loadTemplate().replace(/\{\{SURVEY\}\}/g, target);
+function getReportInstructions() {
+    // Defensive: strip any leftover {{SURVEY}} token an operator might add.
+    return loadTemplate().replace(/\{\{SURVEY\}\}/g, 'a SALT survey');
 }
 
 module.exports = { getReportInstructions, instructionsFilePath, ensureSeeded, DEFAULT_FILE, BOOTSTRAP_INSTRUCTIONS };
