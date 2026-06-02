@@ -16,11 +16,12 @@ code, and render status.
 
 ## Enabling it (administrator / ops)
 
-The feature is **off by default**. To enable it, set environment variables on the server:
+The feature is **on by default**. The main thing to set is the server's public URL so AI clients
+can connect (and to disable it, set `MCP_ENABLED=false`):
 
 ```bash
-MCP_ENABLED=true
 MCP_PUBLIC_URL=https://your-salt-host.example.org   # the public HTTPS URL of this server
+# MCP_ENABLED=false                                 # only if you want to turn it off
 ```
 
 The server must be reachable over **HTTPS at a public URL** so the AI client can connect.

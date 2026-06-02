@@ -1,6 +1,6 @@
 /**
- * MCP report-builder entry point. Opt-in via the MCP_ENABLED env flag so the
- * feature has zero effect on existing behaviour unless explicitly turned on.
+ * MCP report-builder entry point. Enabled by default; set MCP_ENABLED to a
+ * falsy value (false/0/no/off) to disable the report builder MCP server.
  *
  * Usage from app.js (before the catch-all 404 handler):
  *   require('./mcp').init(app).finally(startServerAndFallbacks)
@@ -8,9 +8,12 @@
 
 const { mountMcp } = require('./server');
 
+const DISABLED_VALUES = new Set(['false', '0', 'no', 'off']);
+
 async function init(app) {
-    if (String(process.env.MCP_ENABLED).toLowerCase() !== 'true') {
-        console.log('[mcp] disabled (set MCP_ENABLED=true to enable the report builder MCP server)');
+    const v = String(process.env.MCP_ENABLED ?? '').trim().toLowerCase();
+    if (DISABLED_VALUES.has(v)) {
+        console.log('[mcp] disabled (MCP_ENABLED=' + process.env.MCP_ENABLED + ')');
         return false;
     }
     await mountMcp(app);

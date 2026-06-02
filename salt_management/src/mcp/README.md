@@ -4,8 +4,9 @@ Self-contained Model Context Protocol (MCP) server that lets an administrator's 
 assistant (claude.ai, Claude Code, Claude Desktop) build and render Quarto reports against
 this SALT instance, using their AI subscription. No participant rows leave the server.
 
-Everything lives under `src/mcp/` and is **opt-in** via `MCP_ENABLED=true`. When disabled the
-module mounts nothing and the rest of the server is unaffected.
+Everything lives under `src/mcp/` and is **on by default**; set `MCP_ENABLED` to a falsy value
+(`false`/`0`/`no`/`off`) to disable, in which case the module mounts nothing and the rest of the
+server is unaffected.
 
 ## Layout
 
@@ -29,7 +30,7 @@ The MCP SDK is ESM; this is a CommonJS codebase, so the SDK is loaded via dynami
 
 | Var | Default | Meaning |
 | --- | --- | --- |
-| `MCP_ENABLED` | `false` | Master switch |
+| `MCP_ENABLED` | `true` (on) | Master switch; set to `false`/`0`/`no`/`off` to disable |
 | `MCP_PUBLIC_URL` | `http://localhost:$PORT` | Public HTTPS base URL (OAuth issuer + resource id) |
 | `MCP_ACCESS_TTL_SECONDS` | `1800` | Access-token lifetime |
 | `MCP_SESSION_MAX_SECONDS` | `21600` | Absolute session cap (6h); refresh refused past it |
