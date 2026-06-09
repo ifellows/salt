@@ -21,26 +21,13 @@ const DataProfiler = require('../services/dataProfiler');
 const ReportExecutor = require('../services/reportExecutor');
 const { getReportInstructions } = require('../services/reportInstructions');
 const { logAudit } = require('../services/auditService');
+const reportTemplates = require('../services/reportTemplates');
 
-// Example report templates. They live in the data volume (editable), but the
-// volume is dockerignored/gitignored, so a shipped default set is seeded into it
-// on first use. Path is env-overridable.
-const DEFAULT_TEMPLATES_DIR = path.join(__dirname, 'templates-default');
-const TEMPLATES_DIR = process.env.MCP_TEMPLATES_DIR || path.join(process.cwd(), 'data', 'reports', 'templates');
+// Example report templates are managed by the shared reportTemplates service
+// (seeded from src/mcp/templates-default into the data volume; the web report
+// editor uses the same source).
+const seedTemplates = reportTemplates.seedTemplates;
 
-/** Copy any missing shipped templates into TEMPLATES_DIR (never overwrites edits). */
-function seedTemplates() {
-    try {
-        fs.mkdirSync(TEMPLATES_DIR, { recursive: true });
-        for (const f of fs.readdirSync(DEFAULT_TEMPLATES_DIR)) {
-            if (!f.endsWith('.qmd')) continue;
-            const target = path.join(TEMPLATES_DIR, f);
-            if (!fs.existsSync(target)) fs.copyFileSync(path.join(DEFAULT_TEMPLATES_DIR, f), target);
-        }
-    } catch (e) {
-        console.warn('[mcp] could not seed templates:', e.message);
-    }
-}
 const PROFILE_CACHE_MS = parseInt(process.env.MCP_PROFILE_CACHE_MS || '300000', 10); // 5 min
 // Truncation limits are intentionally very large — a backstop against a
 // pathological payload, not a content limit. Override via env if needed.
@@ -110,11 +97,6 @@ function markRenderEnd(userId) {
     if (s) { s.inFlight = Math.max(0, s.inFlight - 1); renderState.set(userId, s); }
 }
 
-function safeTemplateName(name) {
-    // prevent path traversal; templates are flat .qmd files
-    const base = path.basename(String(name || ''));
-    return base.endsWith('.qmd') ? base : `${base}.qmd`;
-}
 
 // ---- tool registration ----------------------------------------------------
 
@@ -194,10 +176,7 @@ function registerTools(server) {
         description: 'List the example Quarto (.qmd) report templates available as starting points.',
         inputSchema: {},
     }, async () => {
-        seedTemplates();
-        let files = [];
-        try { files = fs.readdirSync(TEMPLATES_DIR).filter(f => f.endsWith('.qmd')); } catch { /* none */ }
-        return text(JSON.stringify(files, null, 2));
+        return text(JSON.stringify(reportTemplates.listTemplates().map(t => t.name), null, 2));
     });
 
     server.registerTool('get_template', {
@@ -205,9 +184,7 @@ function registerTools(server) {
         description: 'Return the contents of an example .qmd template.',
         inputSchema: { name: z.string().describe('Template file name, e.g. basic_summary.qmd') },
     }, async ({ name }) => {
-        seedTemplates();
-        const file = path.join(TEMPLATES_DIR, safeTemplateName(name));
-        try { return text(fs.readFileSync(file, 'utf8')); }
+        try { return text(reportTemplates.getTemplate(name)); }
         catch { return errorText(`Template not found: ${name}. Use list_templates.`); }
     });
 

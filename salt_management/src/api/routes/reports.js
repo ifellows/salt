@@ -3,10 +3,36 @@ const router = express.Router();
 const { requireAdmin } = require('../../middleware/auth');
 const { allAsync, getAsync, runAsync } = require('../../models/database');
 const ReportExecutor = require('../../services/reportExecutor');
+const reportTemplates = require('../../services/reportTemplates');
 const path = require('path');
 const fs = require('fs').promises;
 
 const reportExecutor = new ReportExecutor();
+
+/**
+ * List example report templates (for the report editor's picker).
+ * GET /api/admin/report-templates
+ */
+router.get('/admin/report-templates', requireAdmin, (req, res) => {
+    try {
+        res.json({ success: true, templates: reportTemplates.listTemplates() });
+    } catch (error) {
+        console.error('Failed to list report templates:', error);
+        res.status(500).json({ success: false, error: 'Failed to list templates' });
+    }
+});
+
+/**
+ * Get a single template's .qmd content.
+ * GET /api/admin/report-templates/:name
+ */
+router.get('/admin/report-templates/:name', requireAdmin, (req, res) => {
+    try {
+        res.json({ success: true, name: reportTemplates.safeName(req.params.name), content: reportTemplates.getTemplate(req.params.name) });
+    } catch (error) {
+        res.status(404).json({ success: false, error: 'Template not found' });
+    }
+});
 
 /**
  * Get all reports

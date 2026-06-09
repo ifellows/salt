@@ -105,9 +105,7 @@
                     <label style="font-weight: bold;">Quarto Document (R Code):</label>
                     <select id="templateSelect" onchange="loadTemplate()" style="padding: 0.5rem;">
                         <option value="">-- Select Template --</option>
-                        <option value="basic">Basic Summary Report</option>
-                        <option value="weekly">Weekly Activity Report</option>
-                        <option value="quality">Data Quality Report</option>
+                        <!-- options populated from /api/admin/report-templates -->
                     </select>
                 </div>
                 <div id="editorContainer" style="height: 500px; border: 1px solid #ddd; font-family: 'Courier New', monospace;">
@@ -135,250 +133,34 @@
 const reportId = <%= typeof id !== 'undefined' && id ? id : 'null' %>;
 let originalContent = '';
 
-// Report templates
-const templates = {
-    basic: `---
-title: "SALT Survey Summary Report"
-author: "SALT Management System"
-date: "\`r Sys.Date()\`"
-format:
-  html:
-    toc: true
-    other-links: false
-    code-links: false
-  pdf:
-    toc: true
-  docx:
-    toc: true
-execute:
-  echo: false
-  warning: false
----
-
-\`\`\`{r setup, include=FALSE}
-library(tidyverse)
-library(knitr)
-
-# Load data
-data_long <- read.csv("data_long.csv")
-data_wide <- read.csv("data_wide.csv")
-data_wide_numeric <- read.csv("data_wide_numeric.csv")
-\`\`\`
-
-# Executive Summary
-
-This report provides a summary of survey responses collected through the SALT system.
-
-## Response Overview
-
-\`\`\`{r}
-total_surveys <- length(unique(data_long$survey_id))
-total_participants <- length(unique(data_long$participant_id))
-
-summary_table <- data.frame(
-  Metric = c("Total Surveys", "Unique Participants"),
-  Value = c(total_surveys, total_participants)
-)
-
-kable(summary_table, caption = "Survey Statistics")
-\`\`\`
-
-## Variable Summary
-
-\`\`\`{r}
-variable_summary <- data_long %>%
-  group_by(variable) %>%
-  summarise(
-    n_responses = n(),
-    n_unique = n_distinct(participant_id),
-    mean_numeric = mean(numeric_value, na.rm = TRUE)
-  ) %>%
-  arrange(desc(n_responses))
-
-kable(head(variable_summary, 20), caption = "Top 20 Variables by Response Count")
-\`\`\`
-
-## Response Distribution
-
-\`\`\`{r, fig.width=10, fig.height=6}
-library(ggplot2)
-
-top_variables <- variable_summary$variable[1:10]
-
-data_long %>%
-  filter(variable %in% top_variables) %>%
-  ggplot(aes(x = variable, fill = variable)) +
-  geom_bar() +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(title = "Response Counts for Top 10 Variables",
-       x = "Variable",
-       y = "Count") +
-  guides(fill = "none")
-\`\`\`
-`,
-    weekly: `---
-title: "Weekly Activity Report"
-subtitle: "Week of \`r format(Sys.Date() - 7, '%B %d, %Y')\`"
-author: "SALT Management System"
-date: "\`r Sys.Date()\`"
-format:
-  html:
-    toc: true
-    other-links: false
-    code-links: false
-  pdf:
-    toc: true
-  docx:
-    toc: true
-execute:
-  echo: false
-  warning: false
----
-
-\`\`\`{r setup, include=FALSE}
-library(tidyverse)
-library(knitr)
-library(lubridate)
-
-# Load data
-data_wide <- read.csv("data_wide.csv")
-
-# Convert date columns
-data_wide$meta_completed_at <- as.POSIXct(data_wide$meta_completed_at)
-
-# Filter for last 7 days
-week_data <- data_wide %>%
-  filter(meta_completed_at >= Sys.Date() - 7)
-\`\`\`
-
-# Weekly Activity Summary
-
-## Survey Completions
-
-\`\`\`{r}
-daily_completions <- week_data %>%
-  mutate(date = as.Date(meta_completed_at)) %>%
-  group_by(date) %>%
-  summarise(count = n())
-
-kable(daily_completions, caption = "Daily Survey Completions")
-\`\`\`
-
-## Facility Activity
-
-\`\`\`{r}
-facility_activity <- week_data %>%
-  group_by(meta_facility_name) %>%
-  summarise(
-    surveys = n(),
-    unique_participants = n_distinct(participant_id)
-  ) %>%
-  arrange(desc(surveys))
-
-kable(facility_activity, caption = "Activity by Facility")
-\`\`\`
-
-## Daily Trend
-
-\`\`\`{r, fig.width=10, fig.height=6}
-ggplot(daily_completions, aes(x = date, y = count)) +
-  geom_line(color = "blue", size = 1) +
-  geom_point(color = "blue", size = 3) +
-  theme_minimal() +
-  labs(title = "Daily Survey Completions",
-       x = "Date",
-       y = "Number of Surveys")
-\`\`\`
-`,
-    quality: `---
-title: "Data Quality Assessment Report"
-author: "SALT Management System"
-date: "\`r Sys.Date()\`"
-format:
-  html:
-    toc: true
-    other-links: false
-    code-links: false
-  pdf:
-    toc: true
-  docx:
-    toc: true
-execute:
-  echo: false
-  warning: false
----
-
-\`\`\`{r setup, include=FALSE}
-library(tidyverse)
-library(knitr)
-
-# Load data
-data_long <- read.csv("data_long.csv")
-data_wide <- read.csv("data_wide.csv")
-\`\`\`
-
-# Data Quality Assessment
-
-## Completeness Analysis
-
-\`\`\`{r}
-# Calculate missing data percentages
-missing_summary <- data_long %>%
-  group_by(variable) %>%
-  summarise(
-    total_expected = n(),
-    missing_numeric = sum(is.na(numeric_value)),
-    missing_text = sum(is.na(text_value) | text_value == ""),
-    pct_complete = round((1 - (missing_numeric + missing_text) / (2 * total_expected)) * 100, 2)
-  ) %>%
-  arrange(pct_complete)
-
-kable(head(missing_summary, 20), caption = "Variables with Lowest Completion Rates")
-\`\`\`
-
-## Data Consistency Checks
-
-\`\`\`{r}
-# Check for duplicate participant IDs
-duplicates <- data_wide %>%
-  group_by(participant_id) %>%
-  summarise(count = n()) %>%
-  filter(count > 1)
-
-if(nrow(duplicates) > 0) {
-  kable(duplicates, caption = "Duplicate Participant IDs Found")
-} else {
-  cat("No duplicate participant IDs found.")
-}
-\`\`\`
-
-## Response Patterns
-
-\`\`\`{r, fig.width=10, fig.height=6}
-# Visualize completeness by variable
-missing_summary %>%
-  head(20) %>%
-  ggplot(aes(x = reorder(variable, pct_complete), y = pct_complete)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  coord_flip() +
-  theme_minimal() +
-  labs(title = "Completion Rate by Variable",
-       x = "Variable",
-       y = "Completion Rate (%)")
-\`\`\`
-`
-};
+// Templates are loaded from the server (the same files MCP/list_templates use).
+let templateList = [];
 
 // Load existing report if editing
 document.addEventListener('DOMContentLoaded', function() {
+    loadTemplateList();
     if (reportId) {
         loadReport();
-    } else {
-        // Set default template for new reports
-        document.getElementById('codeEditor').value = templates.basic;
     }
 });
+
+// Populate the template dropdown from /api/admin/report-templates.
+function loadTemplateList() {
+    fetch('/api/admin/report-templates', { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            templateList = data.templates || [];
+            const sel = document.getElementById('templateSelect');
+            for (const t of templateList) {
+                const opt = document.createElement('option');
+                opt.value = t.name;
+                opt.textContent = t.title || t.name;
+                sel.appendChild(opt);
+            }
+        })
+        .catch(err => console.error('Failed to load templates:', err));
+}
 
 function loadReport() {
     fetch('/api/admin/reports/' + reportId, {
@@ -404,13 +186,22 @@ function loadReport() {
 }
 
 function loadTemplate() {
-    const templateKey = document.getElementById('templateSelect').value;
-    if (templateKey && templates[templateKey]) {
-        if (confirm('This will replace the current content. Continue?')) {
-            document.getElementById('codeEditor').value = templates[templateKey];
-        }
+    const sel = document.getElementById('templateSelect');
+    const name = sel.value;
+    if (!name) return;
+    const editor = document.getElementById('codeEditor');
+    if (editor.value.trim() && !confirm('This will replace the current content. Continue?')) {
+        sel.value = '';
+        return;
     }
-    document.getElementById('templateSelect').value = '';
+    fetch('/api/admin/report-templates/' + encodeURIComponent(name), { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) editor.value = data.content;
+            else alert('Failed to load template');
+        })
+        .catch(err => { console.error('Failed to load template:', err); alert('Failed to load template'); })
+        .finally(() => { sel.value = ''; });
 }
 
 function saveReport() {
