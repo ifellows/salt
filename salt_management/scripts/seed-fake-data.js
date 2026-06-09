@@ -290,9 +290,20 @@ async function uploadSubmission(payload, apiKey) {
     // ---- build a recruitment forest PER FACILITY (spread across all facilities) ----
     // Each facility gets ~count/numFacilities participants, grown as one or more
     // chains (seed -> coupons -> recruits) that stay within that facility.
+    //
+    // Timing is done in two phases to guarantee, with NO edge cases, that a
+    // recruit is never interviewed before their recruiter (coupons are issued at
+    // completion, so a recruit cannot START until their recruiter has COMPLETED)
+    // and that nothing is dated in the future:
+    //   1. Build each tree with RELATIVE times (seed completes at t=0; each recruit
+    //      STARTS a few minutes after its recruiter COMPLETED, then takes the
+    //      interview duration). Recruitment within a chain thus spans minutes.
+    //   2. Anchor each tree in the past so its latest completion is <= now.
     const now = Date.now(); const DAY = 86400000;
-    const completedAtMs = {}; // surveyId -> ms (to keep recruits after their recruiter)
-    const participants = [];
+    const GAP_MIN = 5, GAP_MAX = 90;   // minutes between a recruiter COMPLETING and a recruit STARTING
+    const relCompleted = {};           // surveyId -> relative completion ms (seed = 0)
+    const treeMax = {};                // seedKey -> max relative completion ms in that tree
+    const nodes = [];
     const perFacility = Math.max(1, Math.ceil(ARGS.count / facilities.length));
     let remaining = ARGS.count;
     let globalN = 0;
@@ -300,35 +311,25 @@ async function uploadSubmission(payload, apiKey) {
     for (const facility of facilities) {
         if (remaining <= 0) break;
         const budget = Math.min(perFacility, remaining);
-        const queue = [{ referralCoupon: null, recruiterSurveyId: null, depth: 0 }]; // start with a seed
+        const queue = [{ referralCoupon: null, recruiterSurveyId: null, depth: 0, seedKey: null }];
         let made = 0;
         while (made < budget) {
-            if (!queue.length) queue.push({ referralCoupon: null, recruiterSurveyId: null, depth: 0 }); // new seed if a tree died out
+            if (!queue.length) queue.push({ referralCoupon: null, recruiterSurveyId: null, depth: 0, seedKey: null });
             const task = queue.shift();
             const surveyId = `fake-${uuid()}`;
             const subjectId = `FAKE-${facility.id}-${++globalN}`;
+            const seedKey = task.seedKey || surveyId; // a seed is its own tree's key
+            const durMs = randInt(10, 30) * 60000;    // interview duration
 
-            // Interview timing. A recruit is NEVER interviewed before their recruiter:
-            // the recruit COMPLETES strictly after the recruiter completed, and never in
-            // the future. We place the recruit's completion in (recruiterCompleted, now],
-            // biased to within ~30 days of the recruiter. (Capping at "now" guarantees no
-            // future dates even for deep chains; seeds are random within the window.)
-            const durMs = randInt(10, 30) * 60000; // interview duration
-            const parentMs = task.recruiterSurveyId ? completedAtMs[task.recruiterSurveyId] : null;
-            let cMs;
-            if (parentMs != null) {
-                const cap = Math.min(now, parentMs + 30 * DAY);   // within ~30 days, never future
-                const floor = parentMs + durMs;                   // start (= completion - duration) >= recruiter completion
-                cMs = (cap > floor)
-                    // normal: strict start-ordering, biased SOON after the recruiter (square skews toward floor)
-                    ? floor + Math.floor(Math.pow(Math.random(), 2) * (cap - floor))
-                    : parentMs + 1 + Math.floor(Math.random() * Math.max(1, cap - parentMs)); // tight (recruiter ~ now): completed-ordering
-            } else {
-                cMs = now - randInt(0, ARGS.days) * DAY - randInt(0, 86399) * 1000; // seed: random in the window
+            // Relative completion: seed = 0; recruit starts GAP minutes after the
+            // recruiter completed, then takes durMs -> strictly after the recruiter.
+            let relC = 0;
+            if (task.recruiterSurveyId != null) {
+                const gapMs = randInt(GAP_MIN, GAP_MAX) * 60000;
+                relC = relCompleted[task.recruiterSurveyId] + gapMs + durMs;
             }
-            completedAtMs[surveyId] = cMs;
-            const completedAt = new Date(cMs).toISOString();
-            const startedAt = new Date(cMs - durMs).toISOString();
+            relCompleted[surveyId] = relC;
+            treeMax[seedKey] = Math.max(treeMax[seedKey] || 0, relC);
 
             const { answers } = generateEligible(survey, questions, options, idxByShort);
 
@@ -336,28 +337,48 @@ async function uploadSubmission(payload, apiKey) {
             const nIssue = Number(facility.config.coupons_to_issue ?? 3) || 0;
             const issued = [];
             for (let c = 0; c < nIssue; c++) issued.push(`FC-${uuid().slice(0, 8).toUpperCase()}`);
-            for (const cc of issued) if (Math.random() < ARGS.redemption) queue.push({ referralCoupon: cc, recruiterSurveyId: surveyId, depth: task.depth + 1 });
+            for (const cc of issued) if (Math.random() < ARGS.redemption) queue.push({ referralCoupon: cc, recruiterSurveyId: surveyId, depth: task.depth + 1, seedKey });
 
-            const testResults = genTestResults(testConfigs, completedAt);
-            const labRows = (wantLabs && submittedBy) ? genLabResults(labTests, testResults, subjectId, completedAt) : [];
-            const payload = {
-                surveyId,
-                serverSurveyId: activeSurvey.id,
-                subjectId,
-                startedAt, completedAt,
-                language,
-                deviceInfo: { deviceId: 'fake-seeder', deviceModel: 'FakeData Script', androidVersion: '14', appVersion: 'seed-1.0' },
-                referralCouponCode: task.referralCoupon,
-                issuedCoupons: issued,
-                recruiter_survey_id: task.recruiterSurveyId || undefined,
-                recruitment_depth: task.depth,
-                answers,
-                testResults,
-                ...genPayment(facility.config, completedAt, task.depth === 0),
-            };
-            participants.push({ facility, depth: task.depth, payload, labRows, uploaded: false });
+            nodes.push({
+                facility, surveyId, subjectId, depth: task.depth, seedKey, durMs,
+                relC, relStarted: relC - durMs,
+                referralCoupon: task.referralCoupon, recruiterSurveyId: task.recruiterSurveyId, issued, answers,
+            });
             made++; remaining--;
         }
+    }
+
+    // ---- anchor each tree in the past so the whole tree completes before now ----
+    const anchorMs = {}; // seedKey -> absolute completion ms of the seed (its rel time is 0)
+    for (const seedKey of Object.keys(treeMax)) {
+        const upper = now - treeMax[seedKey];      // seed time s.t. the last node completes at/before now
+        const lower = now - ARGS.days * DAY;       // and stay within the requested window when possible
+        anchorMs[seedKey] = (lower <= upper) ? (lower + Math.floor(Math.random() * (upper - lower + 1))) : upper;
+    }
+
+    // ---- materialize payloads (absolute times = anchor + relative) ----
+    const participants = [];
+    for (const n of nodes) {
+        const completedAt = new Date(anchorMs[n.seedKey] + n.relC).toISOString();
+        const startedAt = new Date(anchorMs[n.seedKey] + n.relStarted).toISOString();
+        const testResults = genTestResults(testConfigs, completedAt);
+        const labRows = (wantLabs && submittedBy) ? genLabResults(labTests, testResults, n.subjectId, completedAt) : [];
+        const payload = {
+            surveyId: n.surveyId,
+            serverSurveyId: activeSurvey.id,
+            subjectId: n.subjectId,
+            startedAt, completedAt,
+            language,
+            deviceInfo: { deviceId: 'fake-seeder', deviceModel: 'FakeData Script', androidVersion: '14', appVersion: 'seed-1.0' },
+            referralCouponCode: n.referralCoupon,
+            issuedCoupons: n.issued,
+            recruiter_survey_id: n.recruiterSurveyId || undefined,
+            recruitment_depth: n.depth,
+            answers: n.answers,
+            testResults,
+            ...genPayment(n.facility.config, completedAt, n.depth === 0),
+        };
+        participants.push({ facility: n.facility, depth: n.depth, payload, labRows, uploaded: false });
     }
 
     // ---- report tree shape ----
