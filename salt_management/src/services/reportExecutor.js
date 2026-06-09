@@ -245,10 +245,10 @@ class ReportExecutor {
                 `quarto render report.qmd --to ${formats}`,
                 {
                     cwd: workDir,
-                    // 4 hours. Reports with bootstrap/resampling steps can run
+                    // 24 hours. Reports with bootstrap/resampling steps can run
                     // a long time; the timeout is only a backstop against a
                     // genuinely stuck render.
-                    timeout: 14400000,
+                    timeout: 86400000,
                     // exec() buffers stdout/stderr in memory; the 1 MB default
                     // would ENOBUFS-kill a long, chatty render. 64 MB headroom.
                     maxBuffer: 64 * 1024 * 1024,
