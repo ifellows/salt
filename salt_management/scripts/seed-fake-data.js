@@ -308,16 +308,27 @@ async function uploadSubmission(payload, apiKey) {
             const surveyId = `fake-${uuid()}`;
             const subjectId = `FAKE-${facility.id}-${++globalN}`;
 
-            // completion time: seeds random in window; recruits after their recruiter
+            // Interview timing. A recruit is NEVER interviewed before their recruiter:
+            // the recruit COMPLETES strictly after the recruiter completed, and never in
+            // the future. We place the recruit's completion in (recruiterCompleted, now],
+            // biased to within ~30 days of the recruiter. (Capping at "now" guarantees no
+            // future dates even for deep chains; seeds are random within the window.)
+            const durMs = randInt(10, 30) * 60000; // interview duration
+            const parentMs = task.recruiterSurveyId ? completedAtMs[task.recruiterSurveyId] : null;
             let cMs;
-            if (task.recruiterSurveyId && completedAtMs[task.recruiterSurveyId]) {
-                cMs = Math.min(now - randInt(0, 2) * DAY, completedAtMs[task.recruiterSurveyId] + randInt(3, 30) * DAY);
+            if (parentMs != null) {
+                const cap = Math.min(now, parentMs + 30 * DAY);   // within ~30 days, never future
+                const floor = parentMs + durMs;                   // start (= completion - duration) >= recruiter completion
+                cMs = (cap > floor)
+                    // normal: strict start-ordering, biased SOON after the recruiter (square skews toward floor)
+                    ? floor + Math.floor(Math.pow(Math.random(), 2) * (cap - floor))
+                    : parentMs + 1 + Math.floor(Math.random() * Math.max(1, cap - parentMs)); // tight (recruiter ~ now): completed-ordering
             } else {
-                cMs = now - randInt(0, ARGS.days) * DAY - randInt(0, 86399) * 1000;
+                cMs = now - randInt(0, ARGS.days) * DAY - randInt(0, 86399) * 1000; // seed: random in the window
             }
             completedAtMs[surveyId] = cMs;
             const completedAt = new Date(cMs).toISOString();
-            const startedAt = new Date(cMs - randInt(10, 30) * 60000).toISOString();
+            const startedAt = new Date(cMs - durMs).toISOString();
 
             const { answers } = generateEligible(survey, questions, options, idxByShort);
 
