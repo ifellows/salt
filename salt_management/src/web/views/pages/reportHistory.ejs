@@ -275,27 +275,51 @@ function renderHistory(runs) {
     container.innerHTML = html;
 }
 
+let logsPollTimer = null;
+let logsPollRunId = null;
+
+async function fetchLogsOnce(runId) {
+    const response = await fetch(\`/api/admin/reports/runs/\${runId}/logs\`, { credentials: 'same-origin' });
+    const data = await response.json();
+    if (!data.success) throw new Error('Failed to load logs');
+    const el = document.getElementById('logsContent');
+    // Keep the view pinned to the bottom if the user is already near it (live tail).
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+    el.textContent = data.logs || 'No logs available';
+    if (atBottom) el.scrollTop = el.scrollHeight;
+    return data;
+}
+
 async function viewLogs(runId) {
+    stopLogsPolling();
+    logsPollRunId = runId;
+    document.getElementById('logsContent').textContent = 'Loading…';
+    document.getElementById('logsModal').style.display = 'block';
     try {
-        const response = await fetch(\`/api/admin/reports/runs/\${runId}/logs\`, {
-            credentials: 'same-origin'
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            document.getElementById('logsContent').textContent = data.logs || 'No logs available';
-            document.getElementById('logsModal').style.display = 'block';
-        } else {
-            alert('Failed to load logs');
+        const data = await fetchLogsOnce(runId);
+        // While the render is still running, poll for new output (live tail).
+        if (data.running) {
+            logsPollTimer = setInterval(async () => {
+                if (logsPollRunId !== runId) return;
+                try {
+                    const d = await fetchLogsOnce(runId);
+                    if (!d.running) stopLogsPolling();
+                } catch (e) { /* transient; keep polling */ }
+            }, 2000);
         }
     } catch (error) {
         console.error('Error loading logs:', error);
-        alert('Failed to load logs');
+        document.getElementById('logsContent').textContent = 'Failed to load logs';
     }
 }
 
+function stopLogsPolling() {
+    if (logsPollTimer) { clearInterval(logsPollTimer); logsPollTimer = null; }
+}
+
 function closeLogsModal() {
+    stopLogsPolling();
+    logsPollRunId = null;
     document.getElementById('logsModal').style.display = 'none';
 }
 

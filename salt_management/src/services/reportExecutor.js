@@ -96,9 +96,12 @@ class ReportExecutor {
             const qmdPath = path.join(tempRunDir, 'report.qmd');
             await fs.writeFile(qmdPath, report.qmd_content, 'utf8');
 
-            // 6. Execute Quarto to generate all formats
+            // 6. Execute Quarto to generate all formats. Flush partial output to
+            //    the run record (throttled) so the UI can tail logs while running.
             const formats = options.markdown ? 'html,pdf,docx,gfm' : 'html,pdf,docx';
-            const { logs, success } = await this.runQuarto(tempRunDir, formats);
+            const { logs, success } = await this.runQuarto(tempRunDir, formats, (partial) => {
+                runAsync('UPDATE report_runs SET log_output = ? WHERE id = ?', [partial, runRecordId]).catch(() => {});
+            });
             quartoLogs = logs;
 
             // 7. Move outputs to permanent storage
@@ -237,9 +240,17 @@ class ReportExecutor {
     /**
      * Execute Quarto to render the report
      */
-    runQuarto(workDir, formats = 'html,pdf,docx') {
+    runQuarto(workDir, formats = 'html,pdf,docx', onProgress = null) {
         return new Promise((resolve) => {
             let logs = '';
+            // Throttle live-log flushes so a chatty render doesn't hammer the DB.
+            let lastFlush = 0;
+            const FLUSH_MS = 1500;
+            const maybeFlush = () => {
+                if (!onProgress) return;
+                const t = Date.now();
+                if (t - lastFlush >= FLUSH_MS) { lastFlush = t; try { onProgress(logs); } catch { /* ignore */ } }
+            };
 
             const quartoProcess = exec(
                 `quarto render report.qmd --to ${formats}`,
@@ -267,16 +278,18 @@ class ReportExecutor {
                 }
             );
 
-            // Capture real-time output
+            // Capture real-time output (and flush partial logs for live viewing)
             if (quartoProcess.stdout) {
                 quartoProcess.stdout.on('data', (data) => {
                     logs += data.toString();
+                    maybeFlush();
                 });
             }
 
             if (quartoProcess.stderr) {
                 quartoProcess.stderr.on('data', (data) => {
                     logs += data.toString();
+                    maybeFlush();
                 });
             }
         });

@@ -125,7 +125,7 @@ router.post('/admin/reports', requireAdmin, async (req, res) => {
 
         res.json({
             success: true,
-            reportId: result.lastID
+            reportId: result.id
         });
     } catch (error) {
         console.error('Failed to create report:', error);
@@ -324,7 +324,7 @@ router.get('/admin/reports/runs/:runId', requireAdmin, async (req, res) => {
 router.get('/admin/reports/runs/:runId/logs', requireAdmin, async (req, res) => {
     try {
         const run = await getAsync(
-            'SELECT log_output, output_path FROM report_runs WHERE run_id = ?',
+            'SELECT log_output, output_path, status FROM report_runs WHERE run_id = ?',
             [req.params.runId]
         );
 
@@ -348,7 +348,9 @@ router.get('/admin/reports/runs/:runId/logs', requireAdmin, async (req, res) => 
 
         res.json({
             success: true,
-            logs: logs || 'No logs available'
+            logs: logs || 'No logs available',
+            status: run.status,
+            running: run.status === 'running' || run.status === 'pending'
         });
     } catch (error) {
         console.error('Failed to get logs:', error);
