@@ -1,0 +1,287 @@
+---
+title: "Recruitment & Convergence Diagnostics — Short MSM Survey (id 2)"
+author: "SALT report builder"
+date: "`r Sys.Date()`"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    theme: journal
+    embed-resources: true
+    format-links: false
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(scales)
+library(RDS)
+
+knitr::opts_chunk$set(fig.width = 9, fig.height = 6)
+
+# ---- Load wide frames (coupons live here, incl. undocumented coupon_issued_*) ----
+dw  <- read.csv("data_wide.csv",         stringsAsFactors = FALSE, check.names = FALSE)
+dwn <- read.csv("data_wide_numeric.csv", stringsAsFactors = FALSE, check.names = FALSE)
+
+id_candidates <- c("meta_participant_id", "participant_id", "meta_survey_id", "survey_id")
+id_col <- id_candidates[id_candidates %in% names(dw)][1]
+
+# Accessors aligned to dw row order.
+get_txt <- function(v) if (v %in% names(dw)) as.character(dw[[v]]) else rep(NA_character_, nrow(dw))
+get_num <- function(v) {
+  if (!(v %in% names(dwn))) return(rep(NA_real_, nrow(dw)))
+  idx <- match(dw[[id_col]], dwn[[id_col]])
+  suppressWarnings(as.numeric(dwn[[v]][idx]))
+}
+eqT <- function(x, val) !is.na(x) & x == val
+
+ids  <- as.character(dw[[id_col]])
+fac  <- get_txt("meta_facility_name")
+ref  <- get_txt("coupon_referral_used")
+time_num <- as.numeric(ymd_hms(get_txt("meta_started_at"), quiet = TRUE))
+time_num[is.na(time_num)] <- suppressWarnings(median(time_num, na.rm = TRUE))
+
+# ---- Recruitment linkage from coupons --------------------------------------
+issued_cols <- grep("^coupon_issued_[0-9]+$", names(dw), value = TRUE)
+if (length(issued_cols) > 0) {
+  issued_long <- do.call(rbind, lapply(issued_cols, function(cc)
+    data.frame(coupon = as.character(dw[[cc]]), issuer = ids, stringsAsFactors = FALSE)))
+  issued_long <- issued_long[!is.na(issued_long$coupon) & issued_long$coupon != "", , drop = FALSE]
+} else {
+  issued_long <- data.frame(coupon = character(0), issuer = character(0), stringsAsFactors = FALSE)
+}
+
+ref_present <- !is.na(ref) & ref != ""
+rec_idx     <- match(ref, issued_long$coupon)
+recruiter_id <- issued_long$issuer[rec_idx]          # NA when no issuer matches
+matched     <- ref_present & !is.na(recruiter_id)
+orphans     <- ref_present & is.na(recruiter_id)     # had a coupon, no matching issuer
+
+# Enforce a time-consistent forest: a recruiter must have started before the recruit.
+rec_time <- time_num[match(recruiter_id, ids)]
+bad_link <- matched & !is.na(rec_time) & !is.na(time_num) & rec_time > time_num
+recruiter_id[bad_link] <- NA
+
+is_seed <- is.na(recruiter_id)
+recruiter_id[is_seed] <- "seed"
+
+# Recruits per subject (after link cleaning).
+rec_counts <- table(recruiter_id[recruiter_id != "seed"])
+n_recruits <- as.integer(rec_counts[ids]); n_recruits[is.na(n_recruits)] <- 0L
+
+# ---- Adjusted network size (per spec) --------------------------------------
+degree <- get_num("q_dgseen")
+adj <- pmax(degree, n_recruits)                 # NA stays NA if degree missing
+adj <- adj + ifelse(is_seed, 0L, 1L)            # assume recruiter not in own network
+adj[adj == 0] <- 1
+adj[adj < 0]  <- NA
+med_by_fac <- tapply(degree, fac, median, na.rm = TRUE)
+na_idx <- which(is.na(adj))
+adj[na_idx] <- as.numeric(med_by_fac[fac[na_idx]])
+adj[is.na(adj)] <- median(degree, na.rm = TRUE)  # last resort
+adj[is.na(adj)] <- 1
+
+# ---- Cascade outcomes (NA-coded so RDS estimators drop out-of-scope cases) --
+rapid_pos <- tolower(get_txt("rapid_hivrapid_result")) == "positive"
+conf      <- get_num("lab_hiv_confirmatory_test")        # 0=Pos 1=Neg 2=Indet
+hiv_pos   <- ifelse(!is.na(conf) & conf %in% c(0, 1), conf == 0, rapid_pos)
+
+art_bin  <- eqT(get_num("q_artnow"), 0)                   # currently on ART (treatment)
+diagnosed <- ifelse(hiv_pos %in% TRUE,
+                    eqT(get_num("q_tsres"), 0) | eqT(get_num("q_tsprovpos"), 0) | art_bin,
+                    NA)
+vl       <- get_num("lab_hiv_viral_load")
+supp_bin <- ifelse(is.na(vl), NA, vl <= 1000)
+
+out_prev <- factor(ifelse(is.na(hiv_pos), NA, ifelse(hiv_pos, "HIV+", "HIV-")))
+out_art  <- factor(ifelse(hiv_pos %in% TRUE, ifelse(art_bin, "On ART", "Not on ART"), NA))
+out_supp <- factor(ifelse(hiv_pos %in% TRUE & art_bin,
+                          ifelse(supp_bin %in% TRUE, "Suppressed", "Not suppressed"), NA))
+
+# ---- Whole-sample RDS object (for structural plots) ------------------------
+base_df <- data.frame(id = ids, recruiter.id = recruiter_id,
+                      network.size = adj, facility = fac, time = time_num,
+                      hiv = out_prev, on_art = out_art, suppressed = out_supp,
+                      stringsAsFactors = FALSE)
+rds_all <- tryCatch(
+  as.rds.data.frame(base_df, id = "id", recruiter.id = "recruiter.id",
+                    network.size = "network.size", time = "time",
+                    max.coupons = 3, check.valid = FALSE),
+  error = function(e) NULL)
+
+waves <- if (!is.null(rds_all)) tryCatch(get.wave(rds_all), error = function(e) rep(NA, nrow(base_df))) else rep(NA, nrow(base_df))
+
+# Linkage diagnostics
+N <- length(ids)
+n_seed_true <- sum(!ref_present)
+n_orphan    <- sum(orphans, na.rm = TRUE)
+n_timebad   <- sum(bad_link, na.rm = TRUE)
+n_linked    <- sum(recruiter_id != "seed")
+```
+
+# Overview
+
+This report reconstructs the recruitment process for the **Short MSM Survey** (survey id 2,
+`r N` records) from the referral/issued coupon codes, then examines tree structure, wave depth,
+and convergence of the HIV cascade outcomes by facility using the `RDS` package.
+
+```{r linkage-summary, results='asis'}
+cat(sprintf(
+"- **Linked recruits** (referral coupon matched a valid issuer): **%d** (%.0f%%)\n
+- **Seeds** (no referral coupon): **%d**\n
+- **Orphans** (referral coupon present but no matching issued coupon): **%d** — treated as seeds\n
+- **Time-inconsistent links dropped** (recruiter started after recruit): **%d**\n",
+n_linked, 100 * n_linked / N, n_seed_true, n_orphan, n_timebad))
+
+if (n_linked / N < 0.1) {
+  cat("\n::: callout-important\nFewer than 10% of records link to a recruiter, so the recruitment tree is largely a set of isolated seeds. On synthetic seed data the issued coupons need not match any referral code; the structural and convergence plots below are therefore demonstrations of the method rather than substantive findings.\n:::\n")
+}
+```
+
+# Recruitment tree
+
+```{r tree, fig.cap="Recruitment tree (each point a participant; edges are recruitments)"}
+if (!is.null(rds_all)) {
+  tryCatch(plot(rds_all, plot.type = "Recruitment tree"),
+           error = function(e) cat("\n*Recruitment tree could not be drawn:", conditionMessage(e), "*\n"))
+} else cat("\n*RDS object could not be constructed.*\n")
+```
+
+# Recruits by wave
+
+```{r recruits-wave, fig.cap="Recruits by wave"}
+if (!is.null(rds_all)) {
+  tryCatch(plot(rds_all, plot.type = "Recruits by wave"),
+           error = function(e) cat("\n*Plot unavailable:", conditionMessage(e), "*\n"))
+} else cat("\n*RDS object unavailable.*\n")
+```
+
+```{r wave-by-facility}
+wave_tab <- as.data.frame.matrix(table(Wave = waves, Facility = fac))
+knitr::kable(wave_tab, caption = "Number of recruits by wave (rows) and facility (columns)")
+```
+
+# Recruits by seed
+
+```{r recruits-seed, fig.cap="Recruits per seed"}
+if (!is.null(rds_all)) {
+  tryCatch(plot(rds_all, plot.type = "Recruits per seed"),
+           error = function(e) cat("\n*Plot unavailable:", conditionMessage(e), "*\n"))
+} else cat("\n*RDS object unavailable.*\n")
+```
+
+# Recruits per subject
+
+```{r recruits-subject, fig.cap="Recruits per subject"}
+if (!is.null(rds_all)) {
+  tryCatch(plot(rds_all, plot.type = "Recruits per subject"),
+           error = function(e) cat("\n*Plot unavailable:", conditionMessage(e), "*\n"))
+} else cat("\n*RDS object unavailable.*\n")
+```
+
+# Network size
+
+```{r netsize-hist, fig.cap="Reported network size (q_dgseen)"}
+n_miss_deg <- sum(is.na(degree))
+ggplot(tibble(d = degree), aes(d)) +
+  geom_histogram(binwidth = 5, fill = "#2c7fb8", color = "white") +
+  theme_minimal() +
+  labs(x = "Network size (people seen in last 14 days)", y = "Records",
+       subtitle = sprintf("Missing: %d of %d records", n_miss_deg, N))
+```
+
+```{r netsize-adj-hist, fig.cap="Adjusted network size used for RDS weighting"}
+ggplot(tibble(a = adj), aes(a)) +
+  geom_histogram(binwidth = 5, fill = "#41ab5d", color = "white") +
+  theme_minimal() +
+  labs(x = "Adjusted network size", y = "Records")
+```
+
+The **adjusted network size** takes, for each subject, the larger of the reported degree
+(`q_dgseen`) and their number of recruits; adds 1 for non-seeds (the recruiter is assumed not to
+be in the reported network); sets any 0 to 1 and any negative to missing; and fills remaining
+missing values with the facility-level median degree.
+
+```{r netsize-table}
+deg_tab <- as.data.frame(table(`Network size` = degree), stringsAsFactors = FALSE)
+names(deg_tab) <- c("Network size", "Count")
+knitr::kable(deg_tab, caption = sprintf("Raw network-size counts (q_dgseen); %d missing", n_miss_deg))
+```
+
+# Convergence & bottleneck diagnostics by facility
+
+Estimator: **HCG** (homophily configuration graph). No external population size estimates were
+provided, so each facility's population is treated as large relative to its sample (the sample is
+assumed to be a small fraction of the underlying population). Outcomes follow the agreed cascade:
+HIV prevalence (all records), On-ART among HIV-positive, and viral suppression among those on ART.
+Empty or single-level outcomes within a facility cannot be estimated and are reported as such.
+
+```{r convergence, results='asis', fig.width=8, fig.height=5}
+outcomes <- c(hiv = "HIV prevalence", on_art = "On ART among HIV+", suppressed = "Suppressed among on-ART")
+facs <- sort(unique(fac))
+
+build_fac_rds <- function(f) {
+  sel <- which(fac == f)
+  sr  <- recruiter_id[sel]
+  sr[!(sr %in% ids[sel])] <- "seed"                    # keep links within facility
+  dsub <- data.frame(id = ids[sel], recruiter.id = sr, network.size = adj[sel],
+                     time = time_num[sel],
+                     hiv = out_prev[sel], on_art = out_art[sel], suppressed = out_supp[sel],
+                     stringsAsFactors = FALSE)
+  tryCatch(as.rds.data.frame(dsub, id = "id", recruiter.id = "recruiter.id",
+                             network.size = "network.size", time = "time",
+                             population.size = 1000 * length(sel),
+                             max.coupons = 3, check.valid = FALSE),
+           error = function(e) NULL)
+}
+
+for (f in facs) {
+  cat(sprintf("\n\n## %s\n\n", f))
+  r <- build_fac_rds(f)
+  if (is.null(r)) { cat("*RDS object could not be built for this facility.*\n\n"); next }
+  for (ov in names(outcomes)) {
+    cat(sprintf("\n\n### %s\n\n", outcomes[[ov]]))
+    vals <- r[[ov]]
+    if (sum(!is.na(vals)) < 10 || length(unique(na.omit(vals))) < 2) {
+      cat(sprintf("*Not estimable: %d non-missing, %d distinct level(s).*\n\n",
+                  sum(!is.na(vals)), length(unique(na.omit(vals)))))
+      next
+    }
+    tryCatch(invisible(capture.output(
+      convergence.plot(r, ov, est.func = RDS.HCG.estimates, n.eval.points = 12))),
+             error = function(e) cat(sprintf("*Convergence plot unavailable: %s*\n\n", conditionMessage(e))))
+    cat("\n\n")
+    tryCatch(invisible(capture.output(
+      bottleneck.plot(r, ov))),
+             error = function(e) cat(sprintf("*Bottleneck plot unavailable: %s*\n\n", conditionMessage(e))))
+  }
+}
+```
+
+# Methods
+
+- **Recruitment linkage.** Each subject's `coupon_referral_used` is matched against the pooled
+  `coupon_issued_*` codes of all subjects to identify the recruiter; the matched issuer becomes the
+  recruiter. Subjects with no referral coupon are seeds; subjects whose referral coupon matches no
+  issued coupon are orphans and are treated as seeds. Links where the recruiter's interview started
+  after the recruit's are dropped (a time-impossible recruitment), which also guarantees an acyclic
+  recruitment forest. Note `coupon_issued_*` columns are present in the wide export though not in the
+  data dictionary.
+- **Network size.** `q_dgseen` (people seen in the last 14 days) is the reported degree. The adjusted
+  degree used for weighting is `max(degree, #recruits)`, +1 for non-seeds, with 0→1, negatives→missing,
+  and missing→facility-median degree.
+- **HIV cascade.** HIV status uses the rapid result, overridden by the confirmatory lab when that is
+  Positive or Negative (Indeterminate confirmatory falls back to rapid). Diagnosed (among positives) =
+  self-reported prior positive test, provider-reported positive, or current ART. On ART = current ART
+  (`q_artnow`); the ARV-drug-test condition is omitted as no such assay is collected. Suppression =
+  viral load ≤ 1000 copies/mL among positives. Cascade outcomes are coded missing outside their
+  conditioning group so the RDS estimators exclude them while preserving chain structure.
+- **Estimation.** HCG estimator by facility; in the absence of population size estimates the sample is
+  treated as a small fraction of each facility's population. Facility outcomes with fewer than 10
+  non-missing values or a single level are not estimated.
+- **Aggregates only.** No per-respondent records are printed.
+```

@@ -1,12 +1,14 @@
 ---
-title: "Data Quality Assessment Report"
-author: "SALT Management System"
+title: "Data Quality Report"
+author: "SALT report builder"
 date: "`r Sys.Date()`"
 format:
   html:
     toc: true
     toc-depth: 3
     theme: journal
+    embed-resources: true
+    format-links: false
   pdf:
     toc: true
     documentclass: article
@@ -20,448 +22,469 @@ execute:
 
 ```{r setup, include=FALSE}
 library(tidyverse)
-library(knitr)
 library(lubridate)
+library(scales)
 
-# Load data
-data_long <- read.csv("data_long.csv")
-data_wide <- read.csv("data_wide.csv")
+knitr::opts_chunk$set(fig.width = 9, fig.height = 5)
 
-# Set up knitr options
-knitr::opts_chunk$set(fig.width = 10, fig.height = 6)
+# ---- Load per the data contract -------------------------------------------
+dl <- read.csv("data_long.csv", stringsAsFactors = FALSE)
+dl$numeric_value <- suppressWarnings(as.numeric(dl$numeric_value))
 
-# Helper functions
-calculate_outliers <- function(x) {
-  q1 <- quantile(x, 0.25, na.rm = TRUE)
-  q3 <- quantile(x, 0.75, na.rm = TRUE)
-  iqr <- q3 - q1
-  lower <- q1 - 1.5 * iqr
-  upper <- q3 + 1.5 * iqr
-  sum(x < lower | x > upper, na.rm = TRUE)
+# Build atomic wide frames from the documented long format. survey_id is the
+# per-row key; first() guards against any accidental duplicate survey x var rows.
+wn <- dl %>%
+  select(survey_id, variable, numeric_value) %>%
+  pivot_wider(names_from = variable, values_from = numeric_value,
+              values_fn = dplyr::first)
+wt <- dl %>%
+  select(survey_id, variable, text_value) %>%
+  pivot_wider(names_from = variable, values_from = text_value,
+              values_fn = dplyr::first)
+
+N <- nrow(wn)
+
+# Safe accessor: returns an all-NA vector if a column is absent.
+gv <- function(df, name) if (name %in% names(df)) df[[name]] else rep(NA, nrow(df))
+
+# Logical helper that treats NA as FALSE (so counts are exact, not NA).
+is_true <- function(x) !is.na(x) & x
+
+# Collector for the findings summary.
+issues <- tibble(Check = character(), Severity = character(), Finding = character())
+add_issue <- function(check, severity, finding) {
+  issues <<- add_row(issues, Check = check, Severity = severity, Finding = finding)
+}
+
+kable_if <- function(df, ...) {
+  if (nrow(df) > 0) knitr::kable(df, ...) else cat("None detected.\n")
 }
 ```
 
-# Executive Summary
+# Scope and approach
 
-This report provides a comprehensive assessment of data quality for the SALT survey system, identifying potential issues and providing recommendations for improvement.
+This report screens the **Short MSM Survey** (survey id 2, `r N` completed records) for
+data errors: impossible values, range violations, implausible category frequencies, and
+internal contradictions between related variables. It is a data-integrity check only; it does
+not assess recruitment or RDS performance.
 
-## Quality Metrics Overview
+The screen is deliberately **conservative**. Skewed-but-real distributions are common in
+key-population surveys, so a value is flagged only when it is outside a near-impossible
+bound, sits on a known sentinel/ceiling, or contradicts another field. Naive interquartile
+flagging is avoided.
 
-```{r}
-# Calculate overall quality metrics
-total_records <- nrow(data_wide)
-total_variables <- length(unique(data_long$variable))
-total_responses <- nrow(data_long)
+```{r provenance-note, results='asis'}
+dm <- unique(na.omit(gv(wt, "device_model")))
+av <- unique(na.omit(gv(wt, "device_app_version")))
+lg <- unique(na.omit(gv(wt, "meta_language")))
+flag_synth <- any(grepl("fake", dm, ignore.case = TRUE)) ||
+              any(grepl("seed", av, ignore.case = TRUE))
+if (flag_synth) {
+  add_issue("Provenance", "Critical",
+            "Records carry synthetic markers (FakeData/seed device + single language); treat findings as demonstration, not field data.")
+  cat(sprintf(
+    "::: callout-important\nThis export appears to be **synthetic / seed data**: device_model = %s, app_version = %s, language = %s for all records. The checks below run normally, but the findings describe generated data, not real fieldwork.\n:::\n",
+    paste(dm, collapse = ", "), paste(av, collapse = ", "), paste(lg, collapse = ", ")))
+}
+```
 
-# Missing data
-missing_count <- sum(is.na(data_long$numeric_value) & is.na(data_long$text_value))
-missing_pct <- round((missing_count / total_responses) * 100, 2)
+# Methods
 
-# Duplicates
-duplicate_participants <- sum(duplicated(data_wide$participant_id))
+Data are read from the contract files `data_long.csv` (one row per survey × variable) and
+pivoted to one row per survey for numeric values (`wn`, option indices / numbers) and text
+values (`wt`, labels). Cleaning and coding decisions:
 
-# Completeness
-avg_completeness <- data_long %>%
-  group_by(survey_id) %>%
-  summarise(
-    total = n(),
-    complete = sum(!is.na(numeric_value) | !is.na(text_value))
-  ) %>%
-  summarise(avg = mean(complete / total * 100)) %>%
-  pull(avg) %>%
-  round(2)
+- **Numeric coercion.** `numeric_value` is parsed to numeric; non-numeric becomes `NA`.
+- **Skip logic vs missingness.** Questions hidden by skip rules (e.g. lab tests asked only when
+  the HIV rapid test is positive; PrEP items asked only when PrEP is known) are *structurally*
+  missing and are not counted as data-quality gaps. Skip integrity is itself checked below.
+- **Sentinels / ceilings.** Counts that pile up exactly on a validation ceiling (e.g. 95 partners,
+  99 violence events) are treated as suspected caps/sentinels, not as true magnitudes.
+- **Labels.** Categorical logic uses the English text labels from `wt`; for HIV status the rapid
+  result text ("positive"/"negative") and the confirmatory label are used directly.
+- **Viral-load suppression** is defined as < 1000 copies/mL for the self-report-vs-lab check.
+- **Aggregates only.** No per-respondent rows are printed; only counts, summaries, and the
+  distinct offending values are shown.
 
-quality_overview <- data.frame(
-  Metric = c(
-    "Total Records",
-    "Total Variables",
-    "Total Data Points",
-    "Missing Data %",
-    "Average Completeness %",
-    "Duplicate Participants"
-  ),
-  Value = c(
-    format(total_records, big.mark = ","),
-    total_variables,
-    format(total_responses, big.mark = ","),
-    paste0(missing_pct, "%"),
-    paste0(avg_completeness, "%"),
-    duplicate_participants
-  ),
-  Status = c(
-    "Info",
-    "Info",
-    "Info",
-    ifelse(missing_pct < 5, "Good", ifelse(missing_pct < 10, "Warning", "Critical")),
-    ifelse(avg_completeness > 90, "Good", ifelse(avg_completeness > 80, "Warning", "Critical")),
-    ifelse(duplicate_participants == 0, "Good", "Critical")
-  )
+A data-contract note: the export contains `coupon_issued_1/2/3` columns that are **not present in
+the data dictionary** (which documents only `coupon_issued_count`). This is a documentation gap,
+not a value error, but it means downstream code cannot rely on the dictionary alone.
+
+# Numeric range and outlier checks
+
+Each numeric variable is checked against a near-impossible bound. Histograms and the distinct
+offending values are shown only where something is flagged.
+
+```{r numeric-bounds}
+bounds <- tribble(
+  ~var,                 ~lower, ~upper, ~note,
+  "q_tutage",               15,     89, "Eligibility range 15-89",
+  "q_dgbehav",               1,    500, "Network: men known",
+  "q_dgage",                 0,    500, "Network: aged 18+",
+  "q_dgseen",                0,    500, "Network: seen <=14d",
+  "q_nrpt",                  1,     95, "Partners /6mo (cap 95)",
+  "q_svcevfr",               0,     99, "Coerced-sex count (cap 99)",
+  "q_svrevfr",               0,     99, "Forced-sex count (cap 99)",
+  "lab_cd4_count",           0,   2000, "CD4 cells/mm3 (phys. plausible)",
+  "lab_hiv_viral_load",      0,  1e8,   "Viral load copies/mL",
+  "pay_amount",              5,      5, "Fixed incentive = 5",
+  "coupon_issued_count",     0,    100, "Coupons issued"
 )
 
-kable(quality_overview, caption = "Data Quality Overview")
-```
+range_scan <- pmap_dfr(bounds, function(var, lower, upper, note) {
+  x <- gv(wn, var)
+  tibble(Variable = var,
+         `Non-missing` = sum(!is.na(x)),
+         `Below lower` = sum(is_true(x < lower)),
+         `Above upper` = sum(is_true(x > upper)),
+         Bound = sprintf("[%s, %s]", lower, upper),
+         Note = note)
+}) %>%
+  filter(`Below lower` + `Above upper` > 0)
 
-# Completeness Analysis
-
-## Missing Data by Variable
-
-```{r}
-missing_summary <- data_long %>%
-  group_by(variable) %>%
-  summarise(
-    total = n(),
-    missing = sum(is.na(numeric_value) & is.na(text_value)),
-    missing_pct = round((missing / total) * 100, 2)
-  ) %>%
-  arrange(desc(missing_pct))
-
-# Identify problematic variables
-problem_vars <- missing_summary %>%
-  filter(missing_pct > 20) %>%
-  head(20)
-
-if (nrow(problem_vars) > 0) {
-  kable(problem_vars,
-        caption = "Variables with High Missing Data (>20%)",
-        col.names = c("Variable", "Total Records", "Missing", "Missing %"))
-} else {
-  cat("All variables have less than 20% missing data.")
-}
-```
-
-## Completeness Distribution
-
-```{r, fig.cap="Distribution of Data Completeness Across Variables"}
-missing_summary %>%
-  ggplot(aes(x = 100 - missing_pct)) +
-  geom_histogram(bins = 30, fill = "#3498db", color = "white") +
-  geom_vline(xintercept = 80, linetype = "dashed", color = "red", size = 1) +
-  annotate("text", x = 75, y = Inf, label = "80% Target", vjust = 2, color = "red") +
-  theme_minimal() +
-  labs(title = "Distribution of Variable Completeness",
-       x = "Completeness (%)",
-       y = "Number of Variables") +
-  theme(text = element_text(size = 12))
-```
-
-## Completeness by Facility
-
-```{r}
-facility_completeness <- data_wide %>%
-  left_join(
-    data_long %>%
-      group_by(survey_id) %>%
-      summarise(
-        completeness = mean(!is.na(numeric_value) | !is.na(text_value)) * 100
-      ),
-    by = "survey_id"
-  ) %>%
-  group_by(meta_facility_name) %>%
-  summarise(
-    n_surveys = n(),
-    avg_completeness = round(mean(completeness, na.rm = TRUE), 2),
-    min_completeness = round(min(completeness, na.rm = TRUE), 2),
-    max_completeness = round(max(completeness, na.rm = TRUE), 2)
-  ) %>%
-  arrange(avg_completeness)
-
-kable(facility_completeness,
-      caption = "Data Completeness by Facility",
-      col.names = c("Facility", "Surveys", "Avg Complete %", "Min %", "Max %"))
-```
-
-# Data Consistency
-
-## Duplicate Detection
-
-```{r}
-# Check for duplicate participant IDs
-duplicates <- data_wide %>%
-  group_by(participant_id) %>%
-  summarise(count = n()) %>%
-  filter(count > 1) %>%
-  arrange(desc(count))
-
-if (nrow(duplicates) > 0) {
-  kable(head(duplicates, 10),
-        caption = "Duplicate Participant IDs Found",
-        col.names = c("Participant ID", "Occurrences"))
-} else {
-  cat("✓ No duplicate participant IDs detected")
-}
-```
-
-## Temporal Consistency
-
-```{r, fig.cap="Survey Completion Times - Detecting Anomalies"}
-data_wide %>%
-  mutate(
-    completion_time = as.POSIXct(meta_completed_at),
-    hour = hour(completion_time),
-    date = as.Date(completion_time)
-  ) %>%
-  ggplot(aes(x = hour)) +
-  geom_histogram(bins = 24, fill = "#2ecc71", color = "white") +
-  scale_x_continuous(breaks = seq(0, 23, 2)) +
-  theme_minimal() +
-  labs(title = "Distribution of Survey Completion Times",
-       subtitle = "Check for unusual patterns (e.g., surveys at 3 AM)",
-       x = "Hour of Day",
-       y = "Number of Surveys") +
-  theme(text = element_text(size = 12))
-```
-
-## Value Range Validation
-
-```{r}
-# Check numeric variables for outliers
-numeric_vars <- data_long %>%
-  filter(!is.na(numeric_value)) %>%
-  group_by(variable) %>%
-  summarise(
-    n = n(),
-    mean = round(mean(numeric_value, na.rm = TRUE), 2),
-    median = round(median(numeric_value, na.rm = TRUE), 2),
-    min = min(numeric_value, na.rm = TRUE),
-    max = max(numeric_value, na.rm = TRUE),
-    outliers = calculate_outliers(numeric_value),
-    outlier_pct = round(outliers / n * 100, 2)
-  ) %>%
-  filter(outlier_pct > 0) %>%
-  arrange(desc(outlier_pct))
-
-if (nrow(numeric_vars) > 0) {
-  kable(head(numeric_vars, 15),
-        caption = "Numeric Variables with Outliers",
-        col.names = c("Variable", "N", "Mean", "Median", "Min", "Max", "Outliers", "Outlier %"))
-} else {
-  cat("✓ No significant outliers detected in numeric variables")
-}
-```
-
-# Response Patterns
-
-## Response Distribution Analysis
-
-```{r}
-# Analyze response patterns for categorical variables
-response_patterns <- data_long %>%
-  filter(!is.na(text_value)) %>%
-  group_by(variable, text_value) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  group_by(variable) %>%
-  mutate(
-    total = sum(count),
-    pct = round(count / total * 100, 2)
-  ) %>%
-  filter(pct > 90) %>%
-  arrange(desc(pct))
-
-if (nrow(response_patterns) > 0) {
-  kable(head(response_patterns, 15),
-        caption = "Variables with Highly Skewed Responses (>90% single value)",
-        col.names = c("Variable", "Value", "Count", "Total", "Percentage"))
-  cat("\n⚠ These variables may have data entry issues or low variability\n")
-} else {
-  cat("✓ No highly skewed response patterns detected")
-}
-```
-
-## Sequential Pattern Detection
-
-```{r, fig.cap="Survey ID Sequence Check"}
-# Check for gaps in survey IDs
-survey_ids <- sort(as.numeric(data_wide$survey_id))
-expected_ids <- seq(min(survey_ids), max(survey_ids))
-missing_ids <- setdiff(expected_ids, survey_ids)
-
-if (length(missing_ids) > 0) {
-  cat(paste("⚠", length(missing_ids), "gaps found in survey ID sequence\n"))
-  if (length(missing_ids) <= 10) {
-    cat(paste("Missing IDs:", paste(head(missing_ids, 10), collapse = ", "), "\n"))
+# lab_cd4_count and pay_amount have dedicated checks below; keep them in the
+# table for context but do not also raise a (duplicate) summary issue here.
+dedicated <- c("lab_cd4_count", "pay_amount")
+if (nrow(range_scan) > 0) {
+  for (i in seq_len(nrow(range_scan))) {
+    if (range_scan$Variable[i] %in% dedicated) next
+    add_issue("Range", "Warning",
+              sprintf("%s: %d value(s) outside %s.",
+                      range_scan$Variable[i], range_scan$`Below lower`[i] + range_scan$`Above upper`[i],
+                      range_scan$Bound[i]))
   }
-} else {
-  cat("✓ Survey ID sequence is complete with no gaps")
 }
+kable_if(range_scan, caption = "Numeric values outside near-impossible bounds")
+```
 
-# Visualize survey ID progression
-data.frame(
-  index = seq_along(survey_ids),
-  survey_id = survey_ids
-) %>%
-  ggplot(aes(x = index, y = survey_id)) +
-  geom_line(color = "#3498db") +
-  geom_smooth(method = "lm", se = TRUE, alpha = 0.2) +
+## Suspected ceilings and sentinels
+
+```{r ceilings}
+ceil_check <- tribble(~var, ~cap, ~label,
+  "q_nrpt", 95, "partners in 6 months",
+  "q_svcevfr", 99, "lifetime coercion events",
+  "q_svrevfr", 99, "lifetime forced-sex events")
+
+ceil_tab <- pmap_dfr(ceil_check, function(var, cap, label) {
+  x <- gv(wn, var)
+  n <- sum(!is.na(x)); at_cap <- sum(is_true(x == cap))
+  tibble(Variable = var, Cap = cap, `At cap` = at_cap,
+         `% at cap` = ifelse(n > 0, round(100 * at_cap / n, 1), NA_real_),
+         Meaning = label)
+}) %>%
+  filter(`At cap` > 0)
+
+if (nrow(ceil_tab) > 0) {
+  add_issue("Sentinel/ceiling", "Warning",
+            paste0("Pile-up at validation ceiling for: ",
+                   paste(ceil_tab$Variable, collapse = ", "),
+                   " (suspected caps or sentinels)."))
+}
+kable_if(ceil_tab, caption = "Counts sitting exactly on a validation ceiling")
+```
+
+## Count-variable distribution shape
+
+```{r count-shape}
+# Exposure counts should be right-skewed (most respondents low, a few high).
+# A median sitting mid-range indicates a flat/uniform shape -- a sign of
+# fabricated or sentinel-laden data rather than real reporting.
+count_vars <- tribble(~var, ~label,
+  "q_nrpt",    "Male anal-sex partners, 6 mo",
+  "q_svcevfr", "Lifetime coercion events",
+  "q_svrevfr", "Lifetime forced-sex events")
+
+shape_tab <- pmap_dfr(count_vars, function(var, label) {
+  x <- gv(wn, var); x <- x[!is.na(x)]
+  if (length(x) == 0) return(tibble())
+  rng <- range(x); med <- median(x)
+  rel <- if (diff(rng) > 0) (med - rng[1]) / diff(rng) else NA_real_
+  tibble(Variable = var, Label = label, Min = rng[1], Median = med, Max = rng[2],
+         `Median position` = round(rel, 2),
+         centered = !is.na(rel) & rel >= 0.35 & rel <= 0.65)
+})
+
+flagged_shape <- shape_tab %>% filter(centered)
+if (nrow(flagged_shape) > 0) {
+  for (i in seq_len(nrow(flagged_shape))) {
+    add_issue("Distribution", "Warning",
+      sprintf("%s: median %g sits mid-range [%g, %g] (position %.2f of range); count data should be right-skewed, not centered.",
+              flagged_shape$Variable[i], flagged_shape$Median[i],
+              flagged_shape$Min[i], flagged_shape$Max[i], flagged_shape$`Median position`[i]))
+  }
+}
+kable_if(shape_tab %>% select(-centered),
+         caption = "Count-variable distribution shape (median position within observed range)")
+```
+
+```{r count-shape-hist, fig.cap="Distributions of count variables flagged as non-skewed"}
+if (exists("flagged_shape") && nrow(flagged_shape) > 0) {
+  long_counts <- dl %>%
+    filter(variable %in% flagged_shape$Variable, !is.na(numeric_value)) %>%
+    left_join(count_vars, by = c("variable" = "var"))
+  ggplot(long_counts, aes(numeric_value)) +
+    geom_histogram(bins = 25, fill = "#756bb1", color = "white") +
+    facet_wrap(~ label, scales = "free") +
+    theme_minimal() +
+    labs(x = "Reported count", y = "Records",
+         subtitle = "A flat or centered shape is implausible for exposure counts")
+}
+```
+
+## Age structure
+
+```{r age-hist, fig.cap="Age distribution (q_tutage)"}
+age <- gv(wn, "q_tutage")
+age_med <- median(age, na.rm = TRUE)
+if (age_med > 45) {
+  add_issue("Distribution", "Warning",
+            sprintf("Median age = %.0f with a near-uniform spread; not a credible age structure for an MSM sample.", age_med))
+}
+ggplot(tibble(age = age), aes(age)) +
+  geom_histogram(binwidth = 5, fill = "#2c7fb8", color = "white") +
+  geom_vline(xintercept = age_med, linetype = "dashed", color = "red") +
+  annotate("text", x = age_med, y = Inf, vjust = 2, color = "red",
+           label = sprintf("median %.0f", age_med)) +
   theme_minimal() +
-  labs(title = "Survey ID Progression",
-       subtitle = "Linear progression indicates consistent data collection",
-       x = "Survey Index",
-       y = "Survey ID") +
-  theme(text = element_text(size = 12))
+  labs(x = "Age (years)", y = "Records",
+       subtitle = "A flat 15-89 spread with a high median is atypical for this population")
 ```
 
-# Data Entry Quality
+## CD4 plausibility
 
-## Entry Time Analysis
-
-```{r}
-# Analyze survey completion duration if available
-if ("meta_start_time" %in% names(data_wide) && "meta_completed_at" %in% names(data_wide)) {
-  data_wide %>%
-    mutate(
-      start = as.POSIXct(meta_start_time),
-      end = as.POSIXct(meta_completed_at),
-      duration_mins = as.numeric(difftime(end, start, units = "mins"))
-    ) %>%
-    filter(duration_mins > 0 & duration_mins < 180) %>%
-    ggplot(aes(x = duration_mins)) +
-    geom_histogram(bins = 30, fill = "#e74c3c", color = "white") +
-    geom_vline(xintercept = c(5, 60), linetype = "dashed", color = "blue") +
+```{r cd4, fig.cap="CD4 count distribution (lab_cd4_count), HIV-positive only"}
+cd4 <- gv(wn, "lab_cd4_count")
+cd4 <- cd4[!is.na(cd4)]
+n_hi <- sum(cd4 > 2000)
+n_frac <- sum(cd4 != round(cd4))
+if (length(cd4) > 0) {
+  if (n_hi > 0) add_issue("Range", "Critical",
+    sprintf("lab_cd4_count: %d value(s) > 2000 cells/mm3 (physiologically implausible).", n_hi))
+  if (n_frac > 0) add_issue("Data type", "Warning",
+    sprintf("lab_cd4_count: %d non-integer value(s); CD4 is reported as whole cells.", n_frac))
+  ggplot(tibble(cd4 = cd4), aes(cd4)) +
+    geom_histogram(bins = 25, fill = "#d95f0e", color = "white") +
+    geom_vline(xintercept = 2000, linetype = "dashed", color = "red") +
+    annotate("text", x = 2000, y = Inf, vjust = 2, hjust = -0.05, color = "red",
+             label = "plausible ceiling ~2000") +
     theme_minimal() +
-    labs(title = "Survey Completion Duration",
-         subtitle = "Very short (<5 min) or very long (>60 min) durations may indicate issues",
-         x = "Duration (minutes)",
-         y = "Number of Surveys") +
-    theme(text = element_text(size = 12))
+    labs(x = "CD4 (cells/mm3)", y = "Records")
+} else cat("No CD4 values present.\n")
+```
+
+# Categorical frequency checks
+
+```{r cat-checks, results='asis'}
+# Birth sex in an MSM survey
+sex <- gv(wt, "q_tutsex")
+n_fem <- sum(sex == "Female", na.rm = TRUE)
+if (n_fem > 0) {
+  add_issue("Eligibility", "Warning",
+            sprintf("%d record(s) report birth sex Female (%.1f%%) in an MSM survey.",
+                    n_fem, 100 * n_fem / sum(!is.na(sex))))
+  cat(sprintf("- **Birth sex:** %d of %d report Female (%.1f%%) — unexpected for an MSM sample.\n\n",
+              n_fem, sum(!is.na(sex)), 100 * n_fem / sum(!is.na(sex))))
+}
+
+# Never had sex yet completed
+eltgsx <- gv(wt, "q_eltgsx")
+n_neversex <- sum(eltgsx == "No", na.rm = TRUE)
+if (n_neversex > 0) {
+  add_issue("Eligibility", "Warning",
+            sprintf("%d record(s) report never having had sex yet completed the interview.", n_neversex))
+  cat(sprintf("- **Sexual history:** %d report never having had sex (q_eltgsx = No) but completed the survey.\n\n", n_neversex))
+}
+
+# Last anal sex with a man > 6 months / don't know among completers
+elm <- gv(wt, "q_elmssxt")
+n_oob <- sum(elm %in% c("More than 6 months ago", "Don't know"))
+if (n_oob > 0) {
+  cat(sprintf("- **Recency:** %d completers last had anal sex with a man more than 6 months ago or don't know — outside the typical recent-behaviour window.\n\n", n_oob))
 }
 ```
 
-## Facility Performance Scores
+## Categorical variability scan
 
-```{r}
-# Calculate quality scores by facility
-facility_scores <- data_wide %>%
-  group_by(meta_facility_name) %>%
-  summarise(
-    n_surveys = n(),
-    duplicate_rate = mean(duplicated(participant_id)),
-    .groups = "drop"
-  ) %>%
-  left_join(
-    facility_completeness %>% select(meta_facility_name, avg_completeness),
-    by = "meta_facility_name"
-  ) %>%
-  mutate(
-    quality_score = round(
-      (avg_completeness / 100) * 0.7 +  # 70% weight on completeness
-      (1 - duplicate_rate) * 0.3,        # 30% weight on no duplicates
-      3
-    ) * 100
-  ) %>%
-  arrange(desc(quality_score))
+```{r flatness}
+# Flag the opposite of the usual skew problem: categoricals that are implausibly
+# flat (max/min category count near 1) across many variables -> low real variability.
+cat_vars <- dl %>%
+  filter(!is.na(text_value), grepl("^q_", variable)) %>%
+  count(variable, text_value) %>%
+  group_by(variable) %>%
+  summarise(levels = n(), max_n = max(n), min_n = min(n), total = sum(n), .groups = "drop") %>%
+  filter(levels >= 3, total >= 100) %>%
+  mutate(flatness = round(max_n / min_n, 2)) %>%
+  arrange(flatness)
 
-kable(facility_scores,
-      caption = "Facility Data Quality Scores",
-      col.names = c("Facility", "Surveys", "Duplicate Rate", "Completeness %", "Quality Score"))
+flat_share <- mean(cat_vars$flatness < 1.6)
+if (flat_share > 0.5) {
+  add_issue("Distribution", "Info",
+            sprintf("%.0f%% of multi-level questions are near-uniform (max/min category < 1.6), consistent with low-variability/synthetic data.",
+                    100 * flat_share))
+}
+knitr::kable(head(cat_vars, 10),
+             caption = "Flattest categorical distributions (max/min category count)",
+             col.names = c("Variable", "Levels", "Max n", "Min n", "Total", "Max/Min"))
 ```
 
-# Recommendations
+# Bivariate consistency checks
 
-## Critical Issues
+## Network-size nesting
 
-```{r}
-critical_issues <- character()
+```{r nesting}
+dgb <- gv(wn, "q_dgbehav"); dga <- gv(wn, "q_dgage"); dgs <- gv(wn, "q_dgseen")
+v_sa <- sum(is_true(dgs > dga))   # seen > aged-18+
+v_ab <- sum(is_true(dga > dgb))   # aged-18+ > total known
+nest <- tibble(
+  Constraint = c("q_dgseen <= q_dgage", "q_dgage <= q_dgbehav"),
+  Violations = c(v_sa, v_ab)
+) %>% filter(Violations > 0)
+if (nrow(nest) > 0) {
+  add_issue("Consistency", "Critical",
+            sprintf("Network nesting violated: %d record(s) with dgseen>dgage, %d with dgage>dgbehav.", v_sa, v_ab))
+}
+kable_if(nest, caption = "Network-size nesting violations (should be zero)")
+```
 
-if (duplicate_participants > 0) {
-  critical_issues <- c(critical_issues,
-    paste("•", duplicate_participants, "duplicate participant IDs require immediate investigation"))
+## HIV rapid vs confirmatory lab
+
+```{r rapid-lab}
+rapid <- tolower(gv(wt, "rapid_hivrapid_result"))
+conf  <- gv(wt, "lab_hiv_confirmatory_test")
+ct <- tibble(rapid = rapid, conf = conf) %>%
+  filter(rapid == "positive", !is.na(conf)) %>%
+  count(conf) %>% rename(`Confirmatory result` = conf, n = n)
+n_discord <- ct %>% filter(`Confirmatory result` == "Negative") %>% pull(n) %>% sum()
+if (n_discord > 0) {
+  add_issue("Consistency", "Critical",
+            sprintf("%d rapid-positive record(s) returned a confirmatory NEGATIVE lab result.", n_discord))
+}
+knitr::kable(ct, caption = "Confirmatory lab result among rapid-positive records")
+```
+
+## Self-reported HIV status vs rapid result
+
+```{r selfreport-hiv, results='asis'}
+self_pos <- is_true(gv(wt, "q_tsres") == "Positive") | is_true(gv(wt, "q_tsprovpos") == "Yes")
+art_any  <- is_true(gv(wt, "q_artnow") == "Yes") | is_true(gv(wt, "q_artevr") == "Yes")
+rp_pos   <- is_true(rapid == "positive")
+
+n_self_pos      <- sum(self_pos)
+n_self_pos_rneg <- sum(self_pos & !rp_pos)
+n_art           <- sum(art_any)
+n_art_rneg      <- sum(art_any & !rp_pos)
+n_rapid_pos     <- sum(rp_pos)
+
+if (n_self_pos_rneg > 0)
+  add_issue("Consistency", "Warning",
+            sprintf("%d record(s) report a positive HIV status (prior test or provider) but are rapid-negative.", n_self_pos_rneg))
+if (n_art_rneg > 0)
+  add_issue("Consistency", "Warning",
+            sprintf("%d record(s) report HIV ARV treatment but are rapid-negative.", n_art_rneg))
+
+cat(sprintf("- Rapid-positive: **%d**. Self-reported HIV-positive: **%d** (of which **%d** rapid-negative).\n", n_rapid_pos, n_self_pos, n_self_pos_rneg))
+cat(sprintf("- Report HIV treatment (ever/now ARVs): **%d** (of which **%d** rapid-negative).\n", n_art, n_art_rneg))
+```
+
+## Self-reported viral suppression vs lab viral load
+
+```{r vl-consistency}
+self_supp <- is_true(gv(wn, "q_csvlrs1_0") == 1) | is_true(gv(wn, "q_csvlrs1_1") == 1)  # Suppressed/Undetectable
+lab_vl <- gv(wn, "lab_hiv_viral_load")
+lab_unsupp <- is_true(lab_vl >= 1000)
+n_conflict <- sum(self_supp & lab_unsupp)
+vl_tab <- tibble(
+  Group = c("Self-report suppressed/undetectable",
+            "  ...with a lab viral load >= 1000 copies/mL"),
+  n = c(sum(self_supp), n_conflict))
+if (n_conflict > 0) {
+  add_issue("Consistency", "Warning",
+            sprintf("%d record(s) self-report viral suppression but have a lab viral load >= 1000 copies/mL.", n_conflict))
+}
+knitr::kable(vl_tab, caption = "Self-reported suppression vs measured viral load")
+```
+
+## Skip-logic integrity
+
+```{r skip-logic}
+# Lab tests should exist only for rapid-positive records.
+lab_present <- !is.na(gv(wn, "lab_cd4_count")) | !is.na(gv(wn, "lab_hiv_viral_load")) |
+               !is.na(gv(wt, "lab_hiv_confirmatory_test"))
+lab_when_neg <- sum(lab_present & !rp_pos)
+lab_missing_when_pos <- sum(!lab_present & rp_pos)
+
+# elmssxt asked only when eltgsx == Yes.
+elm_present <- !is.na(gv(wt, "q_elmssxt"))
+elm_when_notyes <- sum(elm_present & !is_true(gv(wt, "q_eltgsx") == "Yes"))
+elm_missing_when_yes <- sum(!elm_present & is_true(gv(wt, "q_eltgsx") == "Yes"))
+
+skip_tab <- tribble(~Rule, ~Violations,
+  "Lab test present but rapid not positive", lab_when_neg,
+  "Rapid positive but lab test missing",     lab_missing_when_pos,
+  "q_elmssxt answered but q_eltgsx != Yes",  elm_when_notyes,
+  "q_eltgsx == Yes but q_elmssxt missing",   elm_missing_when_yes) %>%
+  filter(Violations > 0)
+
+if (nrow(skip_tab) > 0) {
+  add_issue("Skip logic", "Warning",
+            paste0("Skip-pattern violations: ",
+                   paste(sprintf("%s (%d)", skip_tab$Rule, skip_tab$Violations), collapse = "; "), "."))
+}
+kable_if(skip_tab, caption = "Skip-logic violations (should be zero)")
+```
+
+# Incentive and timing checks
+
+```{r pay-time, results='asis'}
+pay <- gv(wn, "pay_amount")
+n_payoff <- sum(is_true(pay != 5))
+if (n_payoff > 0) {
+  add_issue("Range", "Info",
+            sprintf("%d record(s) have a payment amount other than the fixed 5.", n_payoff))
+  cat(sprintf("- **Incentive:** %d record(s) paid an amount other than 5 (max observed %s).\n\n",
+              n_payoff, max(pay, na.rm = TRUE)))
 }
 
-if (missing_pct > 10) {
-  critical_issues <- c(critical_issues,
-    paste("• Overall missing data rate of", missing_pct, "% exceeds acceptable threshold"))
+start <- suppressWarnings(ymd_hms(gv(wt, "meta_started_at"), quiet = TRUE))
+end   <- suppressWarnings(ymd_hms(gv(wt, "meta_completed_at"), quiet = TRUE))
+dur   <- as.numeric(difftime(end, start, units = "mins"))
+n_neg   <- sum(is_true(dur < 0))
+n_short <- sum(is_true(dur >= 0 & dur < 2))
+n_long  <- sum(is_true(dur > 120))
+if (n_neg + n_short + n_long > 0) {
+  add_issue("Timing", "Warning",
+            sprintf("Interview duration anomalies: %d negative, %d under 2 min, %d over 120 min.",
+                    n_neg, n_short, n_long))
+  cat(sprintf("- **Duration:** %d negative, %d under 2 minutes, %d over 120 minutes.\n\n", n_neg, n_short, n_long))
 }
 
-low_quality_facilities <- facility_scores %>% filter(quality_score < 70)
-if (nrow(low_quality_facilities) > 0) {
-  critical_issues <- c(critical_issues,
-    paste("•", nrow(low_quality_facilities), "facilities have quality scores below 70%"))
+# Completion-date clustering
+dcl <- tibble(d = as.Date(end)) %>% filter(!is.na(d)) %>% count(d) %>% arrange(desc(n))
+if (nrow(dcl) > 0 && dcl$n[1] / N > 0.25) {
+  cat(sprintf("- **Completion clustering:** %.0f%% of records completed on the top 3 dates (%s).\n\n",
+              100 * sum(head(dcl$n, 3)) / N,
+              paste(format(head(dcl$d, 3)), collapse = ", ")))
 }
+```
 
-if (length(critical_issues) > 0) {
-  cat("**CRITICAL ISSUES REQUIRING IMMEDIATE ATTENTION:**\n")
-  cat(paste(critical_issues, collapse = "\n"))
+# Findings summary
+
+```{r summary-table}
+sev_order <- c(Critical = 1, Warning = 2, Info = 3)
+if (nrow(issues) == 0) {
+  cat("No data-quality issues were flagged.\n")
 } else {
-  cat("✓ No critical data quality issues detected")
-}
-```
-
-## Improvement Opportunities
-
-```{r}
-recommendations <- character()
-
-# Check for variables with high missing rates
-high_missing <- missing_summary %>% filter(missing_pct > 10)
-if (nrow(high_missing) > 0) {
-  recommendations <- c(recommendations,
-    paste("• Review and improve data collection for", nrow(high_missing), "variables with >10% missing data"))
-}
-
-# Check for facilities needing support
-low_performing <- facility_scores %>% filter(quality_score < 80)
-if (nrow(low_performing) > 0) {
-  recommendations <- c(recommendations,
-    paste("• Provide additional training to", nrow(low_performing), "facilities with quality scores <80%"))
-}
-
-# Check for outliers
-if (exists("numeric_vars") && nrow(numeric_vars) > 0) {
-  recommendations <- c(recommendations,
-    paste("• Implement validation rules for", nrow(numeric_vars), "numeric variables with outliers"))
-}
-
-if (length(recommendations) > 0) {
-  cat("\n**RECOMMENDED IMPROVEMENTS:**\n")
-  cat(paste(recommendations, collapse = "\n"))
-} else {
-  cat("\n✓ Data quality is excellent - maintain current procedures")
-}
-```
-
-## Quality Trends
-
-```{r, fig.cap="Data Quality Trend Over Time"}
-# Calculate quality metrics over time
-quality_trend <- data_wide %>%
-  mutate(
-    date = as.Date(meta_completed_at),
-    week = floor_date(date, "week")
-  ) %>%
-  left_join(
-    data_long %>%
-      group_by(survey_id) %>%
-      summarise(
-        completeness = mean(!is.na(numeric_value) | !is.na(text_value)) * 100,
-        .groups = "drop"
-      ),
-    by = "survey_id"
-  ) %>%
-  group_by(week) %>%
-  summarise(
-    surveys = n(),
-    avg_completeness = mean(completeness, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  filter(!is.na(week))
-
-if (nrow(quality_trend) > 1) {
-  ggplot(quality_trend, aes(x = week, y = avg_completeness)) +
-    geom_line(color = "#3498db", size = 1) +
-    geom_point(color = "#2c3e50", size = 2) +
-    geom_smooth(method = "loess", se = TRUE, alpha = 0.2) +
-    geom_hline(yintercept = 90, linetype = "dashed", color = "green") +
-    scale_y_continuous(limits = c(0, 100)) +
-    theme_minimal() +
-    labs(title = "Data Quality Trend",
-         subtitle = "Weekly average completeness over time",
-         x = "Week",
-         y = "Completeness (%)") +
-    theme(text = element_text(size = 12))
+  issues %>%
+    mutate(ord = sev_order[Severity]) %>%
+    arrange(ord) %>%
+    select(-ord) %>%
+    knitr::kable(caption = "Flagged data-quality issues, most severe first")
 }
 ```
 
 ---
 
-*Report generated on `r format(Sys.Date(), "%B %d, %Y")` at `r format(Sys.time(), "%I:%M %p")`*
-*Quality assessment based on `r format(total_records, big.mark = ",")` records*
+*Conservative screen: values are flagged only against near-impossible bounds, known
+ceilings/sentinels, or contradictions between related fields. Counts are aggregates; no
+respondent-level records are listed.*

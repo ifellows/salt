@@ -1,0 +1,615 @@
+---
+title: "Analysis Report — Short MSM Survey (id 2)"
+subtitle: "Full analysis: HIV cascade and topic indicators"
+author: "SALT report builder"
+date: "`r Sys.Date()`"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    theme: journal
+    embed-resources: true
+    format-links: false
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r preamble, include=FALSE}
+# ---------------- Embedded SALT analysis functions ----------------
+load_or_install <- function(pkg, repos = "https://cloud.r-project.org") {
+  if (!requireNamespace(pkg, quietly = TRUE)) install.packages(pkg, repos = repos)
+  library(pkg, character.only = TRUE)
+}
+load_or_install("tidyverse")
+load_or_install("RDS")
+load_or_install("survey")
+load_or_install("DescTools")
+
+tab <- function(...) table(..., useNA = "always")
+
+single_facility <- function(dat, facility_id, outcome_var, pop_size, subset=NULL, nboot=50){
+  set.seed(seed)
+  sub <- dat
+  if(is.null(subset))
+    subset <- rep(TRUE, nrow(dat))
+  sub$subset__ <- subset
+  sub$subset__[is.na(sub$subset__)] <- FALSE
+  sub <- sub |> filter(meta_facility_id == facility_id)
+
+  rds_df <- as.rds.data.frame(sub,
+                              id = id_var_name,
+                              recruiter.id = recruiter_id_name,
+                              network.size = degree_name,
+                              time = time_var_name,
+                              population.size = pop_size)
+
+  wts <- RDS::compute.weights(rds_df, outcome.variable="subset__", estimate_method, N = pop_size)
+  v <- !rds_df$subset__ | is.na(rds_df[[outcome_var]])
+
+  domain_probs <- sum(rds_df$subset__* wts, na.rm=TRUE) / sum(wts[!is.na(rds_df$subset__)])
+  if(nrow(rds_df) == 0 || all(v, na.rm=TRUE)){
+    if(is.factor(rds_df[[outcome_var]])){
+      nlev <- length(levels(rds_df[[outcome_var]]))
+      n <- rep(0,nlev)
+    }else{
+      nlev <- 1
+      n <- 0
+    }
+    est <- rep(as.numeric(NA), nlev)
+    names(est) <- levels(rds_df[[outcome_var]])
+    interval <- 1
+    attr(interval, "bsresult") <- list(se_estimate = rep(as.numeric(NA), nlev))
+    boot_est <- list(
+      estimate = est,
+      interval=interval,
+      n=n,
+      domain_probs = domain_probs*0
+    )
+    return(boot_est)
+  }
+  rds_df$outcome__ <- rds_df[[outcome_var]]
+  rds_df$outcome__[!rds_df$subset__] <- NA
+  nn <- sum(!is.na(rds_df$outcome__))
+  tr <- try(boot_est <- RDS.bootstrap.intervals(rds.data = rds_df,
+                                                weight.type = estimate_method,
+                                                uncertainty = bootstrap_method,
+                                                outcome.variable = "outcome__",
+                                                N = pop_size,
+                                                number.of.bootstrap.samples = nboot))
+  if(inherits(tr,"try-error")){
+    warning(tr)
+    boot_est <- NULL
+  }
+  if(is.null(boot_est)){
+    wts <- RDS::compute.weights(rds_df, outcome.variable = "outcome__", weight.type = estimate_method, N = pop_size)
+    sub$weights__ <- wts
+    df <- sub[sub$subset__ & !is.na(sub[[outcome_var]]),]
+    df$outcome_var__ <- df[[outcome_var]]
+    if(nrow(df) == 1){
+      if(is.factor(df$outcome_var__)){
+        est <- table(df[[outcome_var]]) |> as.numeric()
+        names(est) <- levels(df[[outcome_var]])
+        se <- sqrt(.5*.5)
+      }else{
+        est <- df[[outcome_var]]
+        se <- NA
+      }
+    }else{
+      des <- svydesign(ids=~1, data=df, weights = ~weights__)
+      res <- svymean(~outcome_var__,design = des, na.rm=TRUE)
+      est <- as.vector(res)
+      names(est) <- levels(df[[outcome_var]])
+      se <- sqrt(diag(attr(res,"var")))
+    }
+    if(is.factor(df$outcome_var__)){
+      for(i in 1:length(est)){
+        if(est[i] < .00001){
+          bi <- BinomCI(0, nrow(df), method ="clopper-pearson")
+          se_cp <- (bi[3] - bi[2]) / (1.96)
+          se[i] <- se_cp
+        }
+        if(est[i] > .999999){
+          bi <- BinomCI(nrow(df), nrow(df), method ="clopper-pearson")
+          se_cp <- (bi[3] - bi[2]) / (1.96)
+          se[i] <- se_cp
+        }
+      }
+      nn <- table(df$outcome_var__) |> as.vector()
+    }else{
+      nn <- length(na.omit(df$outcome_var__))
+    }
+    interval <- 1
+    attr(interval, "bsresult") <- list(se_estimate = se)
+    boot_est <- list(
+      estimate = est,
+      interval=interval,
+      n=nn,
+      domain_probs = domain_probs
+    )
+  }else{
+    if(is.factor(rds_df$outcome__))
+      boot_est$n <- matrix(boot_est$interval, ncol = 6, byrow = FALSE)[,6]
+    else
+      boot_est$n <- nn
+    boot_est$domain_probs <- domain_probs
+  }
+  if(!is.factor(dat[[outcome_var]])){
+    v <- sub[sub$subset__,outcome_var]
+    raw_mean <- mean(v, na.rm=TRUE)
+  }else{
+    raw_mean <- as.numeric(NA)
+  }
+  results <- data.frame(facility_id=facility_id,estimate_name=names(boot_est$estimate),estimate=boot_est$estimate,
+                    se=attr(boot_est$interval,"bsresult")$se_estimate,
+                    n=boot_est$n,domain_probs=boot_est$domain_probs)
+  res <- data.frame(
+    estimate_name = results$estimate_name,
+    estimate = results$estimate,
+    se = results$se,
+    lower = results$estimate - 1.96 * results$se,
+    upper = results$estimate + 1.96 * results$se,
+    raw_mean = raw_mean,
+    n = results$n
+  )
+  res
+}
+
+all_facilities <- function(dat, outcome_var, size_by_facility, stratify_by=NULL, subset=NULL, nboot=50){
+  if(!is.null(stratify_by)){
+    results <- list()
+    if(!is.factor(dat[[stratify_by]])){
+      dat[[stratify_by]] <- as.factor(dat[[stratify_by]])
+    }
+    svar <- dat[[stratify_by]]
+    levs <- levels(svar)
+    if(is.null(subset))
+      subset <- rep(TRUE, nrow(dat))
+    for(l in levs){
+      sub <- subset & svar == l
+      res <- all_facilities(dat=dat, outcome_var=outcome_var,
+                            size_by_facility=size_by_facility, subset=sub, nboot=nboot)
+      res$stratify_value <- l
+      results[[length(results) + 1]] <- res
+    }
+    results <- bind_rows(results)
+    results$stratify_variable <- stratify_by
+    return(results)
+  }
+
+  if(is.character(dat[[outcome_var]])){
+    dat[[outcome_var]] <- as.factor(dat[[outcome_var]])
+  }
+  results <- list()
+  facilities <- unique(dat$meta_facility_id)
+  for(f in facilities){
+    pop_size <- size_by_facility$size[size_by_facility$facility_id == f]
+    r <- single_facility(dat, facility_id=f, outcome_var=outcome_var, pop_size, subset=subset, nboot=nboot)
+    r$facility_id <- f
+    results[[as.character(f)]] <- r
+  }
+  results <- bind_rows(results)
+  results$outcome <- outcome_var
+
+  totals <- results |>
+    left_join(size_by_facility, by = "facility_id") |>
+    group_by(estimate_name) |>
+    mutate(p = representation_proportion / sum(representation_proportion)) |>
+    summarise(
+      estimate = sum(estimate * p),
+      se = sqrt( sum(se^2 * p^2) ),
+      raw_mean = sum(raw_mean[n>0] * n[n>0]/ sum(n[n>0])) ,
+      n = sum(n),
+      outcome=outcome[1],
+    ) |>
+    mutate(
+      lower = estimate - 1.96 * se,
+      upper = estimate + 1.96 * se,
+      facility_id = -1
+    )
+  results <- bind_rows(results,totals)
+  results
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+dat <- read.csv("data_wide.csv",         stringsAsFactors = FALSE, check.names = FALSE)
+dwn <- read.csv("data_wide_numeric.csv", stringsAsFactors = FALSE, check.names = FALSE)
+
+idc  <- intersect(c("participant_id", "meta_participant_id"), names(dat))[1]
+idc2 <- intersect(c("participant_id", "meta_participant_id"), names(dwn))[1]
+if (!("participant_id" %in% names(dat))) dat$participant_id <- dat[[idc]]
+
+get_txt <- function(v) if (v %in% names(dat)) as.character(dat[[v]]) else rep(NA_character_, nrow(dat))
+get_num <- function(v) {
+  if (!(v %in% names(dwn))) return(rep(NA_real_, nrow(dat)))
+  idx <- match(dat$participant_id, dwn[[idc2]])
+  suppressWarnings(as.numeric(dwn[[v]][idx]))
+}
+eqT <- function(x, val) !is.na(x) & x == val
+
+# Interview start time, parsed for the RDS time= argument (handles ISO8601)
+dat$meta_started_at <- lubridate::as_datetime(dat$meta_started_at, tz = "UTC")
+
+# ---- Recruiter id and adjusted, capped network size ------------------------
+dat$recruiter_id__ <- rid.from.coupons(
+  dat, subject.coupon = "coupon_referral_used",
+  coupon.variables = paste0("coupon_issued_", 1:3),
+  subject.id = "participant_id")
+
+is_seed    <- !(dat$recruiter_id__ %in% dat$participant_id)
+n_recruits <- as.integer(table(factor(dat$recruiter_id__[!is_seed], levels = dat$participant_id)))
+n_recruits[is.na(n_recruits)] <- 0L
+
+deg <- get_num("q_dgseen")
+adj <- pmax(deg, n_recruits)
+adj <- adj + ifelse(is_seed, 0L, 1L)
+adj[adj == 0] <- 1
+adj[adj < 0]  <- NA
+facn <- get_txt("meta_facility_name")
+medf <- tapply(deg, facn, median, na.rm = TRUE)
+na_idx <- which(is.na(adj)); adj[na_idx] <- as.numeric(medf[facn[na_idx]])
+adj[is.na(adj)] <- median(deg, na.rm = TRUE)
+n_capped <- sum(adj > 100, na.rm = TRUE)
+adj[adj > 100] <- 100                      # ceiling at 100 (per request)
+dat$degree__ <- adj
+
+if ("meta_facility_id" %in% names(dat)) {
+  dat$meta_facility_id <- suppressWarnings(as.integer(dat$meta_facility_id))
+} else {
+  dat$meta_facility_id <- suppressWarnings(as.integer(get_num("meta_facility_id")))
+}
+
+# ---- Cascade variables (factors) -------------------------------------------
+rapid_pos <- tolower(get_txt("rapid_hivrapid_result")) == "positive"
+conf      <- get_num("lab_hiv_confirmatory_test")           # 0=Pos 1=Neg 2=Indet
+hiv_pos   <- ifelse(!is.na(conf) & conf %in% c(0, 1), conf == 0, rapid_pos)
+art_bin   <- eqT(get_num("q_artnow"), 0)
+diag_bin  <- ifelse(hiv_pos %in% TRUE,
+                    eqT(get_num("q_tsres"), 0) | eqT(get_num("q_tsprovpos"), 0) | art_bin, NA)
+onart_bin <- ifelse(hiv_pos %in% TRUE, art_bin, NA)
+vl        <- get_num("lab_hiv_viral_load")
+supp_bin  <- ifelse(hiv_pos %in% TRUE, ifelse(is.na(vl), NA, vl <= 1000), NA)
+
+dat$hiv_f   <- factor(ifelse(is.na(hiv_pos),  NA, ifelse(hiv_pos,  "HIV+",       "HIV-")),        levels = c("HIV-", "HIV+"))
+dat$diag_f  <- factor(ifelse(is.na(diag_bin), NA, ifelse(diag_bin, "Diagnosed",  "Not diagnosed")), levels = c("Not diagnosed", "Diagnosed"))
+dat$onart_f <- factor(ifelse(is.na(onart_bin),NA, ifelse(onart_bin,"On ART",     "Not on ART")),  levels = c("Not on ART", "On ART"))
+dat$supp_f  <- factor(ifelse(is.na(supp_bin), NA, ifelse(supp_bin, "Suppressed", "Not suppressed")), levels = c("Not suppressed", "Suppressed"))
+
+# Age bands (10-year)
+age <- get_num("q_tutage")
+dat$age_band <- cut(age, breaks = c(15, 25, 35, 45, 55, 65, 75, 90), right = FALSE,
+                    labels = c("15-24", "25-34", "35-44", "45-54", "55-64", "65-74", "75+"))
+
+# Subpopulation subsets for topic tables
+hivpos_s    <- hiv_pos %in% TRUE
+hivneg_s    <- hiv_pos %in% FALSE
+drinkers_s  <- get_num("q_alcfreq") %in% c(1, 2, 3, 4)   # not "Never"
+injected_s  <- eqT(get_num("q_elinj"), 0)                # ever injected
+heardprep_s <- eqT(get_num("q_pprknow"), 0)              # heard of PrEP
+onart_s     <- eqT(get_num("q_artnow"), 0)               # currently on ART
+
+# Multi-select indicators -> binary factors (self-reported viral-load result)
+ms_cols <- grep("^q_csvlrs1_[0-9]+$", names(dat), value = TRUE)
+ms_labels <- c(q_csvlrs1_0 = "Suppressed", q_csvlrs1_1 = "Undetectable",
+               q_csvlrs1_2 = "Not suppressed", q_csvlrs1_3 = "Result not given",
+               q_csvlrs1_4 = "Don't know", q_csvlrs1_5 = "Prefer not to answer")
+for (cc in ms_cols) {
+  dat[[cc]] <- factor(ifelse(get_num(cc) == 1, "Selected", "Not selected"),
+                      levels = c("Not selected", "Selected"))
+}
+
+nb_full <- 25   # bootstrap resamples for the comprehensive run (raise to 50 for a final)
+
+# ---- Globals required by the engine ----------------------------------------
+id_var_name       <- "participant_id"
+recruiter_id_name <- "recruiter_id__"
+degree_name       <- "degree__"
+time_var_name     <- "meta_started_at"
+estimate_method   <- "HCG"
+bootstrap_method  <- "Gile"
+seed              <- 100
+nboot             <- 1000
+
+# ---- Facility sizes / representation ---------------------------------------
+fac_map <- dat |> distinct(meta_facility_id, meta_facility_name) |>
+  arrange(meta_facility_id) |> filter(!is.na(meta_facility_id))
+fac_n <- as.integer(table(factor(dat$meta_facility_id, levels = fac_map$meta_facility_id)))
+rep_map <- c("Demo Facility" = .2, "East Clinic" = .2, "North Clinic" = .3, "South Clinic" = .25)
+size_by_facility <- data.frame(
+  facility_id = fac_map$meta_facility_id,
+  size = 1000 * fac_n,
+  representation_proportion = as.numeric(rep_map[fac_map$meta_facility_name])
+)
+fac_label <- function(fid) if (fid == -1) "Aggregate" else fac_map$meta_facility_name[fac_map$meta_facility_id == fid]
+```
+
+# Background
+
+*To be completed once a study protocol is provided.*
+
+# Methods
+
+This analysis treats the survey as a respondent-driven sample. Recruiter links are reconstructed
+from the referral and issued coupon codes (`rid.from.coupons`). Each subject's network size is the
+reported degree (`q_dgseen`) adjusted to be at least the number of people they recruited, plus one
+for non-seeds (the recruiter is assumed not to be counted in the reported degree); zeros are set to
+one, negatives to missing, and missing values filled with the facility-median degree. Adjusted
+degrees above 100 are capped at 100 (`r n_capped` record(s) affected).
+
+Point estimates use the **HCG** (homophily configuration graph) estimator with finite-population
+correction; uncertainty uses the **Gile bootstrap** (`r nboot` resamples for the cascade). When the
+bootstrap cannot run — typically very low cell counts — the estimate falls back to a
+weighted `survey` design mean, with Clopper-Pearson standard errors at 0%/100% cells. No external
+population size estimates were available, so each facility's population is treated as large relative
+to its sample (the sample is a small fraction of the population). Aggregate estimates pool facilities
+by their supplied representation proportions; their standard errors combine the facility variances
+under independence. Topic-indicator tables use the same HCG estimator with `r nb_full` bootstrap
+resamples (reduced from the cascade's `r nboot` to keep the comprehensive run tractable), each
+computed on the subpopulation stated in its table title.
+
+**HIV cascade definitions.** HIV status uses the rapid test, overridden by the confirmatory lab when
+that result is Positive or Negative (an Indeterminate confirmatory falls back to the rapid result;
+an indeterminate rapid would be treated as missing). Awareness ("diagnosed", among HIV-positives) is
+a self-reported prior positive test, a provider-reported positive, or current ART. On ART is current
+ART for treatment (`q_artnow`, excluding PrEP). Viral suppression is a viral load ≤ 1000 copies/mL.
+The ARV-drug-test conditions in the cascade specification are omitted because no such assay is
+collected in this survey. The conditional cascade chains denominators (aware among positive → on ART
+among aware → suppressed among on ART); the unconditional cascade expresses on-ART and suppression as
+shares of all HIV-positives.
+
+# Results
+
+```{r run-cascade, include=FALSE}
+run_q <- function(outcome_col, pos_level, subset) {
+  res <- tryCatch(
+    all_facilities(dat = dat, outcome_var = outcome_col, size_by_facility = size_by_facility,
+                   subset = subset, nboot = nboot),
+    error = function(e) NULL)
+  facs <- c(size_by_facility$facility_id, -1)
+  do.call(rbind, lapply(facs, function(f) {
+    if (is.null(res)) return(data.frame(facility_id = f, n = NA, N = NA, sample_pct = NA,
+                                        est_pct = NA, lo = NA, hi = NA))
+    rf <- res[res$facility_id == f, ]
+    denom <- sum(rf$n, na.rm = TRUE)
+    rl <- rf[rf$estimate_name == pos_level, ]
+    has <- nrow(rl) == 1 && !is.na(rl$estimate[1])
+    data.frame(
+      facility_id = f,
+      n  = if (nrow(rl)) rl$n[1] else NA,
+      N  = denom,
+      sample_pct = if (denom > 0 && nrow(rl)) 100 * rl$n[1] / denom else NA,
+      est_pct = if (has) 100 * rl$estimate[1] else NA,
+      lo = if (has) 100 * rl$lower[1] else NA,
+      hi = if (has) 100 * rl$upper[1] else NA)
+  }))
+}
+
+prevalence   <- run_q("hiv_f",   "HIV+",       NULL)
+diag_hivpos  <- run_q("diag_f",  "Diagnosed",  hiv_pos %in% TRUE)
+onart_diag   <- run_q("onart_f", "On ART",     diag_bin %in% TRUE)
+supp_onart   <- run_q("supp_f",  "Suppressed", onart_bin %in% TRUE)
+onart_hivpos <- run_q("onart_f", "On ART",     hiv_pos %in% TRUE)
+supp_hivpos  <- run_q("supp_f",  "Suppressed", hiv_pos %in% TRUE)
+
+quantities <- list(
+  list(name = "HIV prevalence (of all participants)",        res = prevalence),
+  list(name = "Aware of status | HIV+ (95-1)",               res = diag_hivpos),
+  list(name = "On ART | aware (95-2, conditional)",          res = onart_diag),
+  list(name = "Suppressed | on ART (95-3, conditional)",     res = supp_onart),
+  list(name = "On ART | HIV+ (unconditional)",               res = onart_hivpos),
+  list(name = "Suppressed | HIV+ (unconditional)",           res = supp_hivpos))
+
+fmt_cell <- function(x, fmt = "%.1f") ifelse(is.na(x), "—", sprintf(fmt, x))
+build_fac_table <- function(fid) {
+  do.call(rbind, lapply(quantities, function(q) {
+    r <- q$res[q$res$facility_id == fid, ]
+    data.frame(
+      Measure = q$name,
+      `n/N` = if (is.na(r$N) || is.na(r$n)) "—" else sprintf("%d/%d", as.integer(r$n), as.integer(r$N)),
+      `Sample %` = fmt_cell(r$sample_pct),
+      `Pop. % (HCG)` = fmt_cell(r$est_pct),
+      `95% CI` = if (is.na(r$lo)) "—" else sprintf("%.1f–%.1f", pmax(0, r$lo), pmin(100, r$hi)),
+      check.names = FALSE)
+  }))
+}
+```
+
+## HIV cascade of care (95-95-95)
+
+Each table reports, per facility and pooled, the sample numerator/denominator, the raw sample
+percentage, the HCG population estimate, and its 95% bootstrap interval. The conditional cascade
+chains denominators; the unconditional rows express on-ART and suppression among all HIV-positives.
+
+```{r cascade-tables, results='asis'}
+for (fid in c(size_by_facility$facility_id, -1)) {
+  cat(sprintf("\n\n### %s\n\n", fac_label(fid)))
+  print(knitr::kable(build_fac_table(fid), row.names = FALSE,
+                     caption = sprintf("HIV cascade — %s", fac_label(fid))))
+  cat("\n\n")
+}
+```
+
+## HIV prevalence by age band (aggregate)
+
+The age-stratified table is limited to HIV prevalence; the ART and suppression rungs have too few
+HIV-positive cases per age band to estimate meaningfully on this data. 10-year bands are used (none
+fall below the collapse threshold for prevalence).
+
+```{r prevalence-age, results='asis'}
+res_age <- tryCatch(
+  all_facilities(dat = dat, outcome_var = "hiv_f", stratify_by = "age_band",
+                 size_by_facility = size_by_facility, nboot = nboot),
+  error = function(e) NULL)
+
+if (is.null(res_age)) {
+  cat("*Age-stratified estimation was not available.*\n\n")
+} else {
+  bands <- levels(dat$age_band)
+  age_tab <- do.call(rbind, lapply(bands, function(b) {
+    rb <- res_age[res_age$facility_id == -1 & res_age$stratify_value == b, ]
+    denom <- sum(rb$n, na.rm = TRUE)
+    rl <- rb[rb$estimate_name == "HIV+", ]
+    has <- nrow(rl) == 1 && !is.na(rl$estimate[1])
+    data.frame(
+      `Age band` = b,
+      `n/N` = if (denom > 0 && nrow(rl)) sprintf("%d/%d", as.integer(rl$n[1]), as.integer(denom)) else "—",
+      `Sample %` = if (denom > 0 && nrow(rl)) sprintf("%.1f", 100 * rl$n[1] / denom) else "—",
+      `Pop. % (HCG)` = if (has) sprintf("%.1f", 100 * rl$estimate[1]) else "—",
+      `95% CI` = if (has) sprintf("%.1f–%.1f", pmax(0, 100 * rl$lower[1]), pmin(100, 100 * rl$upper[1])) else "—",
+      check.names = FALSE)
+  }))
+  print(knitr::kable(age_tab, row.names = FALSE,
+                     caption = "Aggregate HIV prevalence by age band (HCG)"))
+  cat("\n\n")
+}
+```
+
+## Topic indicators
+
+Each table summarises one topic at the aggregate level: the sample count and percentage for every
+response level, and the HCG population estimate with its 95% interval. The subpopulation each table
+is computed on is stated in its title. Multi-select items show one row per option; continuous items
+show the sample mean.
+
+```{r topic-engine, include=FALSE}
+agg_levels <- function(col, subset = NULL) {
+  res <- tryCatch(all_facilities(dat, col, size_by_facility, subset = subset, nboot = nb_full),
+                  error = function(e) NULL)
+  if (is.null(res)) return(NULL)
+  ra <- res[res$facility_id == -1, ]
+  denom <- sum(ra$n, na.rm = TRUE)
+  data.frame(level = as.character(ra$estimate_name), n = ra$n, denom = denom,
+             sample_pct = ifelse(denom > 0, 100 * ra$n / denom, NA),
+             est_pct = 100 * ra$estimate, lo = 100 * ra$lower, hi = 100 * ra$upper,
+             stringsAsFactors = FALSE)
+}
+ci_str <- function(lo, hi) ifelse(is.na(lo), "—", sprintf("%.1f–%.1f", pmax(0, lo), pmin(100, hi)))
+num_get <- function(col) get_num(col)
+
+build_topic <- function(items, subset) {
+  rows <- list()
+  add <- function(...) rows[[length(rows) + 1]] <<- data.frame(..., check.names = FALSE)
+  for (it in items) {
+    sb <- if (!is.null(it$subset)) it$subset else subset
+    if (it$type == "num") {
+      x <- num_get(it$col); if (!is.null(sb)) x <- x[sb]
+      add(Measure = paste0(it$label, " (mean)"), n = sum(!is.na(x)),
+          `Sample %/mean` = sprintf("%.1f", mean(x, na.rm = TRUE)),
+          `Pop. % (HCG)` = "—", `95% CI` = "—")
+    } else if (it$type == "multi") {
+      al <- agg_levels(it$col, sb); sel <- if (!is.null(al)) al[al$level == "Selected", ] else NULL
+      ok <- !is.null(sel) && nrow(sel) == 1
+      add(Measure = it$label, n = if (ok) as.integer(sel$n) else NA,
+          `Sample %/mean` = if (ok) sprintf("%.1f", sel$sample_pct) else "—",
+          `Pop. % (HCG)` = if (ok && !is.na(sel$est_pct)) sprintf("%.1f", sel$est_pct) else "—",
+          `95% CI` = if (ok) ci_str(sel$lo, sel$hi) else "—")
+    } else {
+      al <- agg_levels(it$col, sb)
+      add(Measure = paste0("**", it$label, "**"), n = NA,
+          `Sample %/mean` = "", `Pop. % (HCG)` = "", `95% CI` = "")
+      if (!is.null(al)) for (i in seq_len(nrow(al))) {
+        add(Measure = paste0("  ", al$level[i]), n = as.integer(al$n[i]),
+            `Sample %/mean` = if (!is.na(al$sample_pct[i])) sprintf("%.1f", al$sample_pct[i]) else "—",
+            `Pop. % (HCG)` = if (!is.na(al$est_pct[i])) sprintf("%.1f", al$est_pct[i]) else "—",
+            `95% CI` = ci_str(al$lo[i], al$hi[i]))
+      }
+    }
+  }
+  out <- do.call(rbind, rows)
+  out$n <- ifelse(is.na(out$n), "", as.character(out$n))
+  out
+}
+```
+
+```{r topics, results='asis'}
+ever_tested_s <- eqT(get_num("q_tsever"), 0)
+prep_use_s    <- hivneg_s & heardprep_s
+
+topics <- list(
+  list(title = "Demographics", sublab = "all participants", subset = NULL, items = list(
+    list(col = "q_tutsex",   type = "cat", label = "Sex at birth"),
+    list(col = "q_tutage",   type = "num", label = "Age, years"),
+    list(col = "q_tutedu",   type = "cat", label = "Highest education"),
+    list(col = "q_tutnat",   type = "cat", label = "Nationality"),
+    list(col = "q_demarsta", type = "cat", label = "Marital status"))),
+  list(title = "Sexual behaviour and violence", sublab = "all participants", subset = NULL, items = list(
+    list(col = "q_nrpt",    type = "num", label = "Male anal-sex partners, 6 mo"),
+    list(col = "q_cond",    type = "cat", label = "Condom at last anal sex"),
+    list(col = "q_trsex",   type = "cat", label = "Ever transactional anal sex"),
+    list(col = "q_svcevfr", type = "num", label = "Times coerced into sex (lifetime)"),
+    list(col = "q_svrevfr", type = "num", label = "Times forced into sex (lifetime)"))),
+  list(title = "Alcohol use", sublab = "all participants (quantity items among drinkers)", subset = NULL, items = list(
+    list(col = "q_alcfreq",  type = "cat", label = "Drinking frequency"),
+    list(col = "q_alcday",   type = "cat", label = "Drinks per drinking day", subset = drinkers_s),
+    list(col = "q_alcbinge", type = "cat", label = "Binge frequency", subset = drinkers_s))),
+  list(title = "Drug use", sublab = "all (needle-sharing among those who ever injected)", subset = NULL, items = list(
+    list(col = "q_elinj",   type = "cat", label = "Ever injected drugs"),
+    list(col = "q_drshare", type = "cat", label = "Ever shared needles", subset = injected_s))),
+  list(title = "Mental health", sublab = "all participants", subset = NULL, items = list(
+    list(col = "q_phq1", type = "cat", label = "Little interest/pleasure (2 wk)"),
+    list(col = "q_phq2", type = "cat", label = "Feeling down/depressed (2 wk)"),
+    list(col = "q_mhys", type = "cat", label = "Ever self-harmed"))),
+  list(title = "Health care and stigma", sublab = "all participants", subset = NULL, items = list(
+    list(col = "q_stgdeny",  type = "cat", label = "Denied care (12 mo)"),
+    list(col = "q_hctell",   type = "cat", label = "Comfortable disclosing MSM to provider"),
+    list(col = "q_stgavoid", type = "cat", label = "Avoided care for fear of discrimination"),
+    list(col = "q_csonline", type = "cat", label = "Accessed HIV/sexual-health info online"),
+    list(col = "q_outexp",   type = "cat", label = "Reached by outreach/peer educator"))),
+  list(title = "HIV testing history", sublab = "all (test-history items among ever-tested)", subset = NULL, items = list(
+    list(col = "q_tsever",     type = "cat", label = "Ever tested for HIV"),
+    list(col = "q_tsetwlmth",  type = "cat", label = "Tested in past 12 months", subset = ever_tested_s),
+    list(col = "q_tsres",      type = "cat", label = "Last test result", subset = ever_tested_s),
+    list(col = "q_tsprovpos",  type = "cat", label = "Provider ever said HIV+", subset = ever_tested_s))),
+  list(title = "ART and viral load", sublab = "HIV-positive (treatment-detail items among those on ART)", subset = hivpos_s, items = list(
+    list(col = "q_artevr",  type = "cat", label = "Ever taken ARVs"),
+    list(col = "q_artnow",  type = "cat", label = "Currently on ARVs"),
+    list(col = "q_artprov", type = "cat", label = "Where ARVs obtained", subset = onart_s),
+    list(col = "q_artdup",  type = "cat", label = "Collects ARVs from multiple places", subset = onart_s),
+    list(col = "q_uuvltest",type = "cat", label = "Viral-load test history", subset = onart_s),
+    list(col = "q_csvlrs1_0", type = "multi", label = "Self-report VL: Suppressed", subset = onart_s),
+    list(col = "q_csvlrs1_1", type = "multi", label = "Self-report VL: Undetectable", subset = onart_s),
+    list(col = "q_csvlrs1_2", type = "multi", label = "Self-report VL: Not suppressed", subset = onart_s),
+    list(col = "q_uuknow",  type = "cat", label = "Heard of U=U"),
+    list(col = "q_uubel",   type = "cat", label = "Belief in U=U"))),
+  list(title = "PrEP", sublab = "HIV-negative (access items among those who have heard of PrEP)", subset = hivneg_s, items = list(
+    list(col = "q_pprknow", type = "cat", label = "Heard of PrEP"),
+    list(col = "q_proffer", type = "cat", label = "Offered PrEP by provider", subset = prep_use_s),
+    list(col = "q_prget",   type = "cat", label = "Knows where to get PrEP", subset = prep_use_s),
+    list(col = "q_prtake",  type = "cat", label = "Ever used PrEP", subset = prep_use_s),
+    list(col = "q_prwant",  type = "cat", label = "Wants to use PrEP"))),
+  list(title = "TB", sublab = "HIV-positive participants", subset = hivpos_s, items = list(
+    list(col = "q_tbscrnp", type = "cat", label = "Screened for TB symptoms"),
+    list(col = "q_tbdx",    type = "cat", label = "TB diagnosis told"),
+    list(col = "q_tbpt",    type = "cat", label = "Given TB-preventive drugs"),
+    list(col = "q_tbtx",    type = "cat", label = "Treated for TB"))),
+  list(title = "Other STIs and syphilis", sublab = "all participants", subset = NULL, items = list(
+    list(col = "q_stdiag",               type = "cat", label = "Told had a non-HIV STI (12 mo)"),
+    list(col = "rapid_syprapid_result",  type = "cat", label = "Syphilis rapid test")))
+)
+
+for (tp in topics) {
+  cat(sprintf("\n\n### %s\n\n", tp$title))
+  tb <- tryCatch(build_topic(tp$items, tp$subset), error = function(e) NULL)
+  if (is.null(tb)) { cat("*Table could not be produced for this topic.*\n\n"); next }
+  print(knitr::kable(tb, row.names = FALSE,
+        caption = sprintf("%s — subpopulation: %s (aggregate; %d bootstrap resamples)",
+                          tp$title, tp$sublab, nb_full)))
+  cat("\n\n")
+}
+```
+
+# Discussion
+
+*To be completed once the user requests narrative.*
+
+# Conclusion
+
+*To be completed once the user requests narrative.*
+
+# References
+
+*None cited.*
