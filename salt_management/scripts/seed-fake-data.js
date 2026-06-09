@@ -243,13 +243,23 @@ async function apiGet(pathname, apiKey) {
     return r.json();
 }
 async function uploadSubmission(payload, apiKey) {
-    const r = await fetch(`${SALT_URL}/api/sync/survey/upload`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify(payload),
-    });
-    const body = await r.json().catch(() => ({}));
-    return { ok: r.ok, status: r.status, duplicate: !!(body.data && body.data.duplicate), body };
+    // One retry: the first upload after the (slow) generation phase can hit a
+    // pooled keep-alive connection the server already closed (ECONNRESET ->
+    // generic "fetch failed"). A fresh attempt gets a new connection.
+    for (let attempt = 0; ; attempt++) {
+        try {
+            const r = await fetch(`${SALT_URL}/api/sync/survey/upload`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+                body: JSON.stringify(payload),
+            });
+            const body = await r.json().catch(() => ({}));
+            return { ok: r.ok, status: r.status, duplicate: !!(body.data && body.data.duplicate), body };
+        } catch (e) {
+            if (attempt >= 1) { e.message += e.cause ? ` (cause: ${e.cause.code || e.cause.message})` : ''; throw e; }
+            await sleep(100);
+        }
+    }
 }
 
 // ---- main -----------------------------------------------------------------
