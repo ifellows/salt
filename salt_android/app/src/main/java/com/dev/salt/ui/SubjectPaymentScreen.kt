@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.dev.salt.AppDestinations
 import com.dev.salt.data.SurveyDatabase
+import com.dev.salt.ui.components.MarkdownText
 import com.dev.salt.playAudio
 import com.dev.salt.fingerprint.IFingerprintCapture
 import com.dev.salt.fingerprint.SecuGenFingerprintImpl
@@ -212,12 +213,13 @@ fun SubjectPaymentScreen(
                 tint = MaterialTheme.colorScheme.primary
             )
 
-            // Thank you message
-            Text(
-                text = paymentMessage,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
+            // Thank you message (Markdown-formatted)
+            MarkdownText(
+                markdown = paymentMessage,
+                baseStyle = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                ),
                 color = MaterialTheme.colorScheme.primary
             )
 

@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.dev.salt.AppDestinations
 import com.dev.salt.data.SurveyDatabase
+import com.dev.salt.ui.components.MarkdownText
 import androidx.compose.ui.res.stringResource
 import com.dev.salt.R
 import io.github.joelkanyi.sain.Sain
@@ -248,14 +249,14 @@ fun ConsentSignatureScreen(
                             }
                         }
 
-                        // Scrollable consent text
-                        Text(
-                            text = consentText ?: stringResource(R.string.consent_text_unavailable),
-                            style = MaterialTheme.typography.bodyMedium,
+                        // Scrollable consent text (Markdown-formatted)
+                        MarkdownText(
+                            markdown = consentText ?: stringResource(R.string.consent_text_unavailable),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
-                                .verticalScroll(rememberScrollState())
+                                .verticalScroll(rememberScrollState()),
+                            baseStyle = MaterialTheme.typography.bodyMedium
                         )
                     }
                 }
