@@ -137,6 +137,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import com.dev.salt.ui.EligibilityCheckScreen
 import com.dev.salt.ui.JexlDebugDialog
+import com.dev.salt.ui.components.MarkdownText
 import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.BackHandler
 
@@ -552,7 +553,11 @@ fun SurveyScreen(
         ) {
             val currentQuestion by viewModel.currentQuestion.collectAsState()
             currentQuestion?.let { (question, options, answer) ->
-                Text(text = question.statement, style = MaterialTheme.typography.headlineSmall)
+                MarkdownText(
+                    markdown = question.statement,
+                    modifier = Modifier.fillMaxWidth(),
+                    baseStyle = MaterialTheme.typography.headlineSmall,
+                )
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Replay button
@@ -588,7 +593,9 @@ fun SurveyScreen(
                                 .padding(vertical = 8.dp),
                             colors = buttonColors // Apply button colors
                         ) {
-                            Text(text = option.text)
+                            // Inline markdown (bold/italic) supported; inherits the
+                            // button's content color so it still flips on highlight/select.
+                            MarkdownText(markdown = option.text)
                         }
                     }
                 } else if (question.questionType == "multi_select") {
@@ -648,8 +655,8 @@ fun SurveyScreen(
                                     viewModel.toggleMultiSelectOption(option.optionQuestionIndex)
                                 }
                             )
-                            Text(
-                                text = option.text,
+                            MarkdownText(
+                                markdown = option.text,
                                 modifier = Modifier.padding(start = 8.dp)
                             )
                         }

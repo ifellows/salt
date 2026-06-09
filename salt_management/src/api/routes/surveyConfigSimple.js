@@ -336,17 +336,18 @@ router.post('/:surveyId/questions', [
             return true;
         }),
     body('question_text_json').isObject(),
-    body('audio_files_json').optional().isObject(),
+    body('audio_files_json').optional({ nullable: true, checkFalsy: true }).isObject(),
     body('question_type').isIn(['multiple_choice', 'numeric', 'text', 'multi_select', 'info']),
-    body('validation_script').optional().trim(),
-    body('validation_error_json').optional().isObject(),
-    body('pre_script').optional().trim(),
-    body('section_id').optional().isInt(),
-    body('options').optional().isArray(),
-    body('min_selections').optional().isInt({ min: 1 }),
-    body('max_selections').optional().isInt({ min: 1 }),
-    body('skip_to_script').optional().trim(),
-    body('skip_to_target').optional().trim().matches(/^[a-zA-Z0-9_]*$/)
+    body('validation_script').optional({ nullable: true, checkFalsy: true }).trim(),
+    body('validation_error_json').optional({ nullable: true, checkFalsy: true }).isObject(),
+    body('pre_script').optional({ nullable: true, checkFalsy: true }).trim(),
+    // nullable/checkFalsy so an empty section dropdown (NaN -> null) is skipped, not rejected as "Invalid value"
+    body('section_id').optional({ nullable: true, checkFalsy: true }).isInt(),
+    body('options').optional({ nullable: true }).isArray(),
+    body('min_selections').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }),
+    body('max_selections').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }),
+    body('skip_to_script').optional({ nullable: true, checkFalsy: true }).trim(),
+    body('skip_to_target').optional({ nullable: true, checkFalsy: true }).trim().matches(/^[a-zA-Z0-9_]*$/)
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -439,18 +440,19 @@ router.put('/:surveyId/questions/:questionId', [
             if (v === 'value') throw new Error('"value" is a reserved name and cannot be used as a short name');
             return true;
         }),
-    body('question_text_json').optional().isObject(),
-    body('audio_files_json').optional().isObject(),
-    body('question_type').optional().isIn(['multiple_choice', 'numeric', 'text', 'multi_select', 'info']),
-    body('validation_script').optional().trim(),
-    body('validation_error_json').optional().isObject(),
-    body('pre_script').optional().trim(),
-    body('section_id').optional().isInt(),
-    body('options').optional().isArray(),
-    body('min_selections').optional().isInt({ min: 1 }),
-    body('max_selections').optional().isInt({ min: 1 }),
-    body('skip_to_script').optional().trim(),
-    body('skip_to_target').optional().trim().matches(/^[a-zA-Z0-9_]*$/)
+    body('question_text_json').optional({ nullable: true, checkFalsy: true }).isObject(),
+    body('audio_files_json').optional({ nullable: true, checkFalsy: true }).isObject(),
+    body('question_type').optional({ nullable: true, checkFalsy: true }).isIn(['multiple_choice', 'numeric', 'text', 'multi_select', 'info']),
+    body('validation_script').optional({ nullable: true, checkFalsy: true }).trim(),
+    body('validation_error_json').optional({ nullable: true, checkFalsy: true }).isObject(),
+    body('pre_script').optional({ nullable: true, checkFalsy: true }).trim(),
+    // nullable/checkFalsy so an empty section dropdown (NaN -> null) is skipped, not rejected as "Invalid value"
+    body('section_id').optional({ nullable: true, checkFalsy: true }).isInt(),
+    body('options').optional({ nullable: true }).isArray(),
+    body('min_selections').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }),
+    body('max_selections').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }),
+    body('skip_to_script').optional({ nullable: true, checkFalsy: true }).trim(),
+    body('skip_to_target').optional({ nullable: true, checkFalsy: true }).trim().matches(/^[a-zA-Z0-9_]*$/)
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

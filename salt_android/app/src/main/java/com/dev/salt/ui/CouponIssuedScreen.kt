@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import com.dev.salt.ui.components.MarkdownText
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -308,10 +309,10 @@ fun CouponIssuedScreen(
                 Text(text = stringResource(R.string.coupon_screen_instructions_modal_title))
             },
             text = {
-                Text(
-                    text = instructionsMessage
+                MarkdownText(
+                    markdown = instructionsMessage
                         ?: stringResource(R.string.coupon_screen_instructions_fallback),
-                    style = MaterialTheme.typography.bodyLarge
+                    baseStyle = MaterialTheme.typography.bodyLarge
                 )
             },
             confirmButton = {

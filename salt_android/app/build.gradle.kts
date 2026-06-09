@@ -137,4 +137,9 @@ dependencies {
 
     // Signature capture for consent (sain library)
     implementation("io.github.joelkanyi:sain:2.1.3")
+
+    // Markdown rendering for question/info/option text (Compose-native, no AndroidView).
+    // 0.37.0 is built against Kotlin 2.2.20 to match this project's Compose compiler.
+    implementation("com.mikepenz:multiplatform-markdown-renderer-android:0.37.0")
+    implementation("com.mikepenz:multiplatform-markdown-renderer-m3-android:0.37.0")
 }

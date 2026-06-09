@@ -70,6 +70,9 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Static files
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/js/lamejs', express.static(path.join(__dirname, '..', 'node_modules', 'lamejs')));
+// Markdown preview libraries for the survey editor (vendored from node_modules)
+app.use('/js/marked', express.static(path.join(__dirname, '..', 'node_modules', 'marked')));
+app.use('/js/dompurify', express.static(path.join(__dirname, '..', 'node_modules', 'dompurify', 'dist')));
 // Serve files from data/files directory (for APK downloads etc.)
 app.use('/files', express.static(path.join(__dirname, '..', 'data', 'files')));
 

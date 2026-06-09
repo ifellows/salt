@@ -17,7 +17,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import com.dev.salt.ui.components.MarkdownText
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dev.salt.auth.BiometricAuthManager
@@ -157,13 +159,12 @@ fun StaffValidationScreen(
                     textAlign = TextAlign.Center
                 )
 
-                // Message
-                Text(
-                    text = validationMessage.ifEmpty { stringResource(R.string.staff_validation_default) },
-                    fontSize = 18.sp,
-                    color = Color.DarkGray,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(vertical = 16.dp)
+                // Message (Markdown-formatted)
+                MarkdownText(
+                    markdown = validationMessage.ifEmpty { stringResource(R.string.staff_validation_default) },
+                    modifier = Modifier.padding(vertical = 16.dp),
+                    baseStyle = TextStyle(fontSize = 18.sp, textAlign = TextAlign.Center),
+                    color = Color.DarkGray
                 )
 
                 // Audio replay button (only show if audio is available)

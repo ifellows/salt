@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import com.dev.salt.ui.components.MarkdownText
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dev.salt.auth.BiometricAuthManager
@@ -231,11 +232,10 @@ fun RapidTestInstructionScreen(
                                 .padding(vertical = 16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(
-                                text = text,
-                                style = MaterialTheme.typography.bodyLarge,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(bottom = 8.dp)
+                            MarkdownText(
+                                markdown = text,
+                                modifier = Modifier.padding(bottom = 8.dp),
+                                baseStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center)
                             )
 
                             // Replay button if audio exists

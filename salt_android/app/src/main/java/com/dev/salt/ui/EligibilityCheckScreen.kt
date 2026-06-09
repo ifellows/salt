@@ -18,7 +18,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import com.dev.salt.ui.components.MarkdownText
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dev.salt.logging.AppLogger as Log
@@ -158,13 +160,12 @@ fun EligibilityCheckScreen(
                     textAlign = TextAlign.Center
                 )
 
-                // Message
-                Text(
-                    text = message.ifEmpty { stringResource(R.string.eligibility_not_eligible_default) },
-                    fontSize = 18.sp,
-                    color = Color.DarkGray,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(vertical = 16.dp)
+                // Message (Markdown-formatted)
+                MarkdownText(
+                    markdown = message.ifEmpty { stringResource(R.string.eligibility_not_eligible_default) },
+                    modifier = Modifier.padding(vertical = 16.dp),
+                    baseStyle = TextStyle(fontSize = 18.sp, textAlign = TextAlign.Center),
+                    color = Color.DarkGray
                 )
 
                 // Audio replay button if audio is available
