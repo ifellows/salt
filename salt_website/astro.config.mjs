@@ -2,6 +2,8 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
 export default defineConfig({
+  // Canonical production URL. Required for Starlight to emit sitemap.xml.
+  site: 'https://surveysalt.com',
   integrations: [
     starlight({
       title: 'SALT',
