@@ -190,6 +190,13 @@ if (sectionsData.length > 0) {
     bodyHtml += '    </div>\n';
 }
 
+// Mirror the top New Question / Save Order buttons at the bottom of the well so
+// they are reachable without scrolling back up on long surveys.
+bodyHtml += '    <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">\n';
+bodyHtml += '        <button onclick="newQuestion()" class="btn">New Question</button>\n';
+bodyHtml += '        <button onclick="saveQuestionOrder()" class="btn">Save Order</button>\n';
+bodyHtml += '    </div>\n';
+
 function addQuestionHtml(q) {
     bodyHtml += '        <div class="question-item" draggable="true" data-question-id="' + q.id + '" data-question-index="' + q.question_index + '">\n';
     bodyHtml += '            <div class="question-header">\n';

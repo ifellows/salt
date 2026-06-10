@@ -712,15 +712,37 @@ async function seedSampleSurvey(db) {
         [1, SAMPLE_SURVEY.name, SAMPLE_SURVEY.description, SAMPLE_SURVEY.languages, 0, 0]
     );
     const surveyId = surveyResult.lastID;
+
+    // Every survey must have exactly two sections: an 'eligibility' section
+    // (index 0) and a 'main' section (index 1). Create them before the questions
+    // so each question can be assigned to one (matches the create-survey path).
+    const eligibilitySectionResult = await runAsync(
+        db,
+        `INSERT INTO sections (survey_id, section_index, section_type, name, description)
+         VALUES (?, ?, ?, ?, ?)`,
+        [surveyId, 0, 'eligibility', 'Eligibility', 'Screening questions to determine eligibility']
+    );
+    const mainSectionResult = await runAsync(
+        db,
+        `INSERT INTO sections (survey_id, section_index, section_type, name, description)
+         VALUES (?, ?, ?, ?, ?)`,
+        [surveyId, 1, 'main', 'Main', 'Primary survey questions']
+    );
+    const eligibilitySectionId = eligibilitySectionResult.lastID;
+    const mainSectionId = mainSectionResult.lastID;
+    // consent + age are the screening questions; everything else is the main body.
+    const eligibilityShortNames = new Set(['consent', 'age']);
+
     for (let i = 0; i < SAMPLE_SURVEY.questions.length; i++) {
         const q = SAMPLE_SURVEY.questions[i];
+        const sectionId = eligibilityShortNames.has(q.short_name) ? eligibilitySectionId : mainSectionId;
         const qResult = await runAsync(
             db,
             `INSERT INTO questions (survey_id, question_index, short_name, question_text_json,
-                audio_files_json, question_type, validation_script, validation_error_json, pre_script)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                audio_files_json, question_type, validation_script, validation_error_json, pre_script, section_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [surveyId, i, q.short_name, q.question_text, '{}', q.question_type,
-             q.validation_script || null, q.validation_error || null, q.pre_script || null]
+             q.validation_script || null, q.validation_error || null, q.pre_script || null, sectionId]
         );
         const questionId = qResult.lastID;
         if (q.options) {

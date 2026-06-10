@@ -374,12 +374,15 @@ router.post('/:surveyId/questions', [
             return res.status(404).json({ error: 'Survey not found' });
         }
         
-        // If no section_id provided, get the default survey section
+        // If no section_id provided, default to the survey's "main" section
+        // (falling back to the lowest-index section). The non-eligibility body
+        // section is 'main' — there is no 'survey' section_type.
         let finalSectionId = section_id;
         if (!finalSectionId) {
             const defaultSection = await getAsync(
-                'SELECT id FROM sections WHERE survey_id = ? AND section_type = ? LIMIT 1',
-                [surveyId, 'survey']
+                `SELECT id FROM sections WHERE survey_id = ?
+                 ORDER BY (section_type = 'main') DESC, section_index ASC LIMIT 1`,
+                [surveyId]
             );
             finalSectionId = defaultSection ? defaultSection.id : null;
         }
